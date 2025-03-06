@@ -55,58 +55,62 @@ export default function Home() {
             MakeForms empowers teams to build advanced, visually stunning forms
             with top-notch security standards,now enhanced by AI capabilities.
           </h2>
-          <div className="bg-primary rounded-2xl py-6 flex items-center justify-center mt-12 w-1/2">
-            <form action="" className="flex flex-col items-center">
+          <div className="py-6 mt-12">
+            <form action="" className="flex flex-row items-center gap-6">
               <input
-                className="border-secondary border-2 rounded-2xl px-24 py-4 w-full"
+                className="border-secondary border-2 text-6xl font-bold rounded-2xl text-center h-24 w-96"
                 type="text"
-                placeholder="Enter in your PIN sent by your Bridgewell advisor"
+                placeholder="##########"
               />
               <input
                 type="submit"
-                value="Enter Onboarding"
-                className="mt-4 bg-secondary w-full text-white text-2xl font-black rounded-2xl py-6"
+                value="Get Started"
+                className="mt-4 bg-primary w-36 text-white text-2xl font-black rounded-2xl py-8"
               />
             </form>
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-center w-1/2">
-          <div className="bg-primary px-96 py-80 rounded-3xl" />
-        </div>
-      </main>
-      <div className="mx-40 flex flex-col text-center items-center justify-center space-y-12">
-        <div className="w-2/3">
-          <h1 className="font-black text-5xl mb-8">
-            Your “next steps” email makes buyers drag their feet.
-          </h1>
-          <div className="flex flex-row gap-12">
-            <div className="bg-white rounded-2xl p-6 space-y-4 flex flex-col items-center text-center justify-center w-1/2">
-              <h1 className="text-5xl">😀</h1>
-              <p>
-                Prospects get lost in complex follow-up emails full of links and
-                attachments.
-              </p>
-            </div>
+        <div className="flex flex-col items-center justify-center w-1/2 gap-6 rounded-3xl">
+          <video
+            src="video-bridgewell.mp4"
+            autoPlay
+            muted
+            className="w-full rounded-3xl border-8 border-secondary"
+          ></video>
 
-            <div className="bg-white rounded-2xl p-6 space-y-4 flex flex-col items-center text-center justify-center w-1/2">
-              <h1 className="text-5xl">😀</h1>
-              <p>
-                Prospects get lost in complex follow-up emails full of links and
-                attachments.
-              </p>
-            </div>
+          <div className="flex flex-col text-center items-center justify-center space-y-12">
+            <div className="">
+              <div className="flex flex-row gap-4">
+                <div className="bg-white rounded-2xl p-6 space-y-4 flex flex-col items-center text-center justify-center">
+                  <h1 className="text-5xl">😀</h1>
+                  <p>
+                    Prospects get lost in complex follow-up emails full of links
+                    and attachments.
+                  </p>
+                </div>
 
-            <div className="bg-white rounded-2xl p-6 space-y-4 flex flex-col items-center text-center justify-center w-1/2">
-              <h1 className="text-5xl">😀</h1>
-              <p>
-                Prospects get lost in complex follow-up emails full of links and
-                attachments.
-              </p>
+                <div className="bg-white rounded-2xl p-6 space-y-4 flex flex-col items-center text-center justify-center">
+                  <h1 className="text-5xl">😀</h1>
+                  <p>
+                    Prospects get lost in complex follow-up emails full of links
+                    and attachments.
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-2xl p-6 space-y-4 flex flex-col items-center text-center justify-center">
+                  <h1 className="text-5xl">😀</h1>
+                  <p>
+                    Prospects get lost in complex follow-up emails full of links
+                    and attachments.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </main>
+
       <footer className="my-12 text-white rounded-3xl mx-32 p-12 text-2xl font-bold space-x-12 flex flex-row bg-primary justify-between h-96">
         <div className="flex flex-col items-center justify-center">
           <a>Arrows Pricing</a> <a>Arrows Pricing</a> <a>Arrows Pricing</a>{" "}
