@@ -14,6 +14,7 @@ export default {
         primary: {
           DEFAULT: "#3A36BD", // blue-500
           DARK: "#200268",
+          
         },
         secondary: {
           DEFAULT: "#EE7368", // emerald-500
@@ -21,10 +22,6 @@ export default {
         accent: {
           DEFAULT: "#0E6D54", // amber-500
         },
-      },
-      fontFamily: {
-        sans: ["AktivGrotesk", "Arial", "Helvetica", "sans-serif"],
-        custom: ["AktivGrotesk", "Arial", "Helvetica", "sans-serif"],
       },
     },
   },
