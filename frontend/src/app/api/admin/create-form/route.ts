@@ -1,34 +1,66 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { customAlphabet } from "nanoid"; // For generating random IDs
 
-// Get Supabase URL and anon key from environment variables
+// Initialize Supabase client
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+// Create a custom alphabet for generating random IDs
+const nanoid = customAlphabet("1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ", 16);
 
 export async function POST(req: Request) {
     try {
-        // Parse the request body (form data)
-        const { clientName, organization, questions } = await req.json();
+        // Parse the request body
+        const body = await req.json();
+        console.log("Request body:", body);
 
-        // Insert form data into the "forms" table (or create a new one if needed)
-        const { data, error } = await supabase.from("forms").insert([
-            {
-                client_name: clientName,
-                organization,
-                questions: JSON.stringify(questions), // Save questions as a JSON array
-            },
-        ]);
+        // Destructure the data from the request body
+        const { clientName, organization, questions } = body;
 
-        // Handle any errors that occur during the insert operation
+        // Generate a random 16-character ID
+        const loginKey = nanoid(); // e.g., "A1B2C3D4E5F6G7H8"
+
+        // Log the parsed data and generated ID for debugging
+        console.log("Parsed data:", { clientName, organization, questions });
+        console.log("Generated login key:", loginKey);
+
+        // Insert the data into the Supabase table
+        const { data, error } = await supabase
+            .from("clients") // Replace with your table name
+            .insert([
+                {
+                    client_name: clientName,
+                    organization: organization,
+                    questions: questions,
+                    login_key: loginKey, // Add the login key to the table
+                },
+            ]);
+
+        console.log("Supabase response data:", data);
+
+        // Handle Supabase errors
         if (error) {
-            return NextResponse.json({ error: error.message }, { status: 400 });
+            console.error("Supabase error:", error);
+            return NextResponse.json(
+                { error: "Failed to insert data into Supabase" },
+                { status: 500 }
+            );
         }
 
-        return NextResponse.json({ message: "Form created successfully!", data });
+        // Return a success response with the login key
+        return NextResponse.json(
+            { message: "Data inserted successfully", loginKey },
+            { status: 200 }
+        );
+
     } catch (error) {
-        console.error("Error occurred:", error); // Log the error
-        return NextResponse.json({ error: "Something went wrong!" }, { status: 500 });
+        console.error("Error in POST function:", error);
+        return NextResponse.json(
+            { error: "Internal Server Error" },
+            { status: 500 }
+        );
     }
 }

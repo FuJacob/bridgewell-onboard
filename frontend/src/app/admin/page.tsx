@@ -34,7 +34,6 @@ export default function AdminPage() {
 
         console.log("Submitting:", formData);
 
-        // TODO: Send data to an API route (we will build it later)
         const response = await fetch("/api/admin/create-form", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
