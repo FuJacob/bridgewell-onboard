@@ -27,7 +27,7 @@ const Nav = () => {
         </a>
       </div>
       <div>
-        <Link href="/signin">
+        <Link href="/login">
           <button className="flex justify-center font-semibold items-center gap-4 bg-primary rounded-full text-white px-8 py-4">
             <div className="w-32">
               <Image

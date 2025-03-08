@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useState, FormEvent, ChangeEvent } from "react";
 
 import { useRouter } from "next/navigation";
+import { login } from "./actions";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
@@ -19,38 +20,9 @@ const SignIn = () => {
     }
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // Prevent default form submission
-    try {
-      const response = await fetch("/api/signin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-        
-        const data = response.json();
-      if (response.ok) {
-        // Handle successful response
-          console.log(data);
-          
-          router.push("/dashboard");
-        // Redirect or show success message
-      } else {
-        // Handle error response
-        console.error("Login failed");
-        // Show error message
-      }
-    } catch (error) {
-      console.error("Error during login:", error);
-    }
-  };
-
   return (
     <div className="flex justify-center items-center h-screen text-center">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white w-96 h-96 p-12 rounded-2xl flex gap-4 flex-col items-center justify-center shadow-lg"
-      >
+      <form className="bg-white w-96 h-96 p-12 rounded-2xl flex gap-4 flex-col items-center justify-center shadow-lg">
         <div className="mb-4">
           <Link href="/">
             <div className="w-40 mx-auto mb-4">
@@ -67,11 +39,13 @@ const SignIn = () => {
         </div>
 
         <input
-          type="text"
           name="email"
-          placeholder="Username or Email"
+          id="email"
+          type="email"
+          placeholder="Email"
           value={email}
           onChange={handleChange}
+          required
           className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
         />
 
@@ -79,12 +53,15 @@ const SignIn = () => {
           type="password"
           name="password"
           placeholder="Password"
+          id="password"
           value={password}
           onChange={handleChange}
+          required
           className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
         />
 
         <input
+          formAction={login}
           type="submit"
           className="bg-primary py-3 px-6 rounded-2xl text-white font-bold cursor-pointer hover:bg-primary-DARK transition-colors w-full mt-2"
           value="Sign In"
