@@ -4,9 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, FormEvent, ChangeEvent } from "react";
 
+import { useRouter } from "next/navigation";
+
 const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const router = useRouter();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.name === "email") {
@@ -24,10 +27,13 @@ const SignIn = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
+        
+        const data = response.json();
       if (response.ok) {
         // Handle successful response
-        console.log(response.json());
+          console.log(data);
+          
+          router.push("/dashboard");
         // Redirect or show success message
       } else {
         // Handle error response
