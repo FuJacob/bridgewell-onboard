@@ -5,11 +5,13 @@ export default function AdminPage() {
     const [showForm, setShowForm] = useState(false);
     const [clientName, setClientName] = useState("");
     const [organization, setOrganization] = useState("");
-    const [questions, setQuestions] = useState<string[]>([]);
+
+    // Change questions to an array of objects [{ question, responseType }]
+    const [questions, setQuestions] = useState<{ question: string; responseType: string }[]>([]);
 
     // Function to add a new question
     const addQuestion = () => {
-        setQuestions([...questions, ""]); // Add empty question
+        setQuestions([...questions, { question: "", responseType: "text" }]); // Default responseType is "text"
     };
 
     // Function to remove a question by index
@@ -20,7 +22,14 @@ export default function AdminPage() {
     // Function to update a question
     const updateQuestion = (index: number, value: string) => {
         const newQuestions = [...questions];
-        newQuestions[index] = value;
+        newQuestions[index].question = value;
+        setQuestions(newQuestions);
+    };
+
+    // Function to update response type
+    const updateResponseType = (index: number, value: string) => {
+        const newQuestions = [...questions];
+        newQuestions[index].responseType = value;
         setQuestions(newQuestions);
     };
 
@@ -29,7 +38,7 @@ export default function AdminPage() {
         const formData = {
             clientName,
             organization,
-            questions,
+            questions, // Now includes response types
         };
 
         console.log("Submitting:", formData);
@@ -77,11 +86,22 @@ export default function AdminPage() {
                         <div key={index} className="flex gap-2 items-center">
                             <input
                                 type="text"
-                                value={q}
+                                value={q.question}
                                 onChange={(e) => updateQuestion(index, e.target.value)}
                                 placeholder="Enter a question"
                                 className="p-2 border rounded flex-grow"
                             />
+
+                            {/* Dropdown for selecting response type */}
+                            <select
+                                value={q.responseType}
+                                onChange={(e) => updateResponseType(index, e.target.value)}
+                                className="p-2 border rounded"
+                            >
+                                <option value="text">Text</option>
+                                <option value="file">File</option>
+                            </select>
+
                             <button
                                 onClick={() => removeQuestion(index)}
                                 className="bg-red-500 text-white px-2 py-1 rounded"
