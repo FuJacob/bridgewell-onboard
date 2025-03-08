@@ -29,15 +29,16 @@ export async function POST(req: Request) {
 
         // Insert the data into the Supabase table
         const { data, error } = await supabase
-            .from("clients") // Replace with your table name
+            .from("clients") // Ensure your table name is correct
             .insert([
                 {
                     client_name: clientName,
                     organization: organization,
-                    questions: questions,
+                    questions: JSON.stringify(questions),
                     login_key: loginKey, // Add the login key to the table
                 },
-            ]);
+            ])
+            .select("login_key");
 
         console.log("Supabase response data:", data);
 
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
 
         // Return a success response with the login key
         return NextResponse.json(
-            { message: "Data inserted successfully", loginKey },
+            { message: "Client form generated successfully!", loginKey },
             { status: 200 }
         );
 

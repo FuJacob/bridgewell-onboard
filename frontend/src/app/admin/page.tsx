@@ -1,44 +1,38 @@
-"use client"; // Needed for interactive components
+"use client";
 import { useState } from "react";
 
 export default function AdminPage() {
     const [showForm, setShowForm] = useState(false);
     const [clientName, setClientName] = useState("");
     const [organization, setOrganization] = useState("");
-
-    // Change questions to an array of objects [{ question, responseType }]
     const [questions, setQuestions] = useState<{ question: string; responseType: string }[]>([]);
+    const [loginKey, setLoginKey] = useState<string | null>(null);
 
-    // Function to add a new question
     const addQuestion = () => {
-        setQuestions([...questions, { question: "", responseType: "text" }]); // Default responseType is "text"
+        setQuestions([...questions, { question: "", responseType: "text" }]);
     };
 
-    // Function to remove a question by index
     const removeQuestion = (index: number) => {
         setQuestions(questions.filter((_, i) => i !== index));
     };
 
-    // Function to update a question
     const updateQuestion = (index: number, value: string) => {
         const newQuestions = [...questions];
         newQuestions[index].question = value;
         setQuestions(newQuestions);
     };
 
-    // Function to update response type
     const updateResponseType = (index: number, value: string) => {
         const newQuestions = [...questions];
         newQuestions[index].responseType = value;
         setQuestions(newQuestions);
     };
 
-    // Function to handle form submission
     const handleSubmit = async () => {
         const formData = {
             clientName,
             organization,
-            questions, // Now includes response types
+            questions,
         };
 
         console.log("Submitting:", formData);
@@ -50,8 +44,26 @@ export default function AdminPage() {
         });
 
         const data = await response.json();
-        alert(data.message);
+
+        if (data.loginKey) {
+            setLoginKey(data.loginKey); // Save the login key
+        } else {
+            alert(data.error || "An error occurred.");
+        }
     };
+
+    // If loginKey exists, show the success page
+    if (loginKey) {
+        return (
+            <div className="p-6 text-center">
+                <h1 className="text-2xl font-bold mb-4 text-green-600">
+                    Client Form Generated Successfully!
+                </h1>
+                <p className="text-lg">Here is your 16-character client login key:</p>
+                <p className="text-3xl font-mono bg-gray-200 p-4 rounded-lg mt-4">{loginKey}</p>
+            </div>
+        );
+    }
 
     return (
         <div className="p-6">
@@ -91,8 +103,6 @@ export default function AdminPage() {
                                 placeholder="Enter a question"
                                 className="p-2 border rounded flex-grow"
                             />
-
-                            {/* Dropdown for selecting response type */}
                             <select
                                 value={q.responseType}
                                 onChange={(e) => updateResponseType(index, e.target.value)}
@@ -101,7 +111,6 @@ export default function AdminPage() {
                                 <option value="text">Text</option>
                                 <option value="file">File</option>
                             </select>
-
                             <button
                                 onClick={() => removeQuestion(index)}
                                 className="bg-red-500 text-white px-2 py-1 rounded"
