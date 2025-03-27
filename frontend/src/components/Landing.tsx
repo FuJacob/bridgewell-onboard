@@ -1,7 +1,46 @@
-import React from 'react'
+"use client";
+
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
 const Landing = () => {
+  const [loginKey, setLoginKey] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!loginKey.trim()) {
+      setError('Please enter your login key');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Validate the key
+      const response = await fetch(`/api/client/validate-key?key=${encodeURIComponent(loginKey)}`);
+      const data = await response.json();
+
+      if (response.ok && data.valid) {
+        // Redirect to the client form page with the key
+        router.push(`/client/form/${loginKey}`);
+      } else {
+        setError(data.error || 'Invalid key. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error validating key:', err);
+      setError('An error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <main className="mx-40 min-h-screen flex flex-row items-center justify-center">
       <div className="flex flex-col w-1/2">
@@ -21,20 +60,41 @@ const Landing = () => {
         </h1>
         <h2 className="w-2/3">
           MakeForms empowers teams to build advanced, visually stunning forms
-          with top-notch security standards,now enhanced by AI capabilities.
+          with top-notch security standards, now enhanced by AI capabilities.
         </h2>
         <div className="py-6 mt-12">
-          <form action="" className="flex flex-row items-center gap-6">
-            <input
-              className="border-secondary border-2 text-4xl font-bold rounded-2xl text-center h-24 w-96"
-              type="text"
-              placeholder="10-digit code"
-            />
-            <input
-              type="submit"
-              value="Submit"
-              className="bg-primary w-36 text-white text-2xl font-bold rounded-2xl py-8"
-            />
+          <form onSubmit={handleSubmit} className="flex flex-col items-start gap-3">
+            <div className="flex flex-row items-center gap-6">
+              <input
+                className="border-secondary border-2 text-4xl font-bold rounded-2xl text-center h-24 w-96"
+                type="text"
+                placeholder="Enter your code"
+                value={loginKey}
+                onChange={(e) => setLoginKey(e.target.value)}
+              />
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={`bg-primary w-36 text-white text-2xl font-bold rounded-2xl py-8
+                  ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary-DARK'}`}
+              >
+                {isSubmitting ? 'Checking...' : 'Submit'}
+              </button>
+            </div>
+            {error && (
+              <div className="text-red-500 font-medium ml-2">{error}</div>
+            )}
+            <div className="flex items-center justify-between w-full mt-2">
+              <Link 
+                href={loginKey ? `/client?key=${encodeURIComponent(loginKey)}` : "/client"} 
+                className="text-primary hover:underline ml-2"
+              >
+                Access client portal
+              </Link>
+              <Link href="/admin" className="text-primary hover:underline mr-2">
+                Admin login
+              </Link>
+            </div>
           </form>
         </div>
       </div>

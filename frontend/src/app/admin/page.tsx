@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function AdminPage() {
     const [showForm, setShowForm] = useState(false);
@@ -10,14 +11,17 @@ export default function AdminPage() {
         question: string; 
         description: string; 
         responseType: string;
+        dueDate: string;
     }[]>([]);
     const [loginKey, setLoginKey] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const addQuestion = () => {
         setQuestions([...questions, { 
             question: "", 
             description: "", 
-            responseType: "text" 
+            responseType: "text",
+            dueDate: "" 
         }]);
     };
 
@@ -43,6 +47,12 @@ export default function AdminPage() {
         setQuestions(newQuestions);
     };
 
+    const updateDueDate = (index: number, value: string) => {
+        const newQuestions = [...questions];
+        newQuestions[index].dueDate = value;
+        setQuestions(newQuestions);
+    };
+
     const moveQuestionUp = (index: number) => {
         if (index === 0) return;
         const newQuestions = [...questions];
@@ -62,6 +72,31 @@ export default function AdminPage() {
     };
 
     const handleSubmit = async () => {
+        // Validate form fields
+        setError(null);
+        
+        if (!clientName.trim()) {
+            setError("Client name is required");
+            return;
+        }
+        
+        if (!organization.trim()) {
+            setError("Organization is required");
+            return;
+        }
+        
+        if (questions.length === 0) {
+            setError("At least one question is required");
+            return;
+        }
+        
+        for (let i = 0; i < questions.length; i++) {
+            if (!questions[i].question.trim()) {
+                setError(`Question ${i+1} requires a question text`);
+                return;
+            }
+        }
+        
         const formData = {
             clientName,
             organization,
@@ -81,7 +116,7 @@ export default function AdminPage() {
         if (data.loginKey) {
             setLoginKey(data.loginKey);
         } else {
-            alert(data.error || "An error occurred.");
+            setError(data.error || "An error occurred.");
         }
     };
 
@@ -90,13 +125,16 @@ export default function AdminPage() {
         return (
             <div className="p-8 max-w-4xl mx-auto text-center">
                 <div className="w-24 bg-gray-200 rounded-full px-4 py-2 mb-4 mx-auto">
-                    <Image
-                        src="/logo-bridgewell.png"
-                        alt="Bridgewell Financial Logo"
-                        width={80}
-                        height={80}
-                        layout="responsive"
-                    />
+                    <Link href="/">
+                        <Image
+                            src="/logo-bridgewell.png"
+                            alt="Bridgewell Financial Logo"
+                            width={80}
+                            height={80}
+                            layout="responsive"
+                            className="cursor-pointer"
+                        />
+                    </Link>
                 </div>
                 <h1 className="text-3xl font-bold mb-6 text-primary">
                     Client Form Generated Successfully!
@@ -116,13 +154,16 @@ export default function AdminPage() {
     return (
         <div className="p-8 max-w-6xl mx-auto">
             <div className="w-28 bg-gray-200 rounded-full px-4 py-2 mb-4">
-                <Image
-                    src="/logo-bridgewell.png"
-                    alt="Bridgewell Financial Logo"
-                    width={100}
-                    height={100}
-                    layout="responsive"
-                />
+                <Link href="/">
+                    <Image
+                        src="/logo-bridgewell.png"
+                        alt="Bridgewell Financial Logo"
+                        width={100}
+                        height={100}
+                        layout="responsive"
+                        className="cursor-pointer"
+                    />
+                </Link>
             </div>
             <h1 className="text-4xl font-bold mb-6 text-primary">Admin Panel</h1>
             <p className="text-lg mb-8">Create customized forms for client onboarding</p>
@@ -137,6 +178,13 @@ export default function AdminPage() {
             ) : (
                 <div className="space-y-6 bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
                     <h2 className="text-2xl font-semibold text-primary">Client Information</h2>
+                    
+                    {error && (
+                        <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
+                            <p>{error}</p>
+                        </div>
+                    )}
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label className="block text-sm font-medium mb-1">Client Name</label>
@@ -228,16 +276,28 @@ export default function AdminPage() {
                                         />
                                     </div>
                                     
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">Response Type</label>
-                                        <select
-                                            value={q.responseType}
-                                            onChange={(e) => updateResponseType(index, e.target.value)}
-                                            className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl bg-white"
-                                        >
-                                            <option value="text">Text Response</option>
-                                            <option value="file">File Upload</option>
-                                        </select>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Response Type</label>
+                                            <select
+                                                value={q.responseType}
+                                                onChange={(e) => updateResponseType(index, e.target.value)}
+                                                className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl bg-white"
+                                            >
+                                                <option value="text">Text Response</option>
+                                                <option value="file">File Upload</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Due Date (optional)</label>
+                                            <input
+                                                type="date"
+                                                value={q.dueDate}
+                                                onChange={(e) => updateDueDate(index, e.target.value)}
+                                                className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
