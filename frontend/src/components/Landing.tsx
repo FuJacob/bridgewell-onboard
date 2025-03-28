@@ -84,17 +84,6 @@ const Landing = () => {
             {error && (
               <div className="text-red-500 font-medium ml-2">{error}</div>
             )}
-            <div className="flex items-center justify-between w-full mt-2">
-              <Link 
-                href={loginKey ? `/client?key=${encodeURIComponent(loginKey)}` : "/client"} 
-                className="text-primary hover:underline ml-2"
-              >
-                Access client portal
-              </Link>
-              <Link href="/admin" className="text-primary hover:underline mr-2">
-                Admin login
-              </Link>
-            </div>
           </form>
         </div>
       </div>
