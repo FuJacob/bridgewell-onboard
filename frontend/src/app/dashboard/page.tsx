@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [showFormModal, setShowFormModal] = useState(false);
   const [clientName, setClientName] = useState("");
   const [organization, setOrganization] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
   const [questions, setQuestions] = useState<
     {
       question: string;
@@ -199,25 +200,30 @@ export default function Dashboard() {
 
   const handleFormSubmit = async () => {
     setFormError(null);
+    setIsGenerating(true);
 
     if (!clientName.trim()) {
       setFormError("Client name is required");
+      setIsGenerating(false);
       return;
     }
 
     if (!organization.trim()) {
       setFormError("Organization is required");
+      setIsGenerating(false);
       return;
     }
 
     if (questions.length === 0) {
       setFormError("At least one question is required");
+      setIsGenerating(false);
       return;
     }
 
     for (let i = 0; i < questions.length; i++) {
       if (!questions[i].question.trim()) {
         setFormError(`Question ${i + 1} requires a question text`);
+        setIsGenerating(false);
         return;
       }
     }
@@ -239,6 +245,7 @@ export default function Dashboard() {
 
       if (!response.ok) {
         setFormError(data.error || "Failed to create form");
+        setIsGenerating(false);
         return;
       }
 
@@ -257,6 +264,8 @@ export default function Dashboard() {
     } catch (err) {
       console.error("Error creating form:", err);
       setFormError("Failed to create form. Please try again.");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -446,7 +455,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-              ))}
+              ))},
 
               <div className="flex justify-end gap-4 mt-6">
                 <button
@@ -457,9 +466,17 @@ export default function Dashboard() {
                 </button>
                 <button
                   onClick={handleFormSubmit}
-                  className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-DARK transition"
+                  disabled={isGenerating}
+                  className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-DARK transition flex items-center gap-2"
                 >
-                  Generate Form
+                  {isGenerating ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Generating...
+                    </>
+                  ) : (
+                    "Generate Form"
+                  )}
                 </button>
               </div>
             </div>
