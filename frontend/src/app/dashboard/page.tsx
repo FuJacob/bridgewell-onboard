@@ -25,6 +25,7 @@ type FormSubmission = {
 };
 
 export default function Dashboard() {
+  const [mounted, setMounted] = useState(false);
   const [forms, setForms] = useState<FormData[]>([]);
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,10 +47,18 @@ export default function Dashboard() {
   const [loginKey, setLoginKey] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Handle client-side mounting
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     const fetchData = async () => {
       try {
         const supabase = createClient();
+        console.log("Supabase client initialized");
 
         // Fetch forms
         const { data: formsData, error: formsError } = await supabase
@@ -58,14 +67,24 @@ export default function Dashboard() {
           .order("created_at", { ascending: false });
 
         if (formsError) {
-          console.error("Error fetching forms:", formsError);
-          setError("Failed to load forms data");
+          console.error("Error fetching forms:", {
+            message: formsError.message,
+            details: formsError.details,
+            hint: formsError.hint,
+            code: formsError.code
+          });
+          if (formsError.code === '42P01') {
+            setError("Database table 'clients' does not exist. Please check your database setup.");
+          } else {
+            setError("Failed to load forms data");
+          }
           setForms([]);
         } else {
           setForms(formsData || []);
         }
 
         // Fetch submissions
+        console.log("Fetching submissions...");
         const { data: submissionsData, error: submissionsError } =
           await supabase
             .from("submissions")
@@ -73,14 +92,29 @@ export default function Dashboard() {
             .order("submitted_at", { ascending: false });
 
         if (submissionsError) {
-          console.error("Error fetching submissions:", submissionsError);
-          setError("Failed to load submissions data");
+          console.error("Error fetching submissions:", {
+            message: submissionsError.message,
+            details: submissionsError.details,
+            hint: submissionsError.hint,
+            code: submissionsError.code,
+            stack: submissionsError.stack
+          });
+          if (submissionsError.code === '42P01') {
+            setError("Database table 'submissions' does not exist. Please check your database setup.");
+          } else {
+            setError(`Failed to load submissions data: ${submissionsError.message}`);
+          }
           setSubmissions([]);
         } else {
+          console.log("Submissions fetched successfully:", submissionsData);
           setSubmissions(submissionsData || []);
         }
       } catch (err) {
-        console.error("Error fetching dashboard data:", err);
+        console.error("Error fetching dashboard data:", {
+          error: err,
+          message: err instanceof Error ? err.message : "Unknown error",
+          stack: err instanceof Error ? err.stack : undefined
+        });
         setError("Failed to load dashboard data");
         setForms([]);
         setSubmissions([]);
@@ -90,7 +124,7 @@ export default function Dashboard() {
     };
 
     fetchData();
-  }, []);
+  }, [mounted]);
 
   const getFormStatus = (form: FormData) => {
     const formSubmissions = submissions.filter(
@@ -203,6 +237,11 @@ export default function Dashboard() {
 
       const data = await response.json();
 
+      if (!response.ok) {
+        setFormError(data.error || "Failed to create form");
+        return;
+      }
+
       if (data.loginKey) {
         setLoginKey(data.loginKey);
         // Refresh the forms list
@@ -216,6 +255,7 @@ export default function Dashboard() {
         setFormError(data.error || "An error occurred.");
       }
     } catch (err) {
+      console.error("Error creating form:", err);
       setFormError("Failed to create form. Please try again.");
     }
   };

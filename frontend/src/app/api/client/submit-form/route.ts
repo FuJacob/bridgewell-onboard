@@ -1,96 +1,72 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/app/utils/supabase/server";
+import { uploadFileToClientFolder } from "@/app/utils/microsoft/graph";
 
-// Initialize Supabase client
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
     try {
-        // Parse the multipart form data
         const formData = await request.formData();
         const loginKey = formData.get("loginKey") as string;
-        const clientId = formData.get("clientId") as string;
-        const clientName = formData.get("clientName") as string;
-        
-        // Parse the responses JSON
-        const responsesJSON = formData.get("responses") as string;
-        let responses;
-        
-        try {
-            responses = JSON.parse(responsesJSON);
-        } catch (error) {
-            console.error("Error parsing responses JSON:", error);
-            return NextResponse.json({ error: "Invalid responses data" }, { status: 400 });
+        const responses = formData.get("responses") as string;
+        const files = formData.getAll("files") as File[];
+
+        const supabase = await createClient();
+
+        // Get client information
+        const { data: clientData, error: clientError } = await supabase
+            .from("clients")
+            .select("*")
+            .eq("login_key", loginKey)
+            .single();
+
+        if (clientError || !clientData) {
+            return NextResponse.json(
+                { error: "Invalid login key" },
+                { status: 400 }
+            );
         }
-        
-        // Process file uploads if present
-        const fileResponses: { [key: string]: { url: string; filename: string } } = {};
-        
-        // Process each file in the form data
-        for (const [key, value] of formData.entries()) {
-            if (key.startsWith("file_") && value instanceof File) {
-                const questionIndex = key.replace("file_", "");
-                const filename = value.name;
-                const fileBuffer = await value.arrayBuffer();
-                
-                // Upload file to Supabase Storage
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from("client-uploads")
-                    .upload(`${clientId}/${loginKey}_${questionIndex}_${filename}`, fileBuffer, {
-                        contentType: value.type,
-                        upsert: true,
-                    });
-                
-                if (uploadError) {
-                    console.error("Error uploading file:", uploadError);
-                    continue;
-                }
-                
-                // Get public URL for the uploaded file
-                const { data: publicUrlData } = supabase.storage
-                    .from("client-uploads")
-                    .getPublicUrl(uploadData.path);
-                
-                fileResponses[questionIndex] = {
-                    url: publicUrlData.publicUrl,
-                    filename,
-                };
-            }
+
+        // Upload files to OneDrive
+        const uploadedFiles = [];
+        for (const file of files) {
+            const buffer = await file.arrayBuffer();
+            const fileId = await uploadFileToClientFolder(
+                clientData.client_id,
+                clientData.client_name,
+                file.name,
+                new Blob([buffer])
+            );
+            uploadedFiles.push({
+                name: file.name,
+                id: fileId,
+            });
         }
-        
-        // Update responses with file URLs
-        for (const [index, fileData] of Object.entries(fileResponses)) {
-            if (responses[index] && responses[index].responseType === "file") {
-                responses[index].fileUrl = fileData.url;
-            }
+
+        // Store submission in Supabase
+        const { error: submissionError } = await supabase.from("submissions").insert([
+            {
+                client_id: clientData.client_id,
+                client_name: clientData.client_name,
+                login_key: loginKey,
+                responses: responses,
+                files: uploadedFiles,
+            },
+        ]);
+
+        if (submissionError) {
+            console.error("Error storing submission:", submissionError);
+            return NextResponse.json(
+                { error: "Failed to store submission" },
+                { status: 500 }
+            );
         }
-        
-        // Save the form submission in the database
-        const { data, error } = await supabase
-            .from("submissions")
-            .insert([
-                {
-                    client_id: clientId,
-                    client_name: clientName,
-                    login_key: loginKey,
-                    responses: JSON.stringify(responses),
-                    submitted_at: new Date().toISOString(),
-                },
-            ]);
-        
-        if (error) {
-            console.error("Error saving submission:", error);
-            return NextResponse.json({ error: "Failed to save submission" }, { status: 500 });
-        }
-        
-        return NextResponse.json({ success: true, message: "Form submitted successfully" });
-        
+
+        return NextResponse.json({ message: "Form submitted successfully" });
     } catch (error) {
-        console.error("Error in submit-form API:", error);
-        return NextResponse.json({ error: "Server error" }, { status: 500 });
+        console.error("Error in submit-form:", error);
+        return NextResponse.json(
+            { error: "Internal server error" },
+            { status: 500 }
+        );
     }
 }
 

@@ -1,0 +1,1 @@
+export function getAccessToken(): Promise<string>; 
