@@ -32,6 +32,19 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<"all" | "pending" | "completed">(
     "all"
   );
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [clientName, setClientName] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [questions, setQuestions] = useState<
+    {
+      question: string;
+      description: string;
+      responseType: string;
+      dueDate: string;
+    }[]
+  >([]);
+  const [loginKey, setLoginKey] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -92,6 +105,130 @@ export default function Dashboard() {
     return getFormStatus(form) === activeTab;
   });
 
+  const addQuestion = () => {
+    setQuestions([
+      ...questions,
+      {
+        question: "",
+        description: "",
+        responseType: "text",
+        dueDate: "",
+      },
+    ]);
+  };
+
+  const removeQuestion = (index: number) => {
+    setQuestions(questions.filter((_, i) => i !== index));
+  };
+
+  const updateQuestion = (index: number, value: string) => {
+    const newQuestions = [...questions];
+    newQuestions[index].question = value;
+    setQuestions(newQuestions);
+  };
+
+  const updateDescription = (index: number, value: string) => {
+    const newQuestions = [...questions];
+    newQuestions[index].description = value;
+    setQuestions(newQuestions);
+  };
+
+  const updateResponseType = (index: number, value: string) => {
+    const newQuestions = [...questions];
+    newQuestions[index].responseType = value;
+    setQuestions(newQuestions);
+  };
+
+  const updateDueDate = (index: number, value: string) => {
+    const newQuestions = [...questions];
+    newQuestions[index].dueDate = value;
+    setQuestions(newQuestions);
+  };
+
+  const moveQuestionUp = (index: number) => {
+    if (index === 0) return;
+    const newQuestions = [...questions];
+    const temp = newQuestions[index];
+    newQuestions[index] = newQuestions[index - 1];
+    newQuestions[index - 1] = temp;
+    setQuestions(newQuestions);
+  };
+
+  const moveQuestionDown = (index: number) => {
+    if (index === questions.length - 1) return;
+    const newQuestions = [...questions];
+    const temp = newQuestions[index];
+    newQuestions[index] = newQuestions[index + 1];
+    newQuestions[index + 1] = temp;
+    setQuestions(newQuestions);
+  };
+
+  const handleFormSubmit = async () => {
+    setFormError(null);
+
+    if (!clientName.trim()) {
+      setFormError("Client name is required");
+      return;
+    }
+
+    if (!organization.trim()) {
+      setFormError("Organization is required");
+      return;
+    }
+
+    if (questions.length === 0) {
+      setFormError("At least one question is required");
+      return;
+    }
+
+    for (let i = 0; i < questions.length; i++) {
+      if (!questions[i].question.trim()) {
+        setFormError(`Question ${i + 1} requires a question text`);
+        return;
+      }
+    }
+
+    const formData = {
+      clientName,
+      organization,
+      questions,
+    };
+
+    try {
+      const response = await fetch("/api/admin/create-form", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.loginKey) {
+        setLoginKey(data.loginKey);
+        // Refresh the forms list
+        const supabase = createClient();
+        const { data: formsData } = await supabase
+          .from("clients")
+          .select("*")
+          .order("created_at", { ascending: false });
+        setForms(formsData || []);
+      } else {
+        setFormError(data.error || "An error occurred.");
+      }
+    } catch (err) {
+      setFormError("Failed to create form. Please try again.");
+    }
+  };
+
+  const resetForm = () => {
+    setClientName("");
+    setOrganization("");
+    setQuestions([]);
+    setLoginKey(null);
+    setFormError(null);
+    setShowFormModal(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6">
@@ -130,12 +267,12 @@ export default function Dashboard() {
               )}
             </div>
           </div>
-          <Link
-            href="/admin"
+          <button
+            onClick={() => setShowFormModal(true)}
             className="bg-secondary text-white px-6 py-3 rounded-xl font-bold hover:opacity-90 transition"
           >
             Create New Form
-          </Link>
+          </button>
         </div>
 
         {/* Stats Overview */}
@@ -343,26 +480,228 @@ export default function Dashboard() {
           )}
         </div>
 
-        {error && (
-          <div className="mt-6 flex justify-center">
-            <button
-              onClick={() => window.location.reload()}
-              className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-            >
-              <svg
-                className="-ml-1 mr-2 h-5 w-5 text-gray-500"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Retry Loading Data
-            </button>
+        {/* Form Creation Modal */}
+        {showFormModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold text-primary">
+                    Create New Form
+                  </h2>
+                  <button
+                    onClick={resetForm}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {loginKey ? (
+                <div className="p-6 text-center">
+                  <h3 className="text-xl font-bold text-primary mb-4">
+                    Form Created Successfully!
+                  </h3>
+                  <p className="text-lg mb-2">Here is your client login key:</p>
+                  <p className="text-3xl font-mono bg-gray-100 p-6 rounded-2xl mt-4 border-2 border-secondary">
+                    {loginKey}
+                  </p>
+                  <button
+                    onClick={resetForm}
+                    className="mt-6 bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-DARK transition"
+                  >
+                    Create Another Form
+                  </button>
+                </div>
+              ) : (
+                <div className="p-6">
+                  {formError && (
+                    <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded mb-6">
+                      <p>{formError}</p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Client Name
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Enter client name"
+                        value={clientName}
+                        onChange={(e) => setClientName(e.target.value)}
+                        className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Organization
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Enter organization name"
+                        value={organization}
+                        onChange={(e) => setOrganization(e.target.value)}
+                        className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="border-t border-gray-200 pt-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-semibold text-primary">
+                        Questions
+                      </h3>
+                      <button
+                        onClick={addQuestion}
+                        className="bg-secondary text-white px-4 py-2 rounded-xl font-medium"
+                      >
+                        + Add Question
+                      </button>
+                    </div>
+
+                    {questions.length === 0 && (
+                      <div className="text-center py-8 bg-gray-50 rounded-xl">
+                        <p className="text-gray-500">
+                          No questions added yet. Click "Add Question" to get
+                          started.
+                        </p>
+                      </div>
+                    )}
+
+                    {questions.map((q, index) => (
+                      <div
+                        key={index}
+                        className="mb-6 p-6 border-2 border-gray-200 rounded-xl bg-gray-50"
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <span className="bg-primary text-white text-sm py-1 px-3 rounded-full">
+                            Question {index + 1}
+                          </span>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => moveQuestionUp(index)}
+                              disabled={index === 0}
+                              className={`p-2 rounded ${
+                                index === 0
+                                  ? "text-gray-400"
+                                  : "text-primary hover:bg-gray-200"
+                              }`}
+                            >
+                              ↑
+                            </button>
+                            <button
+                              onClick={() => moveQuestionDown(index)}
+                              disabled={index === questions.length - 1}
+                              className={`p-2 rounded ${
+                                index === questions.length - 1
+                                  ? "text-gray-400"
+                                  : "text-primary hover:bg-gray-200"
+                              }`}
+                            >
+                              ↓
+                            </button>
+                            <button
+                              onClick={() => removeQuestion(index)}
+                              className="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-1">
+                              Question
+                            </label>
+                            <input
+                              type="text"
+                              value={q.question}
+                              onChange={(e) =>
+                                updateQuestion(index, e.target.value)
+                              }
+                              placeholder="Enter your question"
+                              className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium mb-1">
+                              Description (optional)
+                            </label>
+                            <input
+                              type="text"
+                              value={q.description}
+                              onChange={(e) =>
+                                updateDescription(index, e.target.value)
+                              }
+                              placeholder="Add a short description or hint for this question"
+                              className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-1">
+                                Response Type
+                              </label>
+                              <select
+                                value={q.responseType}
+                                onChange={(e) =>
+                                  updateResponseType(index, e.target.value)
+                                }
+                                className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl bg-white"
+                              >
+                                <option value="text">Text Response</option>
+                                <option value="file">File Upload</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium mb-1">
+                                Due Date (optional)
+                              </label>
+                              <input
+                                type="date"
+                                value={q.dueDate}
+                                onChange={(e) =>
+                                  updateDueDate(index, e.target.value)
+                                }
+                                className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {questions.length > 0 && (
+                      <button
+                        onClick={handleFormSubmit}
+                        className="mt-6 bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-DARK transition w-full md:w-auto"
+                      >
+                        Generate Client Form
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
