@@ -546,20 +546,22 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-6">
-            <div className="w-16 bg-gray-200 rounded-full px-2 py-1">
-              <Link href="/">
-                <Image
-                  src="/logo-bridgewell.png"
-                  alt="Bridgewell Financial Logo"
-                  width={60}
-                  height={60}
-                  layout="responsive"
-                  className="cursor-pointer"
-                />
-              </Link>
-            </div>
             <div>
-              <h1 className="text-3xl font-bold text-primary">Dashboard</h1>
+              <div className="flex items-center gap-5">
+                <div className="w-456">
+                  <Link href="/">
+                    <Image
+                      src="/logo-bridgewell.png"
+                      alt="Bridgewell Financial Logo"
+                      width={100}
+                      height={100}
+                      layout="responsive"
+                      className="cursor-pointer"
+                    />
+                  </Link>
+                </div>
+                <h1 className="text-4xl font-bold text-primary">Dashboard</h1>
+              </div>{" "}
               {error && (
                 <p className="text-red-500 text-sm mt-1">
                   {error} - Showing available data
