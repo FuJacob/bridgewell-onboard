@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/app/utils/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
+import { create } from "domain";
+import { sign } from "crypto";
 
 type FormData = {
   id: string;
@@ -48,9 +50,20 @@ export default function Dashboard() {
   const [loginKey, setLoginKey] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
+  async function checkSignedIn() {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const isAuthed = !!user?.aud;
+
+    if (!isAuthed) redirect("/");
+  }
   // Handle client-side mounting
   useEffect(() => {
     setMounted(true);
+    checkSignedIn();
   }, []);
 
   useEffect(() => {
@@ -72,10 +85,12 @@ export default function Dashboard() {
             message: formsError.message,
             details: formsError.details,
             hint: formsError.hint,
-            code: formsError.code
+            code: formsError.code,
           });
-          if (formsError.code === '42P01') {
-            setError("Database table 'clients' does not exist. Please check your database setup.");
+          if (formsError.code === "42P01") {
+            setError(
+              "Database table 'clients' does not exist. Please check your database setup."
+            );
           } else {
             setError("Failed to load forms data");
           }
@@ -98,12 +113,16 @@ export default function Dashboard() {
             details: submissionsError.details,
             hint: submissionsError.hint,
             code: submissionsError.code,
-            stack: submissionsError.stack
+            stack: submissionsError.stack,
           });
-          if (submissionsError.code === '42P01') {
-            setError("Database table 'submissions' does not exist. Please check your database setup.");
+          if (submissionsError.code === "42P01") {
+            setError(
+              "Database table 'submissions' does not exist. Please check your database setup."
+            );
           } else {
-            setError(`Failed to load submissions data: ${submissionsError.message}`);
+            setError(
+              `Failed to load submissions data: ${submissionsError.message}`
+            );
           }
           setSubmissions([]);
         } else {
@@ -114,7 +133,7 @@ export default function Dashboard() {
         console.error("Error fetching dashboard data:", {
           error: err,
           message: err instanceof Error ? err.message : "Unknown error",
-          stack: err instanceof Error ? err.stack : undefined
+          stack: err instanceof Error ? err.stack : undefined,
         });
         setError("Failed to load dashboard data");
         setForms([]);
@@ -306,8 +325,10 @@ export default function Dashboard() {
             Client Form Generated Successfully!
           </h1>
           <p className="text-lg mb-2">Here is your client login key:</p>
-          <p className="text-3xl font-mono bg-gray-100 p-6 rounded-2xl mt-4 border-2 border-secondary">{loginKey}</p>
-          <button 
+          <p className="text-3xl font-mono bg-gray-100 p-6 rounded-2xl mt-4 border-2 border-secondary">
+            {loginKey}
+          </p>
+          <button
             onClick={resetForm}
             className="mt-8 bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-DARK transition"
           >
@@ -323,7 +344,9 @@ export default function Dashboard() {
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 overflow-y-auto">
         <div className="bg-white rounded-2xl p-8 max-w-4xl w-full">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold text-primary">Create New Client Form</h2>
+            <h2 className="text-2xl font-semibold text-primary">
+              Create New Client Form
+            </h2>
             <button
               onClick={resetForm}
               className="text-gray-500 hover:text-gray-700"
@@ -341,7 +364,9 @@ export default function Dashboard() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium mb-1">Client Name</label>
+                <label className="block text-sm font-medium mb-1">
+                  Client Name
+                </label>
                 <input
                   type="text"
                   placeholder="Enter client name"
@@ -351,7 +376,9 @@ export default function Dashboard() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Organization</label>
+                <label className="block text-sm font-medium mb-1">
+                  Organization
+                </label>
                 <input
                   type="text"
                   placeholder="Enter organization name"
@@ -364,7 +391,9 @@ export default function Dashboard() {
 
             <div className="border-t border-gray-200 pt-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold text-primary">Questions</h3>
+                <h3 className="text-xl font-semibold text-primary">
+                  Questions
+                </h3>
                 <button
                   onClick={addQuestion}
                   className="bg-secondary text-white px-4 py-2 rounded-xl font-medium"
@@ -372,29 +401,42 @@ export default function Dashboard() {
                   + Add Question
                 </button>
               </div>
-
               {questions.length === 0 && (
                 <div className="text-center py-8 bg-gray-50 rounded-xl">
-                  <p className="text-gray-500">No questions added yet. Click "Add Question" to get started.</p>
+                  <p className="text-gray-500">
+                    No questions added yet. Click "Add Question" to get started.
+                  </p>
                 </div>
               )}
-
               {questions.map((q, index) => (
-                <div key={index} className="mb-6 p-6 border-2 border-gray-200 rounded-xl bg-gray-50">
+                <div
+                  key={index}
+                  className="mb-6 p-6 border-2 border-gray-200 rounded-xl bg-gray-50"
+                >
                   <div className="flex justify-between items-start mb-4">
-                    <span className="bg-primary text-white text-sm py-1 px-3 rounded-full">Question {index + 1}</span>
+                    <span className="bg-primary text-white text-sm py-1 px-3 rounded-full">
+                      Question {index + 1}
+                    </span>
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => moveQuestionUp(index)}
                         disabled={index === 0}
-                        className={`p-2 rounded ${index === 0 ? 'text-gray-400' : 'text-primary hover:bg-gray-200'}`}
+                        className={`p-2 rounded ${
+                          index === 0
+                            ? "text-gray-400"
+                            : "text-primary hover:bg-gray-200"
+                        }`}
                       >
                         ↑
                       </button>
                       <button
                         onClick={() => moveQuestionDown(index)}
                         disabled={index === questions.length - 1}
-                        className={`p-2 rounded ${index === questions.length - 1 ? 'text-gray-400' : 'text-primary hover:bg-gray-200'}`}
+                        className={`p-2 rounded ${
+                          index === questions.length - 1
+                            ? "text-gray-400"
+                            : "text-primary hover:bg-gray-200"
+                        }`}
                       >
                         ↓
                       </button>
@@ -409,7 +451,9 @@ export default function Dashboard() {
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Question</label>
+                      <label className="block text-sm font-medium mb-1">
+                        Question
+                      </label>
                       <input
                         type="text"
                         value={q.question}
@@ -420,11 +464,15 @@ export default function Dashboard() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">Description (optional)</label>
+                      <label className="block text-sm font-medium mb-1">
+                        Description (optional)
+                      </label>
                       <input
                         type="text"
                         value={q.description}
-                        onChange={(e) => updateDescription(index, e.target.value)}
+                        onChange={(e) =>
+                          updateDescription(index, e.target.value)
+                        }
                         placeholder="Add a short description or hint for this question"
                         className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
                       />
@@ -432,10 +480,14 @@ export default function Dashboard() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium mb-1">Response Type</label>
+                        <label className="block text-sm font-medium mb-1">
+                          Response Type
+                        </label>
                         <select
                           value={q.responseType}
-                          onChange={(e) => updateResponseType(index, e.target.value)}
+                          onChange={(e) =>
+                            updateResponseType(index, e.target.value)
+                          }
                           className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl bg-white"
                         >
                           <option value="text">Text Response</option>
@@ -444,7 +496,9 @@ export default function Dashboard() {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium mb-1">Due Date (optional)</label>
+                        <label className="block text-sm font-medium mb-1">
+                          Due Date (optional)
+                        </label>
                         <input
                           type="date"
                           value={q.dueDate}
@@ -455,8 +509,8 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-              ))},
-
+              ))}
+              ,
               <div className="flex justify-end gap-4 mt-6">
                 <button
                   onClick={resetForm}
