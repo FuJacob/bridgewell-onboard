@@ -424,7 +424,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               ))}
-              ,
+              
               <div className="flex justify-end gap-4 mt-6">
                 <button
                   onClick={resetForm}
