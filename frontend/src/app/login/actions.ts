@@ -5,6 +5,23 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/app/utils/supabase/server";
 
+export async function getAllForms() {
+  const supabase = await createClient();
+
+  try {
+    const { data, error } = await supabase.from("clients").select("*");
+    console.log(data);
+    if (error) {
+      console.log(error);
+      return [];
+    }
+    return data;
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
+
 export async function login(formData: FormData) {
   const supabase = await createClient();
 

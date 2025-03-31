@@ -69,13 +69,10 @@ const Landing = () => {
           <h3 className="font-semibold text-primary bg-gray-200 rounded-3xl px-4 py-6 mt-24 mb-4">
             Begin by entering your private key given by your Bridgewell Advisor
             below
-          </h3>{" "}
-          <form
-            onSubmit={handleSubmit}
-            className="flex flex-row justify-between"
-          >
+          </h3>
+          <form onSubmit={handleSubmit} className="flex">
             <input
-              className="border-primary border-2 text-4xl font-bold text-center rounded-tl-2xl rounded-l-2xl xt-center h-24 w-2/3"
+              className="border-primary border-2 text-4xl font-bold text-center rounded-l-2xl h-24 w-full"
               type="text"
               placeholder="Enter your code"
               value={loginKey}
@@ -84,7 +81,7 @@ const Landing = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`bg-primary w-36 text-white text-2xl font-bold rounded-tr-2xl rounded-r-2xl py-8 w-1/3
+              className={`bg-primary text-white text-2xl font-bold rounded-r-2xl py-8 w-36
                     ${
                       isSubmitting
                         ? "opacity-70 cursor-not-allowed"
@@ -93,10 +90,6 @@ const Landing = () => {
             >
               {isSubmitting ? "Checking..." : "Submit"}
             </button>
-
-            {error && (
-              <div className="text-red-500 font-medium ml-2">{error}</div>
-            )}
           </form>
         </div>
         <div className="w-1/5" />
@@ -121,28 +114,24 @@ const Landing = () => {
               <div className="bg-white rounded-2xl p-6 space-y-4 flex flex-col justify-center">
                 <h1 className="text-3xl font-bold text-primary">Step 1</h1>
                 <p>
-                  Access your personal portal using your unique PIN. Our secure
-                  authentication ensures your information remains confidential
-                  and protected throughout the submission process.
+                  Access your portal with your unique PIN. Secure authentication
+                  keeps your information confidential and protected.{" "}
                 </p>
               </div>
 
               <div className="bg-white rounded-2xl p-6 space-y-4 flex flex-col justify-center">
                 <h1 className="text-3xl font-bold text-primary">Step 2</h1>
                 <p>
-                  Complete digital forms and upload required documents through
-                  our intuitive interface. Save time with easy-to-follow prompts
-                  and the ability to save your progress.
+                  Fill out forms and upload documents easily. Save time with
+                  guided prompts and progress-saving features.
                 </p>
               </div>
 
               <div className="bg-white rounded-2xl p-6 space-y-4 flex flex-col justify-center">
                 <h1 className="text-3xl font-bold text-primary">Step 3</h1>
                 <p>
-                  Your submissions are instantly received by the Bridgewell
-                  team. No delays, no email attachments—just efficient
-                  processing that gets you enrolled faster with confirmation of
-                  receipt
+                  Your submissions go directly to the Bridgewell team—no delays,
+                  no attachments—ensuring fast processing and confirmation.
                 </p>
               </div>
             </div>
