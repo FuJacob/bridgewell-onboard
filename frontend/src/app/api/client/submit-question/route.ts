@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/app/utils/supabase/server";
+import { createClient, createServiceClient } from "@/app/utils/supabase/server";
 import { uploadFileToClientFolder } from "@/app/utils/microsoft/graph";
 
 export async function POST(request: Request) {
@@ -23,7 +23,8 @@ export async function POST(request: Request) {
             hasFile: !!file
         });
 
-        const supabase = await createClient();
+        // Use service client instead of regular client to avoid auth requirements
+        const supabase = createServiceClient();
 
         // Get client information
         const { data: clientData, error: clientError } = await supabase
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
                 const buffer = await file.arrayBuffer();
                 const fileName = `${timestamp}_${file.name}`;
                 fileId = await uploadFileToClientFolder(
-                    loginKey,
+                    loginKey, // Use login key as the client ID for folder path
                     clientData.client_name,
                     `${sanitizedQuestion}/${fileName}`,
                     new Blob([buffer])
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
                 // Convert text response to file and upload
                 const fileName = `response_${timestamp}.txt`;
                 fileId = await uploadFileToClientFolder(
-                    loginKey,
+                    loginKey, // Use login key as the client ID for folder path
                     clientData.client_name,
                     `${sanitizedQuestion}/${fileName}`,
                     new Blob([textResponse], { type: 'text/plain' })

@@ -376,17 +376,34 @@ export default function ClientFormPage() {
                                         </div>
                                     ) : (
                                         <div>
-                                            <input
-                                                id={`file-input-${index}`}
-                                                type="file"
-                                                onChange={(e) => handleFileChange(index, e)}
-                                                className="block w-full text-gray-700 bg-white border-2 border-gray-300 rounded-lg cursor-pointer focus:outline-none p-2"
-                                                disabled={submittingQuestions[index] || submittedQuestions[index]}
-                                            />
+                                            <label className="flex flex-col items-center px-4 py-6 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors">
+                                                <div className="flex flex-col items-center">
+                                                    <svg className="w-8 h-8 text-primary mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                                    </svg>
+                                                    <p className="mb-1 text-sm text-gray-700">
+                                                        {files[index] ? files[index]?.name : "Click to upload or drag and drop"}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        Allowed file types: PDF, DOC, DOCX, JPG, PNG
+                                                    </p>
+                                                </div>
+                                                <input
+                                                    id={`file-input-${index}`}
+                                                    type="file"
+                                                    onChange={(e) => handleFileChange(index, e)}
+                                                    className="hidden"
+                                                    disabled={submittingQuestions[index] || submittedQuestions[index]}
+                                                />
+                                            </label>
+                                            
                                             {files[index] && (
-                                                <p className="mt-2 text-sm text-gray-600">
-                                                    Selected: {files[index]?.name}
-                                                </p>
+                                                <div className="mt-2 flex items-center p-2 bg-gray-50 rounded-lg">
+                                                    <svg className="w-4 h-4 text-primary mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                    <span className="text-sm text-gray-700">File selected: {files[index]?.name}</span>
+                                                </div>
                                             )}
                                         </div>
                                     )}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/app/utils/supabase/server";
+import { createClient, createServiceClient } from "@/app/utils/supabase/server";
 
 export async function GET(request: NextRequest) {
     try {
@@ -12,7 +12,8 @@ export async function GET(request: NextRequest) {
         }
 
         console.log("Validating login key:", key);
-        const supabase = await createClient();
+        // Use service client instead of regular client to avoid auth requirements
+        const supabase = createServiceClient();
 
         // Check if the login key exists in the database
         const { data, error } = await supabase

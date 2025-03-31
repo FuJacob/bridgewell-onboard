@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/app/utils/supabase/server";
+import { createClient, createServiceClient } from "@/app/utils/supabase/server";
 
 export async function GET(request: NextRequest) {
     try {
@@ -13,7 +13,8 @@ export async function GET(request: NextRequest) {
         }
 
         console.log("Attempting to fetch form data for login key:", key);
-        const supabase = await createClient();
+        // Use service client instead of regular client to avoid auth requirements
+        const supabase = createServiceClient();
 
         // First, check if the login key exists
         const { data: existingData, error: checkError } = await supabase

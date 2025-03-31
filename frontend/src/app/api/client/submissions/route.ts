@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/app/utils/supabase/server";
+import { createClient, createServiceClient } from "@/app/utils/supabase/server";
 import { checkQuestionCompletion } from "@/app/utils/microsoft/graph";
 
 export async function GET(request: NextRequest) {
@@ -12,7 +12,8 @@ export async function GET(request: NextRequest) {
 
     try {
         console.log("Checking submission status for key:", loginKey);
-        const supabase = await createClient();
+        // Use service client instead of regular client to avoid auth requirements
+        const supabase = createServiceClient();
 
         // Get client data to verify login key and get questions
         const { data: clientData, error: clientError } = await supabase
