@@ -18,24 +18,11 @@ type FormData = {
   questions: string;
 };
 
-type FormSubmission = {
-  id: string;
-  client_id: string;
-  client_name: string;
-  login_key: string;
-  responses: string;
-  submitted_at: string;
-};
-
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
   const [forms, setForms] = useState<any[]>([]);
-  const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"all" | "pending" | "completed">(
-    "all"
-  );
   const [showFormModal, setShowFormModal] = useState(false);
   const [clientName, setClientName] = useState("");
   const [organization, setOrganization] = useState("");
@@ -78,7 +65,6 @@ export default function Dashboard() {
       } catch (err) {
         setError("Failed to load dashboard data");
         setForms([]);
-        setSubmissions([]);
       } finally {
         setLoading(false);
       }
@@ -86,19 +72,6 @@ export default function Dashboard() {
 
     fetchData();
   }, [mounted]);
-
-  const getFormStatus = (form: FormData) => {
-    const formSubmissions = submissions.filter(
-      (s) => s.login_key === form.login_key
-    );
-    if (formSubmissions.length === 0) return "pending";
-    return "completed";
-  };
-
-  const filteredForms = forms.filter((form) => {
-    if (activeTab === "all") return true;
-    return getFormStatus(form) === activeTab;
-  });
 
   const addQuestion = () => {
     setQuestions([
@@ -519,73 +492,20 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8">
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
             <h3 className="text-lg font-medium text-gray-600 mb-2">
               Total Forms
             </h3>
             <p className="text-4xl font-bold text-primary">{forms.length}</p>
           </div>
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-medium text-gray-600 mb-2">
-              Pending Responses
-            </h3>
-            <p className="text-4xl font-bold text-secondary">
-              {forms.filter((form) => getFormStatus(form) === "pending").length}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-medium text-gray-600 mb-2">
-              Completed Forms
-            </h3>
-            <p className="text-4xl font-bold text-green-500">
-              {
-                forms.filter((form) => getFormStatus(form) === "completed")
-                  .length
-              }
-            </p>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-4 mb-6">
-          <button
-            onClick={() => setActiveTab("all")}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
-              activeTab === "all"
-                ? "bg-primary text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
-          >
-            All Forms
-          </button>
-          <button
-            onClick={() => setActiveTab("pending")}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
-              activeTab === "pending"
-                ? "bg-secondary text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
-          >
-            Pending
-          </button>
-          <button
-            onClick={() => setActiveTab("completed")}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
-              activeTab === "completed"
-                ? "bg-green-500 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
-          >
-            Completed
-          </button>
         </div>
 
         {/* Forms List */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           {forms.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6">
-              {filteredForms.map((form: FormData, index: number) => (
+              {forms.map((form: FormData, index: number) => (
                 <div
                   key={index}
                   className="bg-white border-2 border-gray-200 hover:border-primary transition-colors duration-300 rounded-xl shadow-sm hover:shadow-md overflow-hidden"
@@ -593,16 +513,13 @@ export default function Dashboard() {
                   <div className="p-5 border-b border-gray-100">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h2 className="font-bold text-xl text-primary mb-1 truncate">{form.organization}</h2>
-                        <h3 className="text-gray-600 text-md mb-2">{form.client_name}</h3>
+                        <h2 className="font-bold text-xl text-primary mb-1 truncate">
+                          {form.organization}
+                        </h2>
+                        <h3 className="text-gray-600 text-md mb-2">
+                          {form.client_name}
+                        </h3>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        getFormStatus(form) === "completed" 
-                          ? "bg-green-100 text-green-800" 
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}>
-                        {getFormStatus(form) === "completed" ? "Completed" : "Pending"}
-                      </span>
                     </div>
                     <div className="text-sm text-gray-500">
                       Created: {new Date(form.created_at).toLocaleDateString()}
@@ -610,11 +527,17 @@ export default function Dashboard() {
                   </div>
                   <div className="p-4 bg-gray-50">
                     <div className="flex items-center">
-                      <span className="text-xs font-medium text-gray-500 mr-2">Login Key:</span>
-                      <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono flex-1 overflow-hidden text-ellipsis">{form.login_key}</code>
-                      <button 
-                        className="ml-2 text-primary hover:text-primary-DARK" 
-                        onClick={() => navigator.clipboard.writeText(form.login_key)}
+                      <span className="text-xs font-medium text-gray-500 mr-2">
+                        Login Key:
+                      </span>
+                      <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono flex-1 overflow-hidden text-ellipsis">
+                        {form.login_key}
+                      </code>
+                      <button
+                        className="ml-2 text-primary hover:text-primary-DARK"
+                        onClick={() =>
+                          navigator.clipboard.writeText(form.login_key)
+                        }
                         title="Copy to clipboard"
                       >
                         📋
