@@ -151,33 +151,79 @@ export async function uploadFileToClientFolder(
     fileContent: Blob
 ): Promise<string> {
     try {
-        const accessToken = await getAccessToken();
+        // Get access token
+        let accessToken;
+        try {
+            accessToken = await getAccessToken();
+        } catch (tokenError) {
+            console.error('Error getting access token:', tokenError);
+            throw new Error('Authentication failed. Please try again later.');
+        }
+        
         const sanitizedClientName = clientName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
         const clientFolderName = `${sanitizedClientName}_${clientId}`;
+        console.log("Client folder name for upload:", clientFolderName);
+        console.log("Using clientId:", clientId);
 
-        const response = await fetch(
-            `${SITE_URL}/drive/root:/${clientFolderName}/${filePath}:/content`,
-            {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': fileContent.type,
-                },
-                body: fileContent
-            }
-        );
-
-        if (!response.ok) {
-            const error = await response.json();
-            console.error('Error uploading file:', error);
-            throw new Error('Failed to upload file');
+        // Ensure the path includes CLIENTS as the root folder
+        const fullPath = `CLIENTS/${clientFolderName}/${filePath}`;
+        console.log("Uploading file to path:", fullPath);
+        
+        // Check file size
+        const fileSizeInMB = fileContent.size / (1024 * 1024);
+        if (fileSizeInMB > 25) { // 25MB limit
+            throw new Error('File size exceeds the maximum allowed (25MB). Please upload a smaller file.');
         }
 
-        const data = await response.json();
-        return data.id;
+        try {
+            const response = await fetch(
+                `${SITE_URL}/drive/root:/${fullPath}:/content`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': fileContent.type,
+                    },
+                    body: fileContent
+                }
+            );
+
+            if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    throw new Error('Permission denied while uploading file. Please contact support.');
+                } else if (response.status === 404) {
+                    throw new Error('Destination folder not found. Please try again or contact support.');
+                } else if (response.status === 413) {
+                    throw new Error('File is too large. Please upload a smaller file.');
+                } else if (response.status >= 500) {
+                    throw new Error('Server error. Please try again later.');
+                }
+                
+                const error = await response.json();
+                console.error('Error uploading file:', error);
+                throw new Error(`Upload failed: ${error.message || error.error?.message || 'Unknown error'}`);
+            }
+
+            const data = await response.json();
+            console.log("File uploaded successfully with ID:", data.id);
+            return data.id;
+        } catch (fetchError: any) {
+            // Handle fetch-specific errors
+            if (fetchError.name === 'AbortError') {
+                throw new Error('Upload was aborted. Please try again.');
+            } else if (fetchError.name === 'TypeError' && fetchError.message.includes('NetworkError')) {
+                throw new Error('Network error. Please check your internet connection and try again.');
+            } else {
+                throw fetchError; // Re-throw other errors
+            }
+        }
     } catch (error) {
         console.error('Error in uploadFileToClientFolder:', error);
-        throw error;
+        if (error instanceof Error) {
+            throw error; // Re-throw the error with its message intact
+        } else {
+            throw new Error('Failed to upload file due to an unexpected error');
+        }
     }
 }
 
@@ -190,13 +236,18 @@ export async function checkQuestionCompletion(
         const accessToken = await getAccessToken();
         const sanitizedClientName = clientName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
         const clientFolderName = `${sanitizedClientName}_${clientId}`;
+        console.log("Client folder name for checking completion:", clientFolderName);
+        console.log("Using clientId for completion check:", clientId);
+        
         const completionStatus: { [key: string]: boolean } = {};
 
         for (const question of questions) {
             const sanitizedQuestion = question.question.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+            const checkPath = `CLIENTS/${clientFolderName}/${sanitizedQuestion}`;
+            console.log("Checking completion for path:", checkPath);
             
             const response = await fetch(
-                `${SITE_URL}/drive/root:/${clientFolderName}/${sanitizedQuestion}:/children`,
+                `${SITE_URL}/drive/root:/${checkPath}:/children`,
                 {
                     headers: {
                         'Authorization': `Bearer ${accessToken}`,
@@ -204,19 +255,21 @@ export async function checkQuestionCompletion(
                 }
             );
 
-            if (!response.ok) {
-                console.error(`Error checking completion for question: ${question.question}`);
+            if (response.ok) {
+                const data = await response.json();
+                // If the folder has any items (files), consider the question completed
+                completionStatus[question.question] = data.value && data.value.length > 0;
+                console.log(`Question "${question.question}" completion:`, completionStatus[question.question], 
+                           data.value ? `(${data.value.length} files found)` : "(no files)");
+            } else {
+                console.error(`Error checking folder for question: ${question.question}`, response.status);
                 completionStatus[question.question] = false;
-                continue;
             }
-
-            const data = await response.json();
-            completionStatus[question.question] = data.value && data.value.length > 0;
         }
 
         return completionStatus;
     } catch (error) {
         console.error('Error in checkQuestionCompletion:', error);
-        throw error;
+        return {};
     }
 } 

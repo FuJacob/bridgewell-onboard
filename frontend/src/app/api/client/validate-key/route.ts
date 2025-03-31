@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-// Initialize Supabase client
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createClient } from "@/app/utils/supabase/server";
 
 export async function GET(request: NextRequest) {
     try {
@@ -16,6 +10,9 @@ export async function GET(request: NextRequest) {
         if (!key) {
             return NextResponse.json({ valid: false, error: "Login key is required" }, { status: 400 });
         }
+
+        console.log("Validating login key:", key);
+        const supabase = await createClient();
 
         // Check if the login key exists in the database
         const { data, error } = await supabase

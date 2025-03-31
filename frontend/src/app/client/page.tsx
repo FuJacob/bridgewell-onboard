@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@/app/utils/supabase/client";
 import { checkQuestionCompletion, uploadFileToClientFolder } from "@/app/utils/microsoft/graph";
 import Link from "next/link";
@@ -22,6 +22,7 @@ interface ClientData {
 
 export default function ClientForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [loginKey, setLoginKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,44 +32,44 @@ export default function ClientForm() {
   const [uploading, setUploading] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
+    // Check for login key in localStorage
+    const storedKey = localStorage.getItem("clientLoginKey");
+    if (storedKey) {
+      // If we already have a login key, redirect to the form page
+      router.push(`/client/form/${storedKey}`);
+      return;
+    }
+
+    // Check for login key in URL
     const key = searchParams.get("key");
     if (key) {
       setLoginKey(key);
       handleSubmitWithKey(key);
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   const handleSubmitWithKey = async (key: string) => {
     try {
       setLoading(true);
       setError(null);
-      const supabase = createClient();
 
-      const { data, error } = await supabase
-        .from("clients")
-        .select("*")
-        .eq("login_key", key)
-        .single();
-
-      if (error) {
-        setError("Invalid login key");
+      // Validate the login key with our API
+      const response = await fetch(`/api/client/validate-key?key=${encodeURIComponent(key)}`);
+      
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || "Invalid login key");
         return;
       }
 
-      setClientData(data);
-      const parsedQuestions = JSON.parse(data.questions);
-      setQuestions(parsedQuestions);
-
-      // Check completion status for all questions
-      const status = await checkQuestionCompletion(
-        data.client_id,
-        data.client_name,
-        parsedQuestions
-      );
-      setCompletionStatus(status);
+      // Store in localStorage for persistence
+      localStorage.setItem("clientLoginKey", key);
+      
+      // Redirect to the form page
+      router.push(`/client/form/${key}`);
     } catch (err) {
       console.error("Error:", err);
-      setError("Failed to load form data");
+      setError("Failed to validate login key");
     } finally {
       setLoading(false);
     }
@@ -97,7 +98,7 @@ export default function ClientForm() {
       
       const buffer = await file.arrayBuffer();
       await uploadFileToClientFolder(
-        clientData.client_id,
+        loginKey,
         clientData.client_name,
         `${question.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}/${fileName}`,
         new Blob([buffer])
@@ -127,113 +128,71 @@ export default function ClientForm() {
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-6 mb-8">
-          <div className="w-16 bg-gray-200 rounded-full px-2 py-1">
+        <div className="flex items-center justify-center mb-8">
+          <div className="w-24 bg-gray-200 rounded-full px-4 py-2">
             <Link href="/">
               <Image
                 src="/logo-bridgewell.png"
                 alt="Bridgewell Financial Logo"
-                width={60}
-                height={60}
+                width={80}
+                height={80}
                 layout="responsive"
                 className="cursor-pointer"
               />
             </Link>
           </div>
-          <h1 className="text-3xl font-bold text-primary">Client Form</h1>
         </div>
 
-        {!clientData ? (
-          <div className="bg-white rounded-2xl p-8 shadow-lg">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Login Key
-                </label>
-                <input
-                  type="text"
-                  value={loginKey}
-                  onChange={(e) => setLoginKey(e.target.value)}
-                  placeholder="Enter your login key"
-                  className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
-                  required
-                />
+        <div className="bg-white rounded-2xl p-8 shadow-lg max-w-md mx-auto">
+          <h1 className="text-3xl font-bold text-primary mb-6 text-center">Client Portal</h1>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Login Key
+              </label>
+              <input
+                type="text"
+                value={loginKey}
+                onChange={(e) => setLoginKey(e.target.value)}
+                placeholder="Enter your login key"
+                className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
+                <p>{error}</p>
               </div>
+            )}
 
-              {error && (
-                <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
-                  <p>{error}</p>
-                </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-DARK transition
+                ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
+            >
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Accessing...
+                </span>
+              ) : (
+                "Access Form"
               )}
-
-              <button
-                type="submit"
-                className="w-full bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-DARK transition"
-              >
-                Access Form
-              </button>
-            </form>
+            </button>
+          </form>
+          
+          <div className="mt-6 text-center">
+            <Link href="/" className="text-primary hover:underline">
+              Back to Home
+            </Link>
           </div>
-        ) : (
-          <div className="space-y-8">
-            <div className="bg-white rounded-2xl p-8 shadow-lg">
-              <h2 className="text-2xl font-bold mb-4">
-                Welcome, {clientData.client_name}
-              </h2>
-              <p className="text-gray-600">
-                Organization: {clientData.organization}
-              </p>
-            </div>
-
-            <div className="space-y-6">
-              {questions.map((q, index) => (
-                <div
-                  key={index}
-                  className="bg-white rounded-2xl p-8 shadow-lg relative"
-                >
-                  {completionStatus[q.question] && (
-                    <div className="absolute top-4 right-4">
-                      <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                        Completed
-                      </div>
-                    </div>
-                  )}
-                  
-                  <h3 className="text-xl font-semibold mb-2">{q.question}</h3>
-                  {q.description && (
-                    <p className="text-gray-600 mb-4">{q.description}</p>
-                  )}
-                  
-                  {q.responseType === "file" && (
-                    <div className="mt-4">
-                      <input
-                        type="file"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleFileUpload(q.question, file, index);
-                          }
-                        }}
-                        disabled={uploading[q.question]}
-                        className="block w-full text-sm text-gray-500
-                          file:mr-4 file:py-2 file:px-4
-                          file:rounded-full file:border-0
-                          file:text-sm file:font-semibold
-                          file:bg-primary file:text-white
-                          hover:file:bg-primary-DARK"
-                      />
-                      {uploading[q.question] && (
-                        <p className="mt-2 text-sm text-gray-500">
-                          Uploading...
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -30,7 +30,7 @@ export async function POST(request: Request) {
         for (const file of files) {
             const buffer = await file.arrayBuffer();
             const fileId = await uploadFileToClientFolder(
-                clientData.client_id,
+                loginKey,
                 clientData.client_name,
                 file.name,
                 new Blob([buffer])

@@ -1,5 +1,6 @@
-import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
+import { createClient as createClientBase } from '@supabase/supabase-js';
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -26,4 +27,24 @@ export async function createClient() {
       },
     }
   );
+}
+
+// Create a service role client for admin operations
+export function createServiceClient() {
+  try {
+    const supabaseAdmin = createClientBase(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+    return supabaseAdmin;
+  } catch (error) {
+    console.error("Error creating Supabase service client:", error);
+    throw new Error("Failed to initialize admin database client");
+  }
 }
