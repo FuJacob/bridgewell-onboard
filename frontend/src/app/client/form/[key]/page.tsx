@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { createClient } from "@/app/utils/supabase/client";
-
+import {deleteClientUploadsToQuestion} from "@/app/utils/microsoft/graph";
 type Question = {
     question: string;
     description: string;
@@ -55,7 +55,9 @@ export default function ClientFormPage() {
     };
 
 
+    // delete question client uploads
 
+    
     // Fetch client data and form questions
     useEffect(() => {
         async function fetchClientData() {
@@ -401,7 +403,15 @@ export default function ClientFormPage() {
                                             
                                         )}
                                            </h2>
-                                        <div className="bg-red-200 flex flex-col gap-2 justify-center items-center p-4 rounded-3xl"><h3 className="text-red-400 font-semibold">Admin Panel</h3><button onClick={handleRedo(submittedQuestions[index])} className="bg-red-500 px-3 py-2 rounded-full text-xs font-semibold text-white">Make client redo this question</button></div>
+                                        <div className="bg-red-200 flex flex-col gap-2 justify-center items-center p-4 rounded-3xl"><h3 className="text-red-400 font-semibold">Admin Panel</h3><button onClick={async () => {
+                                            const deleteClientUploads = await deleteClientUploadsToQuestion(clientData.id, clientData.clientName, question.question)
+                                            if (deleteClientUploads) {
+                                                router.push(`/client/form/${loginKey}`);
+                                            }
+                                            else {
+                                                console.log("Error deleting client uploads");
+                                            }
+                                        }} className="bg-red-500 px-3 py-2 rounded-full text-xs font-semibold text-white">Make client redo this question</button></div>
                                  </div>
                                     <p className="text-gray-600 mb-4">{question.description}</p>
                                     

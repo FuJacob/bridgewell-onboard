@@ -274,24 +274,50 @@ export async function checkQuestionCompletion(
     }
 } 
 
-export async function deleteClientUploadsToQuestion(   ( clientId: string,
-    clientName: string, question: string): Promise<{ [key: string]: boolean }>
-) {
+export async function deleteClientUploadsToQuestion(clientId: string,
+    clientName: string, question: string) {
     try {
 
 
-        const accessToken = await getAccessToken();
-
+let accessToken;
+        try {
+            accessToken = await getAccessToken();
+        } catch (tokenError) {
+            console.error('Error getting access token:', tokenError);
+            throw new Error('Authentication failed. Please try again later.');
+        }
+        
         const sanitizedClientName = clientName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
         const clientFolderName = `${sanitizedClientName}_${clientId}`;
         console.log("Client folder name for deleting uploads to x question:", clientFolderName);
         console.log("Using clientId for deleting uploads to x question:", clientId);
+
+        const listResponse = await fetch(
+            `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}/${question}:/children`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+            }
+        })
+
+        const listData = await listResponse.json();
+
+        for (const listItem of listData.value) {
+            await fetch(
+                `${SITE_URL}/drive/items/${listItem.id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                }
+            })
+        }
         
+        return true;
+
 
     }
-    catch(error) {
+    catch (error) {
         console.error('Error in deleteClientUploadsToQuestion:', error);
-        throw error;    
-
+        throw error;
+        return false;
     }
 }
