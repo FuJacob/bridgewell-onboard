@@ -273,3 +273,25 @@ export async function checkQuestionCompletion(
         return {};
     }
 } 
+
+export async function deleteClientUploadsToQuestion(   ( clientId: string,
+    clientName: string, question: string): Promise<{ [key: string]: boolean }>
+) {
+    try {
+
+
+        const accessToken = await getAccessToken();
+
+        const sanitizedClientName = clientName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+        const clientFolderName = `${sanitizedClientName}_${clientId}`;
+        console.log("Client folder name for deleting uploads to x question:", clientFolderName);
+        console.log("Using clientId for deleting uploads to x question:", clientId);
+        
+
+    }
+    catch(error) {
+        console.error('Error in deleteClientUploadsToQuestion:', error);
+        throw error;    
+
+    }
+}

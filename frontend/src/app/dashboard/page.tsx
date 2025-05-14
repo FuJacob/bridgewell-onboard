@@ -8,7 +8,7 @@ import Image from "next/image";
 import { create } from "domain";
 import { sign } from "crypto";
 import { getAllForms } from "../login/actions";
-
+import { useRouter } from "next/navigation";
 type FormData = {
   id: string;
   created_at: string;
@@ -19,6 +19,7 @@ type FormData = {
 };
 
 export default function Dashboard() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [forms, setForms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +35,27 @@ export default function Dashboard() {
       responseType: string;
       dueDate: string;
     }[]
-  >([]);
+  >([
+    {
+      question: "Please upload the master appillication package",
+      description: "As it appears on your government-issued ID",
+      responseType: "text",
+      dueDate: ""
+    },
+    {
+      question: "Please upload a copy of your latest tax return",
+      description: "Must be in PDF format",
+      responseType: "file",
+      dueDate: ""
+    },
+    {
+      question: "What is your annual income?",
+      description: "Include all sources of income",
+      responseType: "text",
+      dueDate: ""
+    }
+  ]);
+
   const [loginKey, setLoginKey] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -506,7 +527,9 @@ export default function Dashboard() {
           {forms.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6">
               {forms.map((form: FormData, index: number) => (
-                <div
+                <button
+
+                  onClick={() => router.push(`http://localhost:3000/client/form/${form.login_key}`)}
                   key={index}
                   className="bg-white border-2 border-gray-200 hover:border-primary transition-colors duration-300 rounded-xl shadow-sm hover:shadow-md overflow-hidden"
                 >
@@ -544,7 +567,7 @@ export default function Dashboard() {
                       </button>
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           ) : (

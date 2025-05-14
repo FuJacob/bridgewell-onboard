@@ -5,6 +5,8 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
+import { createClient } from "@/app/utils/supabase/client";
+
 type Question = {
     question: string;
     description: string;
@@ -20,6 +22,7 @@ type ClientData = {
 };
 
 export default function ClientFormPage() {
+    const [signedIn, setSignedIn] = useState(false);
     const params = useParams();
     const router = useRouter();
     const loginKey = params.key as string;
@@ -50,6 +53,8 @@ export default function ClientFormPage() {
         if (percentage === 0) return "Form Not Started";
         return `${percentage}% Complete`;
     };
+
+
 
     // Fetch client data and form questions
     useEffect(() => {
@@ -249,6 +254,36 @@ export default function ClientFormPage() {
         }
     };
 
+
+
+
+
+    
+  async function checkSignedIn() {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const isAuthed = !!user?.aud;
+
+    console.log("USER AID IS HERE", isAuthed);
+
+    if (isAuthed) {
+      setSignedIn(prev => !prev);
+      console.log("ADMIN IS SIGNED INTO FORM PAGE")
+    }
+    }
+    
+
+  // Handle client-side mounting
+  useEffect(() => {
+    checkSignedIn();
+  }, []);
+
+    
+    
+    
     // Handle logout
     const handleLogout = () => {
         // Clear login key from localStorage
@@ -284,6 +319,10 @@ export default function ClientFormPage() {
         );
     }
 
+
+
+    
+    
     return (
         <div className="min-h-screen bg-gray-50">
             <div className="max-w-4xl mx-auto p-6">
@@ -353,14 +392,17 @@ export default function ClientFormPage() {
                                     className={`bg-white rounded-xl shadow-md p-6 transition-all duration-300
                                         ${submittedQuestions[index] ? 'bg-green-50 border-l-4 border-green-500' : ''}`}
                                 >
-                                    <h2 className="text-xl font-semibold mb-2">
+                                    <div className="flex items-center justify-between gap-2"><h2 className="text-xl font-semibold mb-2">
                                         {question.question}
                                         {submittedQuestions[index] && (
                                             <span className="ml-2 text-green-600 text-sm font-normal">
                                                 ✓ Completed
                                             </span>
+                                            
                                         )}
-                                    </h2>
+                                           </h2>
+                                        <div className="bg-red-200 flex flex-col gap-2 justify-center items-center p-4 rounded-3xl"><h3 className="text-red-400 font-semibold">Admin Panel</h3><button onClick={handleRedo(submittedQuestions[index])} className="bg-red-500 px-3 py-2 rounded-full text-xs font-semibold text-white">Make client redo this question</button></div>
+                                 </div>
                                     <p className="text-gray-600 mb-4">{question.description}</p>
                                     
                                     {question.responseType === "text" ? (

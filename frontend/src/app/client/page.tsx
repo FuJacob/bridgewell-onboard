@@ -21,6 +21,7 @@ interface ClientData {
 }
 
 export default function ClientForm() {
+  // const [signedIn, setSignedIn] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const [loginKey, setLoginKey] = useState("");
@@ -30,6 +31,10 @@ export default function ClientForm() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [completionStatus, setCompletionStatus] = useState<{ [key: string]: boolean }>({});
   const [uploading, setUploading] = useState<{ [key: string]: boolean }>({});
+
+
+ 
+
 
   useEffect(() => {
     // Check for login key in localStorage
