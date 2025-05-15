@@ -37,7 +37,7 @@ export default function Dashboard() {
     }[]
   >([
     {
-      question: "Please upload the master appillication package",
+      question: "Please upload the master application package",
       description: "As it appears on your government-issued ID",
       responseType: "text",
       dueDate: ""
@@ -276,8 +276,8 @@ export default function Dashboard() {
 
   if (showFormModal) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 overflow-y-auto">
-        <div className="bg-white rounded-2xl p-8 max-w-4xl w-full">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl p-8 max-w-4xl w-full overflow-y-auto h-5/6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold text-primary">
               Create New Client Form
@@ -445,7 +445,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               ))}
-              
+
               <div className="flex justify-end gap-4 mt-6">
                 <button
                   onClick={resetForm}
