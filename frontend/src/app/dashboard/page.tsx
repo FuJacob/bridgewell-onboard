@@ -40,20 +40,20 @@ export default function Dashboard() {
       question: "Please upload the master application package",
       description: "As it appears on your government-issued ID",
       responseType: "text",
-      dueDate: ""
+      dueDate: "",
     },
     {
       question: "Please upload a copy of your latest tax return",
       description: "Must be in PDF format",
       responseType: "file",
-      dueDate: ""
+      dueDate: "",
     },
     {
       question: "What is your annual income?",
       description: "Include all sources of income",
       responseType: "text",
-      dueDate: ""
-    }
+      dueDate: "",
+    },
   ]);
 
   const [loginKey, setLoginKey] = useState<string | null>(null);
@@ -527,27 +527,31 @@ export default function Dashboard() {
           {forms.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6">
               {forms.map((form: FormData, index: number) => (
-                <button
-
-                  onClick={() => router.push(`http://localhost:3000/client/form/${form.login_key}`)}
+                <div
                   key={index}
                   className="bg-white border-2 border-gray-200 hover:border-primary transition-colors duration-300 rounded-xl shadow-sm hover:shadow-md overflow-hidden"
                 >
-                  <div className="p-5 border-b border-gray-100">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h2 className="font-bold text-xl text-primary mb-1 truncate">
-                          {form.organization}
-                        </h2>
-                        <h3 className="text-gray-600 text-md mb-2">
-                          {form.client_name}
-                        </h3>
-                      </div>
+                  <button
+                    className="group p-5 border-b border-gray-100 hover:border- hover:bg-primary w-full transition duration-300 ease-in-out "
+                    onClick={() =>
+                      router.push(
+                        `http://localhost:3000/client/form/${form.login_key}`
+                      )
+                    }
+                  >
+                    <div className="flex flex-col items-center justify-center items-start ">
+                      <h2 className="font-bold text-xl text-primary group-hover:text-white mb-1 truncate">
+                        {form.organization}
+                      </h2>
+                      <h3 className="text-gray-600 group-hover:text-white text-md mb-2">
+                        {form.client_name}
+                      </h3>
+                      <p className="text-sm text-gray-500 group-hover:text-white">
+                        Created:{" "}
+                        {new Date(form.created_at).toLocaleDateString()}
+                      </p>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      Created: {new Date(form.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
+                  </button>
                   <div className="p-4 bg-gray-50">
                     <div className="flex items-center">
                       <span className="text-xs font-medium text-gray-500 mr-2">
@@ -567,7 +571,7 @@ export default function Dashboard() {
                       </button>
                     </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           ) : (

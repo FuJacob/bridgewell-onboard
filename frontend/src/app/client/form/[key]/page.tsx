@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { useParams, useRouter} from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { createClient } from "@/app/utils/supabase/client";
+import { login } from "@/app/login/actions";
+import { sign } from "crypto";
 type Question = {
   question: string;
   description: string;
@@ -173,6 +175,35 @@ export default function ClientFormPage() {
       if (questionErrors[index]) {
         setQuestionErrors({ ...questionErrors, [index]: null });
       }
+    }
+  };
+
+  const deleteClientUploads = async (
+    loginKey: string,
+    name: string,
+    question: string,
+    index: number
+  ) => {
+    const response = await fetch(`/api/admin/redo-question`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        loginKey,
+        name,
+        question,
+      }),
+    });
+    const data = await response.json();
+    console.log("DELETE CLIENT UPLOADS", data);
+    if (data.success) {
+      setSubmittedQuestions({
+        ...submittedQuestions,
+        [index]: false,
+      });
+    } else {
+      console.log("Error deleting client uploads");
     }
   };
 
@@ -427,43 +458,29 @@ export default function ClientFormPage() {
                         </span>
                       )}
                     </h2>
-                    <div className="bg-red-200 flex flex-col gap-2 justify-center items-center p-4 rounded-3xl">
-                      <h3 className="text-red-400 font-semibold">
-                        Admin Panel
-                      </h3>
-                      <button
-                        onClick={async () => {
-                          const deleteClientUploads = await fetch(
-                            `/api/admin/redo-question`,
-                            {
-                              method: "POST",
-                              headers: {
-                                "Content-Type": "application/json",
-                              },
-                              body: JSON.stringify({
-                                loginKey: loginKey,
-                                name: clientData.clientName,
-                                question: question.question,
-                              }),
-                            }
-                          );
-                          const data = await deleteClientUploads.json();
-                          console.log("DELETE CLIENT UPLOADS", data);
-                          if (data.success) {
-                            setSubmittedQuestions({
-                              ...submittedQuestions,
-                              [index]: false
-                            });
-
-                          } else {
-                            console.log("Error deleting client uploads");
-                          }
-                        }}
-                        className="bg-red-500 px-3 py-2 rounded-full text-xs font-semibold text-white"
+                    {signedIn && (
+                      <div
+                        className={`
+             bg-red-200 flex flex-col gap-2 justify-center items-center p-4 rounded-3xl`}
                       >
-                        Make client redo this question
-                      </button>
-                    </div>
+                        <h3 className="text-red-400 font-semibold">
+                          Admin Panel
+                        </h3>
+                        <button
+                          onClick={() =>
+                            deleteClientUploads(
+                              loginKey,
+                              clientData.clientName,
+                              question.question,
+                              index
+                            )
+                          }
+                          className="bg-red-500 px-3 py-2 rounded-full text-xs font-semibold text-white"
+                        >
+                          Make client redo this question
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <p className="text-gray-600 mb-4">{question.description}</p>
 
