@@ -15,6 +15,7 @@ async function deleteClientUploadsToQuestion(
     let accessToken;
     try {
       accessToken = await getAccessToken();
+      console.log("Access token retrieved successfully", accessToken);
     } catch (tokenError) {
       console.error("Error getting access token:", tokenError);
       throw new Error("Authentication failed. Please try again later.");
@@ -71,7 +72,6 @@ export async function POST(request: Request) {
     }
 
     const response = await deleteClientUploadsToQuestion(loginKey, name, question.split(" ").join("_"));
-
     return NextResponse.json({
       message: "Question reset successfully",
       success: response,
