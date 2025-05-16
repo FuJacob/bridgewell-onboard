@@ -35,26 +35,38 @@ export default function Dashboard() {
       responseType: string;
       dueDate: string;
     }[]
-  >([
-    {
-      question: "Please upload the master application package",
-      description: "As it appears on your government-issued ID",
-      responseType: "text",
-      dueDate: "",
-    },
-    {
-      question: "Please upload a copy of your latest tax return",
-      description: "Must be in PDF format",
-      responseType: "file",
-      dueDate: "",
-    },
-    {
-      question: "What is your annual income?",
-      description: "Include all sources of income",
-      responseType: "text",
-      dueDate: "",
-    },
-  ]);
+    >([
+      {
+        question: "Please upload your master application package",
+        description: "As it appears on your government-issued ID",
+        responseType: "file",
+        dueDate: ""
+      },
+      {
+        question: "Please upload proof of employee enrollment",
+        description: "Must be in PDF format",
+        responseType: "file",
+        dueDate: ""
+      },
+      {
+        question: "Void Cheque",
+        description: "For direct deposit",
+        responseType: "file",
+        dueDate: ""
+      },
+      {
+        question: "Termination Letter",
+        description: "",
+        responseType: "file",
+        dueDate: ""
+      },
+      {
+        question: "Digital Signature",
+        description: "Please type your intials",
+        responseType: "text",
+        dueDate: ""
+      }
+    ]);
 
   const [loginKey, setLoginKey] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
