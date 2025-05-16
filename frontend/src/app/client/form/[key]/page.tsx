@@ -333,8 +333,11 @@ export default function ClientFormPage() {
     console.log("USER AID IS HERE", isAuthed);
 
     if (isAuthed) {
-      setSignedIn((prev) => !prev);
-      console.log("ADMIN IS SIGNED INTO FORM PAGE");
+      setSignedIn(true);
+      console.log("ADMIN IS SIGNED INTO FORM PAGE", signedIn);
+    } else {
+      setSignedIn(false);
+      console.log("ADMIN IS NOT SIGNED INTO FORM PAGE", signedIn);
     }
   }
 
@@ -487,18 +490,20 @@ export default function ClientFormPage() {
                   </div>
                   <p className="text-gray-600 mb-4">{question.description}</p>
                   {/* Download Template Button */}
-                  {question.responseType === "file" && question.template && question.template.fileId && (
-                    <div className="mb-2">
-                      <a
-                        href={`https://graph.microsoft.com/v1.0/sites/bridgewellfinancial.sharepoint.com,80def30d-85bd-4e18-969a-6346931d152d,deb319e5-cef4-4818-9ec3-805bedea8819/drive/items/${question.template.fileId}/content`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block bg-secondary text-white px-4 py-2 rounded-xl font-medium hover:bg-secondary-dark transition"
-                      >
-                        Download Template: {question.template.fileName}
-                      </a>
-                    </div>
-                  )}
+                  {question.responseType === "file" &&
+                    question.template &&
+                    question.template.fileId && (
+                      <div className="mb-2">
+                        <a
+                          href={`https://graph.microsoft.com/v1.0/sites/bridgewellfinancial.sharepoint.com,80def30d-85bd-4e18-969a-6346931d152d,deb319e5-cef4-4818-9ec3-805bedea8819/drive/items/${question.template.fileId}/content`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block bg-secondary text-white px-4 py-2 rounded-xl font-medium hover:bg-secondary-dark transition"
+                        >
+                          Download Template: {question.template.fileName}
+                        </a>
+                      </div>
+                    )}
                   {question.responseType === "text" ? (
                     <div>
                       <textarea
