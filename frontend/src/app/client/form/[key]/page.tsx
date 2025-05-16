@@ -493,7 +493,7 @@ export default function ClientFormPage() {
                   {question.responseType === "file" && question.template && question.template.fileId && (
                     <div className="mb-2">
                       <a
-                        href={`https://graph.microsoft.com/v1.0/me/drive/items/${question.template.fileId}/content`}
+                        href={`/api/client/download-template?fileId=${encodeURIComponent(question.template.fileId)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-block bg-secondary text-white px-4 py-2 rounded-lg font-medium hover:bg-secondary-DARK transition"
