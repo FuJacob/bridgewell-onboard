@@ -9,7 +9,6 @@ import { create } from "domain";
 import { sign } from "crypto";
 import { getAllForms } from "../login/actions";
 import { useRouter } from "next/navigation";
-import { uploadFileToClientFolder } from "@/app/utils/microsoft/graph";
 
 type FormData = {
   id: string;
@@ -45,7 +44,7 @@ export default function Dashboard() {
     >([
       {
         question: "Please upload your master application package",
-        description: "As it appears on your government-issued ID",
+        description: "Based on the downloadable template",
         responseType: "file",
         dueDate: "",
         template: null
@@ -82,6 +81,7 @@ export default function Dashboard() {
 
   const [loginKey, setLoginKey] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [tempLoginKey, setTempLoginKey] = useState<string>(() => "temp-" + Math.random().toString(36).substring(2, 15));
 
   async function checkSignedIn() {
     const supabase = await createClient();
@@ -207,85 +207,30 @@ export default function Dashboard() {
       }
     }
 
-    // --- TEMPLATE UPLOAD LOGIC ---
-    // We'll use a temporary loginKey for folder naming (simulate what the backend does)
-    const tempLoginKey = Math.random().toString(36).substring(2, 15);
-    const updatedQuestions = await Promise.all(
-      questions.map(async (q, idx) => {
-        if (
-          q.responseType === "file" &&
-          q.template &&
-          q.template.fileName &&
-          (window as any).File &&
-          (q.template as any).fileObject instanceof File
-        ) {
-          // Upload the template file to OneDrive
-          const sanitizedQuestion = q.question.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
-          const file = (q.template as any).fileObject as File;
-          const buffer = await file.arrayBuffer();
-          const fileName = file.name;
-          try {
-            const fileId = await uploadFileToClientFolder(
-              tempLoginKey,
-              clientName,
-              `${sanitizedQuestion}/template/${fileName}`,
-              new Blob([buffer], { type: file.type })
-            );
-            return {
-              ...q,
-              template: {
-                fileName,
-                fileId,
-                uploadedAt: new Date().toISOString(),
-              },
-            };
-          } catch (err) {
-            setFormError(`Failed to upload template for question ${idx + 1}`);
-            setIsGenerating(false);
-            throw err;
-          }
-        } else {
-          // No template or not a file-type question
-          return {
-            ...q,
-            template: q.template && q.template.fileName ? {
-              fileName: q.template.fileName,
-              fileId: q.template.fileId || '',
-              uploadedAt: q.template.uploadedAt || new Date().toISOString(),
-            } : null,
-          };
-        }
-      })
-    );
-
-    const formData = {
-      clientName,
-      organization,
-      questions: updatedQuestions.map(q => {
-        // Remove fileObject if present
-        if (q.template && (q.template as any).fileObject) {
-          const { fileObject, ...rest } = q.template as any;
-          return { ...q, template: rest };
-        }
-        return q;
-      }),
-    };
+    // Gather all form data and template files into a single FormData object
+    const formData = new FormData();
+    formData.append("clientName", clientName);
+    formData.append("organization", organization);
+    formData.append("questions", JSON.stringify(questions.map((q, idx) => {
+      if (q.responseType === "file" && q.template && (q.template as any).fileObject instanceof File) {
+        // We'll upload the file as part of the FormData
+        formData.append(`templateFile_${idx}`, (q.template as any).fileObject);
+        return { ...q, template: { ...q.template, fileName: (q.template as any).fileObject.name } };
+      }
+      return { ...q, template: q.template ? { ...q.template } : null };
+    })));
 
     try {
       const response = await fetch("/api/admin/create-form", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: formData,
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         setFormError(data.error || "Failed to create form");
         setIsGenerating(false);
         return;
       }
-
       if (data.loginKey) {
         setLoginKey(data.loginKey);
         // Refresh the forms list
@@ -299,8 +244,7 @@ export default function Dashboard() {
         setFormError(data.error || "An error occurred.");
       }
     } catch (err) {
-      console.error("Error creating form:", err);
-      setFormError("Failed to create form. Please try again.");
+      setFormError("Failed to save form in Supabase");
     } finally {
       setIsGenerating(false);
     }
@@ -343,9 +287,18 @@ export default function Dashboard() {
             Client Form Generated Successfully!
           </h1>
           <p className="text-lg mb-2">Here is your client login key:</p>
-          <p className="text-3xl font-mono bg-gray-100 p-6 rounded-2xl mt-4 border-2 border-secondary">
-            {loginKey}
-          </p>
+          <div className="flex items-center justify-center gap-2">
+            <p className="text-3xl font-mono bg-gray-100 p-6 rounded-2xl mt-4 border-2 border-secondary">
+              {loginKey}
+            </p>
+            <button
+              onClick={() => navigator.clipboard.writeText(loginKey)}
+              className="ml-2 bg-secondary text-white px-4 py-2 rounded-xl font-bold hover:bg-secondary-DARK transition"
+              title="Copy to clipboard"
+            >
+              📋 Copy Code
+            </button>
+          </div>
           <button
             onClick={resetForm}
             className="mt-8 bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-DARK transition"
@@ -540,16 +493,17 @@ export default function Dashboard() {
                             const newQuestions = [...questions];
                             newQuestions[index].template = {
                               fileName: file.name,
-                              fileId: '', // Will be set after upload
+                              fileId: '',
                               uploadedAt: new Date().toISOString(),
-                            };
+                              fileObject: file // store the File object for later upload (not for backend)
+                            } as any; // type assertion to allow fileObject in state only
                             setQuestions(newQuestions);
                           }}
                           className="block w-full p-2 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
                         />
                         {q.template && q.template.fileName && (
                           <div className="text-xs text-gray-600 mt-1">
-                            Selected: {q.template.fileName}
+                            Uploaded: {q.template.fileName}
                           </div>
                         )}
                       </div>

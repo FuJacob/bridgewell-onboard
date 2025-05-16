@@ -1,17 +1,50 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createClientFolder, createQuestionFolders } from "@/app/utils/microsoft/graph";
+import { createClientFolder, createQuestionFolders, uploadFileToClientFolder } from "@/app/utils/microsoft/graph";
 import { v4 as uuidv4 } from "uuid";
-
 
 export async function POST(request: Request) {
     try {
-        console.log("Starting form creation process...");
-        const { clientName, organization, questions } = await request.json();
-        console.log("Received form data:", { clientName, organization, questionsCount: questions.length });
-        
-        // Initialize Supabase client with service role key
-        console.log("Initializing Supabase client...");
+        // Accept FormData
+        const formData = await request.formData();
+        const clientName = formData.get("clientName") as string;
+        const organization = formData.get("organization") as string;
+        const questionsRaw = formData.get("questions") as string;
+        if (!clientName || !organization || !questionsRaw) {
+            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        }
+        let questions = JSON.parse(questionsRaw);
+
+        // Always generate a new unique login key for the Supabase insert and OneDrive
+        const loginKey = uuidv4();
+        console.log("Generated login key for Supabase and OneDrive:", loginKey);
+
+        // 1. Create OneDrive folders
+        await createClientFolder(loginKey, clientName);
+        await createQuestionFolders(loginKey, clientName, questions);
+
+        // 2. Upload template files and update question metadata
+        for (let i = 0; i < questions.length; i++) {
+            const file = formData.get(`templateFile_${i}`) as File | null;
+            if (file) {
+                const sanitizedQuestion = questions[i].question.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+                const buffer = await file.arrayBuffer();
+                const fileName = file.name;
+                const fileId = await uploadFileToClientFolder(
+                    loginKey,
+                    clientName,
+                    `${sanitizedQuestion}/template/${fileName}`,
+                    new Blob([buffer], { type: file.type })
+                );
+                questions[i].template = {
+                    fileName,
+                    fileId,
+                    uploadedAt: new Date().toISOString(),
+                };
+            }
+        }
+
+        // 3. Store the form data in Supabase
         if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
             throw new Error("Missing Supabase environment variables");
         }
@@ -19,14 +52,6 @@ export async function POST(request: Request) {
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY
         );
-        console.log("Supabase client initialized successfully");
-
-        // Generate a unique login key
-        const loginKey = uuidv4();
-        console.log("Generated login key:", loginKey);
-
-        // Store the form data in Supabase first
-        console.log("Storing form data in Supabase...");
         const { data, error } = await supabase.from("clients").insert([
             {
                 client_name: clientName,
@@ -44,21 +69,6 @@ export async function POST(request: Request) {
             );
         }
         console.log("Form data stored successfully in Supabase");
-
-        // Create the main client folder in OneDrive
-        console.log("Creating OneDrive client folder...");
-        try {
-            await createClientFolder(loginKey, clientName);
-            console.log("OneDrive client folder created successfully");
-
-            // Create subfolders for each question
-            console.log("Creating question folders in OneDrive...");
-            await createQuestionFolders(loginKey, clientName, questions);
-            console.log("Question folders created successfully");
-        } catch (oneDriveError: any) {
-            console.error("OneDrive folder creation failed:", oneDriveError);
-            // Don't return error here, just log it since the form is already created
-        }
 
         return NextResponse.json({ 
             message: "Form created successfully",
