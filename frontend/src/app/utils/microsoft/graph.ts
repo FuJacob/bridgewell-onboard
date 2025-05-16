@@ -114,8 +114,8 @@ export async function createQuestionFolders(
             const folderName = `${sanitizedQuestion}`;
             console.log("Creating folder for question:", folderName);
 
-            console.log("Making request to:", `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}/${folderName}:/`);
-            const response = await fetch(
+            // Create the main question folder
+            const questionFolderRes = await fetch(
                 `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}/${folderName}:/`,
                 {
                     method: 'PUT',
@@ -130,13 +130,35 @@ export async function createQuestionFolders(
                     })
                 }
             );
-
-            if (!response.ok) {
-                const error = await response.json();
+            if (!questionFolderRes.ok) {
+                const error = await questionFolderRes.json();
                 console.error('OneDrive API error creating question folder:', error);
                 throw new Error(`Failed to create question folder: ${error.message || 'Unknown error'}`);
             }
-            console.log("Question folder created successfully:", folderName);
+            // Create template and answer subfolders
+            for (const subfolder of ["template", "answer"]) {
+                const subfolderRes = await fetch(
+                    `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}/${folderName}/${subfolder}:/`,
+                    {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            name: subfolder,
+                            folder: {},
+                            "@microsoft.graph.conflictBehavior": "rename"
+                        })
+                    }
+                );
+                if (!subfolderRes.ok) {
+                    const error = await subfolderRes.json();
+                    console.error(`OneDrive API error creating ${subfolder} subfolder:`, error);
+                    throw new Error(`Failed to create ${subfolder} subfolder: ${error.message || 'Unknown error'}`);
+                }
+            }
+            console.log("Question folder and subfolders created successfully:", folderName);
         }
     } catch (error) {
         console.error('Error in createQuestionFolders:', error);
@@ -243,8 +265,9 @@ export async function checkQuestionCompletion(
 
         for (const question of questions) {
             const sanitizedQuestion = question.question.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
-            const checkPath = `CLIENTS/${clientFolderName}/${sanitizedQuestion}`;
-            console.log("Checking completion for path:", checkPath);
+            // Only check the answer subfolder
+            const checkPath = `CLIENTS/${clientFolderName}/${sanitizedQuestion}/answer`;
+            console.log("Checking completion for path (answer subfolder):", checkPath);
             
             const response = await fetch(
                 `${SITE_URL}/drive/root:/${checkPath}:/children`,
@@ -257,12 +280,12 @@ export async function checkQuestionCompletion(
 
             if (response.ok) {
                 const data = await response.json();
-                // If the folder has any items (files), consider the question completed
+                // If the answer subfolder has any items (files), consider the question completed
                 completionStatus[question.question] = data.value && data.value.length > 0;
                 console.log(`Question "${question.question}" completion:`, completionStatus[question.question], 
                            data.value ? `(${data.value.length} files found)` : "(no files)");
             } else {
-                console.error(`Error checking folder for question: ${question.question}`, response.status);
+                console.error(`Error checking answer subfolder for question: ${question.question}`, response.status);
                 completionStatus[question.question] = false;
             }
         }

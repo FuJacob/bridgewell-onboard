@@ -29,7 +29,7 @@ async function deleteClientUploadsToQuestion(
       clientFolderName
     );
     const listResponse = await fetch(
-      `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}/${question}:/children`,
+      `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}/${question}/answer:/children`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,

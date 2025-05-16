@@ -9,6 +9,8 @@ import { create } from "domain";
 import { sign } from "crypto";
 import { getAllForms } from "../login/actions";
 import { useRouter } from "next/navigation";
+import { uploadFileToClientFolder } from "@/app/utils/microsoft/graph";
+
 type FormData = {
   id: string;
   created_at: string;
@@ -34,37 +36,47 @@ export default function Dashboard() {
       description: string;
       responseType: string;
       dueDate: string;
+      template?: {
+        fileName: string;
+        fileId: string;
+        uploadedAt: string;
+      } | null;
     }[]
     >([
       {
         question: "Please upload your master application package",
         description: "As it appears on your government-issued ID",
         responseType: "file",
-        dueDate: ""
+        dueDate: "",
+        template: null
       },
       {
         question: "Please upload proof of employee enrollment",
         description: "Must be in PDF format",
         responseType: "file",
-        dueDate: ""
+        dueDate: "",
+        template: null
       },
       {
         question: "Void Cheque",
         description: "For direct deposit",
         responseType: "file",
-        dueDate: ""
+        dueDate: "",
+        template: null
       },
       {
         question: "Termination Letter",
         description: "",
         responseType: "file",
-        dueDate: ""
+        dueDate: "",
+        template: null
       },
       {
         question: "Digital Signature",
         description: "Please type your intials",
         responseType: "text",
-        dueDate: ""
+        dueDate: "",
+        template: null
       }
     ]);
 
@@ -114,6 +126,7 @@ export default function Dashboard() {
         description: "",
         responseType: "text",
         dueDate: "",
+        template: null
       },
     ]);
   };
@@ -194,10 +207,68 @@ export default function Dashboard() {
       }
     }
 
+    // --- TEMPLATE UPLOAD LOGIC ---
+    // We'll use a temporary loginKey for folder naming (simulate what the backend does)
+    const tempLoginKey = Math.random().toString(36).substring(2, 15);
+    const updatedQuestions = await Promise.all(
+      questions.map(async (q, idx) => {
+        if (
+          q.responseType === "file" &&
+          q.template &&
+          q.template.fileName &&
+          (window as any).File &&
+          (q.template as any).fileObject instanceof File
+        ) {
+          // Upload the template file to OneDrive
+          const sanitizedQuestion = q.question.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+          const file = (q.template as any).fileObject as File;
+          const buffer = await file.arrayBuffer();
+          const fileName = file.name;
+          try {
+            const fileId = await uploadFileToClientFolder(
+              tempLoginKey,
+              clientName,
+              `${sanitizedQuestion}/template/${fileName}`,
+              new Blob([buffer], { type: file.type })
+            );
+            return {
+              ...q,
+              template: {
+                fileName,
+                fileId,
+                uploadedAt: new Date().toISOString(),
+              },
+            };
+          } catch (err) {
+            setFormError(`Failed to upload template for question ${idx + 1}`);
+            setIsGenerating(false);
+            throw err;
+          }
+        } else {
+          // No template or not a file-type question
+          return {
+            ...q,
+            template: q.template && q.template.fileName ? {
+              fileName: q.template.fileName,
+              fileId: q.template.fileId || '',
+              uploadedAt: q.template.uploadedAt || new Date().toISOString(),
+            } : null,
+          };
+        }
+      })
+    );
+
     const formData = {
       clientName,
       organization,
-      questions,
+      questions: updatedQuestions.map(q => {
+        // Remove fileObject if present
+        if (q.template && (q.template as any).fileObject) {
+          const { fileObject, ...rest } = q.template as any;
+          return { ...q, template: rest };
+        }
+        return q;
+      }),
     };
 
     try {
@@ -454,6 +525,35 @@ export default function Dashboard() {
                         />
                       </div>
                     </div>
+
+                    {q.responseType === "file" && (
+                      <div>
+                        <label className="block text-sm font-medium mb-1">
+                          Template Document (optional)
+                        </label>
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx,.jpg,.png"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const newQuestions = [...questions];
+                            newQuestions[index].template = {
+                              fileName: file.name,
+                              fileId: '', // Will be set after upload
+                              uploadedAt: new Date().toISOString(),
+                            };
+                            setQuestions(newQuestions);
+                          }}
+                          className="block w-full p-2 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                        />
+                        {q.template && q.template.fileName && (
+                          <div className="text-xs text-gray-600 mt-1">
+                            Selected: {q.template.fileName}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

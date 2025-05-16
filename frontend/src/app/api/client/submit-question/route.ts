@@ -58,7 +58,7 @@ export async function POST(request: Request) {
                 fileId = await uploadFileToClientFolder(
                     loginKey, // Use login key as the client ID for folder path
                     clientData.client_name,
-                    `${sanitizedQuestion}/${fileName}`,
+                    `${sanitizedQuestion}/answer/${fileName}`,
                     new Blob([buffer])
                 );
                 console.log("File uploaded successfully:", fileName);
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
                 fileId = await uploadFileToClientFolder(
                     loginKey, // Use login key as the client ID for folder path
                     clientData.client_name,
-                    `${sanitizedQuestion}/${fileName}`,
+                    `${sanitizedQuestion}/answer/${fileName}`,
                     new Blob([textResponse], { type: 'text/plain' })
                 );
                 console.log("Text response uploaded as file:", fileName);
