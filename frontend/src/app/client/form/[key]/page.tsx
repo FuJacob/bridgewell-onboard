@@ -450,7 +450,10 @@ export default function ClientFormPage() {
                           const data = await deleteClientUploads.json();
                           console.log("DELETE CLIENT UPLOADS", data);
                           if (data.success) {
-                            initialSubmitted[index] = false;
+                            setSubmittedQuestions({
+                              ...submittedQuestions,
+                              [index]: false
+                            });
 
                           } else {
                             console.log("Error deleting client uploads");
