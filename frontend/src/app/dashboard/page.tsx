@@ -41,47 +41,49 @@ export default function Dashboard() {
         uploadedAt: string;
       } | null;
     }[]
-    >([
-      {
-        question: "Please upload your master application package",
-        description: "Based on the downloadable template",
-        responseType: "file",
-        dueDate: "",
-        template: null
-      },
-      {
-        question: "Please upload proof of employee enrollment",
-        description: "Must be in PDF format",
-        responseType: "file",
-        dueDate: "",
-        template: null
-      },
-      {
-        question: "Void Cheque",
-        description: "For direct deposit",
-        responseType: "file",
-        dueDate: "",
-        template: null
-      },
-      {
-        question: "Termination Letter",
-        description: "",
-        responseType: "file",
-        dueDate: "",
-        template: null
-      },
-      {
-        question: "Digital Signature",
-        description: "Please type your intials",
-        responseType: "text",
-        dueDate: "",
-        template: null
-      }
-    ]);
+  >([
+    {
+      question: "Please upload your master application package",
+      description: "Based on the downloadable template",
+      responseType: "file",
+      dueDate: "",
+      template: null,
+    },
+    {
+      question: "Please upload proof of employee enrollment",
+      description: "Must be in PDF format",
+      responseType: "file",
+      dueDate: "",
+      template: null,
+    },
+    {
+      question: "Void Cheque",
+      description: "For direct deposit",
+      responseType: "file",
+      dueDate: "",
+      template: null,
+    },
+    {
+      question: "Termination Letter",
+      description: "",
+      responseType: "file",
+      dueDate: "",
+      template: null,
+    },
+    {
+      question: "Digital Signature",
+      description: "Please type your intials",
+      responseType: "text",
+      dueDate: "",
+      template: null,
+    },
+  ]);
 
   const [loginKey, setLoginKey] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [tempLoginKey, setTempLoginKey] = useState<string>(() => "temp-" + Math.random().toString(36).substring(2, 15));
+  const [tempLoginKey, setTempLoginKey] = useState<string>(
+    () => "temp-" + Math.random().toString(36).substring(2, 15)
+  );
 
   async function checkSignedIn() {
     const supabase = await createClient();
@@ -126,7 +128,7 @@ export default function Dashboard() {
         description: "",
         responseType: "text",
         dueDate: "",
-        template: null
+        template: null,
       },
     ]);
   };
@@ -211,14 +213,32 @@ export default function Dashboard() {
     const formData = new FormData();
     formData.append("clientName", clientName);
     formData.append("organization", organization);
-    formData.append("questions", JSON.stringify(questions.map((q, idx) => {
-      if (q.responseType === "file" && q.template && (q.template as any).fileObject instanceof File) {
-        // We'll upload the file as part of the FormData
-        formData.append(`templateFile_${idx}`, (q.template as any).fileObject);
-        return { ...q, template: { ...q.template, fileName: (q.template as any).fileObject.name } };
-      }
-      return { ...q, template: q.template ? { ...q.template } : null };
-    })));
+    formData.append(
+      "questions",
+      JSON.stringify(
+        questions.map((q, idx) => {
+          if (
+            q.responseType === "file" &&
+            q.template &&
+            (q.template as any).fileObject instanceof File
+          ) {
+            // We'll upload the file as part of the FormData
+            formData.append(
+              `templateFile_${idx}`,
+              (q.template as any).fileObject
+            );
+            return {
+              ...q,
+              template: {
+                ...q.template,
+                fileName: (q.template as any).fileObject.name,
+              },
+            };
+          }
+          return { ...q, template: q.template ? { ...q.template } : null };
+        })
+      )
+    );
 
     try {
       const response = await fetch("/api/admin/create-form", {
@@ -487,15 +507,15 @@ export default function Dashboard() {
                         <input
                           type="file"
                           accept=".pdf,.doc,.docx,.jpg,.png"
-                          onChange={e => {
+                          onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
                             const newQuestions = [...questions];
                             newQuestions[index].template = {
                               fileName: file.name,
-                              fileId: '',
+                              fileId: "",
                               uploadedAt: new Date().toISOString(),
-                              fileObject: file // store the File object for later upload (not for backend)
+                              fileObject: file, // store the File object for later upload (not for backend)
                             } as any; // type assertion to allow fileObject in state only
                             setQuestions(newQuestions);
                           }}
@@ -605,7 +625,7 @@ export default function Dashboard() {
                       )
                     }
                   >
-                    <div className="flex flex-col items-center justify-center items-start ">
+                    <div className="flex flex-col justify-center items-start ">
                       <h2 className="font-bold text-xl text-primary group-hover:text-white mb-1 truncate">
                         {form.organization}
                       </h2>

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getAccessToken } from "@/app/utils/microsoft/auth";
-import { list } from "postcss";
 
 const SHAREPOINT_SITE_ID =
   "bridgewellfinancial.sharepoint.com,80def30d-85bd-4e18-969a-6346931d152d,deb319e5-cef4-4818-9ec3-805bedea8819";
@@ -41,22 +40,13 @@ export async function DELETE(request: Request) {
       for (const child of listData.value) {
         if (child.folder) {
           console.log("Child FOLDER to be deleted:", child.name);
-          deleteChildFolder(`${itemPath}/${child.name}`, accessToken);
+          await deleteChildFolder(`${itemPath}/${child.name}`, accessToken);
         } else {
           console.log("Child item to be deleted:", child.name);
-          const deleteResponse = await fetch(
-            `${SITE_URL}/drive/items/${child.id}`,
-            {
-              method: "DELETE",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${accessToken}`,
-              },
-            }
-          );
         }
 
-        const removeOriginalFolder = await fetch(
+        // Delete the current child item (file or folder)
+        const deleteResponse = await fetch(
           `${SITE_URL}/drive/items/${child.id}`,
           {
             method: "DELETE",
@@ -66,16 +56,22 @@ export async function DELETE(request: Request) {
             },
           }
         );
+
+        if (!deleteResponse.ok) {
+          console.error(
+            `Error deleting ${child.name}:`,
+            deleteResponse.statusText
+          );
+        }
       }
     };
 
-    const removeClientFolderFinish = deleteChildFolder(
-      `/${clientFolderName}`,
-      accessToken
-    );
+    // Delete the client folder and all its contents
+    await deleteChildFolder(`${clientFolderName}`, accessToken);
 
+    // Delete the main client folder
     const removeOriginalFolder = await fetch(
-      `${SITE_URL}/drive/items/${clientFolderName}`,
+      `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}`,
       {
         method: "DELETE",
         headers: {
@@ -85,18 +81,22 @@ export async function DELETE(request: Request) {
       }
     );
 
-    if (removeClientFolderFinish) {
+    if (removeOriginalFolder.ok) {
       return NextResponse.json({
         message: "Client folder deleted successfully",
-        status: removeClientFolderFinish.status,
+        status: 200,
       });
     } else {
-      NextResponse.json({
-        message: "Client folder not found",
-        status: removeClientFolderFinish.status,
+      return NextResponse.json({
+        message: "Client folder not found or could not be deleted",
+        status: removeOriginalFolder.status,
       });
     }
   } catch (error) {
-    console.error("Error deleting client folder");
+    console.error("Error deleting client folder:", error);
+    return NextResponse.json({
+      message: "Internal server error",
+      status: 500,
+    });
   }
 }
