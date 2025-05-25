@@ -1,8 +1,11 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@/app/utils/supabase/client";
-import { checkQuestionCompletion, uploadFileToClientFolder } from "@/app/utils/microsoft/graph";
+import {
+  checkQuestionCompletion,
+  uploadFileToClientFolder,
+} from "@/app/utils/microsoft/graph";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -20,7 +23,7 @@ interface ClientData {
   client_id: string;
 }
 
-export default function ClientForm() {
+function ClientFormContent() {
   // const [signedIn, setSignedIn] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -29,12 +32,10 @@ export default function ClientForm() {
   const [error, setError] = useState<string | null>(null);
   const [clientData, setClientData] = useState<ClientData | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [completionStatus, setCompletionStatus] = useState<{ [key: string]: boolean }>({});
+  const [completionStatus, setCompletionStatus] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [uploading, setUploading] = useState<{ [key: string]: boolean }>({});
-
-
- 
-
 
   useEffect(() => {
     // Check for login key in localStorage
@@ -59,8 +60,10 @@ export default function ClientForm() {
       setError(null);
 
       // Validate the login key with our API
-      const response = await fetch(`/api/client/validate-key?key=${encodeURIComponent(key)}`);
-      
+      const response = await fetch(
+        `/api/client/validate-key?key=${encodeURIComponent(key)}`
+      );
+
       if (!response.ok) {
         const data = await response.json();
         setError(data.error || "Invalid login key");
@@ -69,7 +72,7 @@ export default function ClientForm() {
 
       // Store in localStorage for persistence
       localStorage.setItem("clientLoginKey", key);
-      
+
       // Redirect to the form page
       router.push(`/client/form/${key}`);
     } catch (err) {
@@ -97,25 +100,27 @@ export default function ClientForm() {
     if (!clientData) return;
 
     try {
-      setUploading(prev => ({ ...prev, [question]: true }));
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      setUploading((prev) => ({ ...prev, [question]: true }));
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
       const fileName = `${timestamp}_${file.name}`;
-      
+
       const buffer = await file.arrayBuffer();
       await uploadFileToClientFolder(
         loginKey,
         clientData.client_name,
-        `${question.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}/${fileName}`,
+        `${question
+          .replace(/[^a-zA-Z0-9]/g, "_")
+          .substring(0, 50)}/${fileName}`,
         new Blob([buffer])
       );
 
       // Update completion status
-      setCompletionStatus(prev => ({ ...prev, [question]: true }));
+      setCompletionStatus((prev) => ({ ...prev, [question]: true }));
     } catch (err) {
       console.error("Error uploading file:", err);
       setError("Failed to upload file");
     } finally {
-      setUploading(prev => ({ ...prev, [question]: false }));
+      setUploading((prev) => ({ ...prev, [question]: false }));
     }
   };
 
@@ -149,8 +154,10 @@ export default function ClientForm() {
         </div>
 
         <div className="bg-white rounded-2xl p-8 shadow-lg max-w-md mx-auto">
-          <h1 className="text-3xl font-bold text-primary mb-6 text-center">Client Portal</h1>
-          
+          <h1 className="text-3xl font-bold text-primary mb-6 text-center">
+            Client Portal
+          </h1>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium mb-1">
@@ -180,9 +187,25 @@ export default function ClientForm() {
             >
               {loading ? (
                 <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Accessing...
                 </span>
@@ -191,7 +214,7 @@ export default function ClientForm() {
               )}
             </button>
           </form>
-          
+
           <div className="mt-6 text-center">
             <Link href="/" className="text-primary hover:underline">
               Back to Home
@@ -201,4 +224,19 @@ export default function ClientForm() {
       </div>
     </div>
   );
-} 
+}
+
+export default function ClientForm() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <ClientFormContent />
+    </Suspense>
+  );
+}
