@@ -383,11 +383,11 @@ export default function ClientFormPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6">
         {/* Header with logo */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 md:mb-8">
           <Link href="/">
-            <div className="w-40">
+            <div className="w-24 sm:w-32 md:w-40">
               <Image
                 src="/logo-bridgewell.png"
                 alt="Bridgewell Financial Logo"
@@ -400,17 +400,17 @@ export default function ClientFormPage() {
           </Link>
           <button
             onClick={handleLogout}
-            className="text-primary hover:underline text-sm"
+            className="text-primary hover:underline text-xs sm:text-sm font-medium"
           >
             Logout
           </button>
         </div>
 
         {/* Completion bar */}
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-lg font-medium">{getCompletionStatus()}</h2>
-            <span className="text-sm text-gray-500">
+        <div className="mb-4 md:mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
+            <h2 className="text-base sm:text-lg font-medium">{getCompletionStatus()}</h2>
+            <span className="text-xs sm:text-sm text-gray-500">
               {Object.values(submittedQuestions).filter(Boolean).length} of{" "}
               {questions.length} completed
             </span>
@@ -426,37 +426,37 @@ export default function ClientFormPage() {
         {/* Loading state */}
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-8 sm:h-12 w-8 sm:w-12 border-t-2 border-b-2 border-primary"></div>
           </div>
         ) : error ? (
-          <div className="p-4 mb-4 bg-red-50 border-l-4 border-red-400 text-red-700">
+          <div className="p-3 sm:p-4 mb-4 bg-red-50 border-l-4 border-red-400 text-red-700 text-sm sm:text-base">
             <p>{error}</p>
           </div>
         ) : clientData ? (
           <div>
-            <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-              <h1 className="text-2xl font-bold mb-2">
+            <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-6 md:mb-8">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-2">
                 Welcome, {clientData.clientName}
               </h1>
-              <p className="text-gray-600 mb-4">
+              <p className="text-sm sm:text-base text-gray-600 mb-4">
                 Please complete all questions below. Your progress is saved
                 automatically.
               </p>
             </div>
 
             {/* Questions list */}
-            <div className="space-y-8">
+            <div className="space-y-6 md:space-y-8">
               {questions.map((question, index) => (
                 <div
                   key={index}
-                  className={`bg-white rounded-xl shadow-md p-6 transition-all duration-300${
+                  className={`bg-white rounded-xl shadow-md p-4 sm:p-6 transition-all duration-300${
                     submittedQuestions[index]
                       ? " bg-green-50 border-l-4 border-green-500"
                       : ""
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-xl font-semibold mb-2">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 lg:gap-4">
+                    <h2 className="text-lg sm:text-xl font-semibold mb-2">
                       {question.question}
                       {submittedQuestions[index] && (
                         <span className="ml-2 text-green-600 text-sm font-normal">
@@ -466,10 +466,9 @@ export default function ClientFormPage() {
                     </h2>
                     {signedIn && (
                       <div
-                        className={`
-             bg-red-200 flex flex-col gap-2 justify-center items-center p-4 rounded-3xl`}
+                        className={`bg-red-200 flex flex-col gap-2 justify-center items-center p-2 sm:p-4 rounded-3xl shrink-0`}
                       >
-                        <h3 className="text-red-400 font-semibold">
+                        <h3 className="text-red-400 font-semibold text-xs sm:text-sm">
                           Admin Panel
                         </h3>
                         <button
@@ -488,7 +487,7 @@ export default function ClientFormPage() {
                       </div>
                     )}
                   </div>
-                  <p className="text-gray-600 mb-4">{question.description}</p>
+                  <p className="text-sm sm:text-base text-gray-600 mb-4">{question.description}</p>
                   {/* Download Template Button for file-type questions with a template */}
                   {question.responseType === "file" && question.template && question.template.fileId && (
                     <div className="mb-2">
@@ -496,7 +495,7 @@ export default function ClientFormPage() {
                         href={`/api/client/download-template?fileId=${encodeURIComponent(question.template.fileId)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-block bg-secondary text-white px-4 py-2 rounded-lg font-medium hover:bg-secondary-DARK transition"
+                        className="inline-block bg-secondary text-white px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-secondary-DARK transition text-sm sm:text-base"
                       >
                         Download Template
                       </a>
@@ -510,7 +509,7 @@ export default function ClientFormPage() {
                           handleTextChange(index, e.target.value)
                         }
                         placeholder="Type your response here..."
-                        className="w-full border-2 border-gray-300 rounded-lg p-3 mb-3 focus:border-primary focus:ring-primary"
+                        className="w-full border-2 border-gray-300 rounded-lg p-2 sm:p-3 mb-3 focus:border-primary focus:ring-primary text-sm sm:text-base"
                         rows={4}
                         disabled={
                           submittingQuestions[index] ||
@@ -520,10 +519,10 @@ export default function ClientFormPage() {
                     </div>
                   ) : (
                     <div>
-                      <label className="flex flex-col items-center px-4 py-6 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors">
-                        <div className="flex flex-col items-center">
+                      <label className="flex flex-col items-center px-3 sm:px-4 py-4 sm:py-6 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors">
+                        <div className="flex flex-col items-center text-center">
                           <svg
-                            className="w-8 h-8 text-primary mb-2"
+                            className="w-6 h-6 sm:w-8 sm:h-8 text-primary mb-2"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -558,9 +557,9 @@ export default function ClientFormPage() {
                       </label>
 
                       {files[index] && (
-                        <div className="mt-2 flex items-center p-2 bg-gray-50 rounded-lg">
+                        <div className="mt-2 flex items-center p-2 sm:p-3 bg-gray-50 rounded-lg">
                           <svg
-                            className="w-4 h-4 text-primary mr-2"
+                            className="w-4 h-4 sm:w-5 sm:h-5 text-primary mr-2 flex-shrink-0"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -573,7 +572,7 @@ export default function ClientFormPage() {
                               d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                             ></path>
                           </svg>
-                          <span className="text-sm text-gray-700">
+                          <span className="text-xs sm:text-sm text-gray-700 truncate">
                             File selected: {files[index]?.name}
                           </span>
                         </div>
@@ -582,7 +581,7 @@ export default function ClientFormPage() {
                   )}
 
                   {questionErrors[index] && (
-                    <div className="text-red-500 text-sm mt-2">
+                    <div className="text-red-500 text-xs sm:text-sm mt-2 p-2 bg-red-50 rounded border-l-2 border-red-200">
                       {questionErrors[index]}
                     </div>
                   )}
@@ -597,7 +596,7 @@ export default function ClientFormPage() {
                           !responses[index]) ||
                         (question.responseType === "file" && !files[index])
                       }
-                      className={`px-4 py-2 rounded-lg font-medium ${
+                      className={`w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium text-sm sm:text-base ${
                         submittedQuestions[index]
                           ? "bg-green-100 text-green-600 cursor-default"
                           : "bg-primary text-white hover:bg-primary-dark"

@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@/app/utils/supabase/client";
 import {
@@ -23,7 +23,7 @@ interface ClientData {
   client_id: string;
 }
 
-function ClientFormContent() {
+export default function ClientForm() {
   // const [signedIn, setSignedIn] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -136,10 +136,10 @@ function ClientFormContent() {
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-4 sm:p-6 md:p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-center mb-8">
-          <div className="w-24 bg-gray-200 rounded-full px-4 py-2">
+        <div className="flex items-center justify-center mb-6 md:mb-8">
+          <div className="w-16 sm:w-20 md:w-24 bg-gray-200 rounded-full px-2 sm:px-3 md:px-4 py-1 md:py-2">
             <Link href="/">
               <Image
                 src="/logo-bridgewell.png"
@@ -153,12 +153,12 @@ function ClientFormContent() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-8 shadow-lg max-w-md mx-auto">
-          <h1 className="text-3xl font-bold text-primary mb-6 text-center">
+        <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 shadow-lg max-w-full sm:max-w-md mx-auto">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary mb-4 md:mb-6 text-center">
             Client Portal
           </h1>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
             <div>
               <label className="block text-sm font-medium mb-1">
                 Login Key
@@ -168,13 +168,13 @@ function ClientFormContent() {
                 value={loginKey}
                 onChange={(e) => setLoginKey(e.target.value)}
                 placeholder="Enter your login key"
-                className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
                 required
               />
             </div>
 
             {error && (
-              <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
+              <div className="p-3 md:p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded text-sm sm:text-base">
                 <p>{error}</p>
               </div>
             )}
@@ -182,13 +182,13 @@ function ClientFormContent() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-DARK transition
+              className={`w-full bg-primary text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold hover:bg-primary-DARK transition text-sm sm:text-base
                 ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
             >
               {loading ? (
                 <span className="flex items-center justify-center">
                   <svg
-                    className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 sm:h-5 sm:w-5 text-white"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -215,28 +215,13 @@ function ClientFormContent() {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <Link href="/" className="text-primary hover:underline">
+          <div className="mt-4 md:mt-6 text-center">
+            <Link href="/" className="text-primary hover:underline text-sm sm:text-base">
               Back to Home
             </Link>
           </div>
         </div>
       </div>
     </div>
-  );
-}
-
-export default function ClientForm() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    }>
-      <ClientFormContent />
-    </Suspense>
   );
 }

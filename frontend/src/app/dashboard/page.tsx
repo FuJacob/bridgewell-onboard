@@ -332,30 +332,30 @@ export default function Dashboard() {
 
   if (showFormModal) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-4xl w-full overflow-y-auto h-5/6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold text-primary">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4">
+        <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full overflow-y-auto max-h-[95vh] sm:h-5/6">
+          <div className="flex justify-between items-center mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-primary">
               Create New Client Form
             </h2>
             <button
               onClick={resetForm}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700 text-xl sm:text-2xl p-1"
             >
               ×
             </button>
           </div>
 
           {formError && (
-            <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded mb-6">
+            <div className="p-3 sm:p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded mb-4 sm:mb-6 text-sm sm:text-base">
               <p>{formError}</p>
             </div>
           )}
 
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-xs sm:text-sm font-medium mb-1">
                   Client Name
                 </label>
                 <input
@@ -363,11 +363,11 @@ export default function Dashboard() {
                   placeholder="Enter client name"
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
-                  className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                  className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-xs sm:text-sm font-medium mb-1">
                   Organization
                 </label>
                 <input
@@ -375,19 +375,19 @@ export default function Dashboard() {
                   placeholder="Enter organization name"
                   value={organization}
                   onChange={(e) => setOrganization(e.target.value)}
-                  className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                  className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
                 />
               </div>
             </div>
 
-            <div className="border-t border-gray-200 pt-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold text-primary">
+            <div className="border-t border-gray-200 pt-4 sm:pt-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mb-4">
+                <h3 className="text-lg sm:text-xl font-semibold text-primary">
                   Questions
                 </h3>
                 <button
                   onClick={addQuestion}
-                  className="bg-secondary text-white px-4 py-2 rounded-xl font-medium"
+                  className="w-full sm:w-auto bg-secondary text-white px-3 sm:px-4 py-2 rounded-xl font-medium text-sm sm:text-base"
                 >
                   + Add Question
                 </button>
@@ -402,17 +402,17 @@ export default function Dashboard() {
               {questions.map((q, index) => (
                 <div
                   key={index}
-                  className="mb-6 p-6 border-2 border-gray-200 rounded-xl bg-gray-50"
+                  className="mb-4 sm:mb-6 p-4 sm:p-6 border-2 border-gray-200 rounded-xl bg-gray-50"
                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="bg-primary text-white text-sm py-1 px-3 rounded-full">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-0 mb-4">
+                    <span className="bg-primary text-white text-xs sm:text-sm py-1 px-2 sm:px-3 rounded-full">
                       Question {index + 1}
                     </span>
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => moveQuestionUp(index)}
                         disabled={index === 0}
-                        className={`p-2 rounded ${
+                        className={`p-1 sm:p-2 rounded text-sm sm:text-base ${
                           index === 0
                             ? "text-gray-400"
                             : "text-primary hover:bg-gray-200"
@@ -423,7 +423,7 @@ export default function Dashboard() {
                       <button
                         onClick={() => moveQuestionDown(index)}
                         disabled={index === questions.length - 1}
-                        className={`p-2 rounded ${
+                        className={`p-1 sm:p-2 rounded text-sm sm:text-base ${
                           index === questions.length - 1
                             ? "text-gray-400"
                             : "text-primary hover:bg-gray-200"
@@ -433,16 +433,16 @@ export default function Dashboard() {
                       </button>
                       <button
                         onClick={() => removeQuestion(index)}
-                        className="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600"
+                        className="bg-red-500 text-white p-1 sm:p-2 rounded-lg hover:bg-red-600 text-sm sm:text-base"
                       >
                         ×
                       </button>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">
+                      <label className="block text-xs sm:text-sm font-medium mb-1">
                         Question
                       </label>
                       <input
@@ -450,12 +450,12 @@ export default function Dashboard() {
                         value={q.question}
                         onChange={(e) => updateQuestion(index, e.target.value)}
                         placeholder="Enter your question"
-                        className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                        className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">
+                      <label className="block text-xs sm:text-sm font-medium mb-1">
                         Description (optional)
                       </label>
                       <input
@@ -465,13 +465,13 @@ export default function Dashboard() {
                           updateDescription(index, e.target.value)
                         }
                         placeholder="Add a short description or hint for this question"
-                        className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                        className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                       <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block text-xs sm:text-sm font-medium mb-1">
                           Response Type
                         </label>
                         <select
@@ -479,7 +479,7 @@ export default function Dashboard() {
                           onChange={(e) =>
                             updateResponseType(index, e.target.value)
                           }
-                          className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl bg-white"
+                          className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl bg-white text-sm sm:text-base"
                         >
                           <option value="text">Text Response</option>
                           <option value="file">File Upload</option>
@@ -487,14 +487,14 @@ export default function Dashboard() {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block text-xs sm:text-sm font-medium mb-1">
                           Due Date (optional)
                         </label>
                         <input
                           type="date"
                           value={q.dueDate}
                           onChange={(e) => updateDueDate(index, e.target.value)}
-                          className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                          className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
                         />
                       </div>
                     </div>
@@ -562,14 +562,14 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
+          <div className="flex items-center gap-4 sm:gap-6">
             <div>
-              <div className="flex items-center gap-5">
-                <div className="w-456">
+              <div className="flex items-center gap-3 sm:gap-5">
+                <div className="w-16 sm:w-20 md:w-24">
                   <Link href="/">
                     <Image
                       src="/logo-bridgewell.png"
@@ -581,10 +581,10 @@ export default function Dashboard() {
                     />
                   </Link>
                 </div>
-                <h1 className="text-4xl font-bold text-primary">Dashboard</h1>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Dashboard</h1>
               </div>{" "}
               {error && (
-                <p className="text-red-500 text-sm mt-1">
+                <p className="text-red-500 text-xs sm:text-sm mt-1">
                   {error} - Showing available data
                 </p>
               )}
@@ -592,33 +592,33 @@ export default function Dashboard() {
           </div>
           <button
             onClick={() => setShowFormModal(true)}
-            className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-DARK transition"
+            className="w-full sm:w-auto bg-primary text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold hover:bg-primary-DARK transition text-sm sm:text-base"
           >
             Create New Form
           </button>
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-medium text-gray-600 mb-2">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 md:mb-8">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <h3 className="text-base sm:text-lg font-medium text-gray-600 mb-2">
               Total Forms
             </h3>
-            <p className="text-4xl font-bold text-primary">{forms.length}</p>
+            <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">{forms.length}</p>
           </div>
         </div>
 
         {/* Forms List */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           {forms.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 p-4 sm:p-6">
               {forms.map((form: FormData, index: number) => (
                 <div
                   key={index}
                   className="bg-white border-2 border-gray-200 hover:border-primary transition-colors duration-300 rounded-xl shadow-sm hover:shadow-md overflow-hidden"
                 >
                   <button
-                    className="group p-5 border-b border-gray-100 hover:border- hover:bg-primary w-full transition duration-300 ease-in-out "
+                    className="group p-4 sm:p-5 border-b border-gray-100 hover:border- hover:bg-primary w-full transition duration-300 ease-in-out "
                     onClick={() =>
                       router.push(
                         `http://localhost:3000/client/form/${form.login_key}`
@@ -626,28 +626,28 @@ export default function Dashboard() {
                     }
                   >
                     <div className="flex flex-col justify-center items-start ">
-                      <h2 className="font-bold text-xl text-primary group-hover:text-white mb-1 truncate">
+                      <h2 className="font-bold text-lg sm:text-xl text-primary group-hover:text-white mb-1 truncate w-full text-left">
                         {form.organization}
                       </h2>
-                      <h3 className="text-gray-600 group-hover:text-white text-md mb-2">
+                      <h3 className="text-gray-600 group-hover:text-white text-sm sm:text-md mb-2 truncate w-full text-left">
                         {form.client_name}
                       </h3>
-                      <p className="text-sm text-gray-500 group-hover:text-white">
+                      <p className="text-xs sm:text-sm text-gray-500 group-hover:text-white text-left">
                         Created:{" "}
                         {new Date(form.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </button>
-                  <div className="p-4 bg-gray-50">
+                  <div className="p-3 sm:p-4 bg-gray-50">
                     <div className="flex items-center">
-                      <span className="text-xs font-medium text-gray-500 mr-2">
+                      <span className="text-xs font-medium text-gray-500 mr-2 flex-shrink-0">
                         Login Key:
                       </span>
                       <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono flex-1 overflow-hidden text-ellipsis">
                         {form.login_key}
                       </code>
                       <button
-                        className="ml-2 text-primary hover:text-primary-DARK"
+                        className="ml-2 text-primary hover:text-primary-DARK flex-shrink-0 p-1"
                         onClick={() =>
                           navigator.clipboard.writeText(form.login_key)
                         }
@@ -661,7 +661,9 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <div>No forms available</div>
+            <div className="text-center py-8 sm:py-12 text-gray-500">
+              <p className="text-sm sm:text-base">No forms available</p>
+            </div>
           )}
         </div>
       </div>

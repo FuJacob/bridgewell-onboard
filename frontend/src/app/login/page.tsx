@@ -21,11 +21,11 @@ const SignIn = () => {
   };
 
   return (
-    <div className="flex justify-center items-center h-screen text-center">
-      <form className="bg-white w-96 h-96 p-12 rounded-2xl flex gap-4 flex-col items-center justify-center shadow-lg">
+    <div className="flex justify-center items-center min-h-screen text-center p-4">
+      <form className="bg-white w-full max-w-sm sm:max-w-md md:max-w-lg lg:w-96 min-h-80 md:h-96 p-6 sm:p-8 md:p-12 rounded-2xl flex gap-4 flex-col items-center justify-center shadow-lg">
         <div className="mb-4">
           <Link href="/">
-            <div className="w-40 mx-auto mb-4">
+            <div className="w-24 sm:w-32 md:w-40 mx-auto mb-4">
               <Image
                 src="/logo-bridgewell.png"
                 alt="Bridgewell Financial Logo"
@@ -35,7 +35,9 @@ const SignIn = () => {
               />
             </div>
           </Link>
-          <h2 className="text-2xl font-bold text-primary">Employee Login</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
+            Employee Login
+          </h2>
         </div>
 
         <input
@@ -46,7 +48,7 @@ const SignIn = () => {
           value={email}
           onChange={handleChange}
           required
-          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm sm:text-base"
         />
 
         <input
@@ -57,13 +59,13 @@ const SignIn = () => {
           value={password}
           onChange={handleChange}
           required
-          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm sm:text-base"
         />
 
         <input
           formAction={login}
           type="submit"
-          className="bg-primary py-3 px-6 rounded-2xl text-white font-bold cursor-pointer hover:bg-primary-DARK transition-colors w-full mt-2"
+          className="bg-primary py-2 sm:py-3 px-4 sm:px-6 rounded-2xl text-white font-bold cursor-pointer hover:bg-primary-DARK transition-colors w-full mt-2 text-sm sm:text-base"
           value="Sign In"
         />
       </form>
