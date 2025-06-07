@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@/app/utils/supabase/client";
 import {
@@ -24,7 +24,15 @@ interface ClientData {
 }
 
 export default function ClientForm() {
-  // const [signedIn, setSignedIn] = useState(false);
+  return (
+    <Suspense fallback={<ClientFormLoading />}>
+      <ClientFormContent />
+    </Suspense>
+  );
+}
+
+// Separate component that uses useSearchParams
+function ClientFormContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [loginKey, setLoginKey] = useState("");
@@ -219,6 +227,28 @@ export default function ClientForm() {
             <Link href="/" className="text-primary hover:underline text-sm sm:text-base">
               Back to Home
             </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Loading fallback component
+function ClientFormLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-primary to-secondary flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-6xl mx-auto">
+        <div className="text-center mb-6 md:mb-8">
+          <div className="flex justify-center mb-4 md:mb-6">
+            <div className="w-32 sm:w-40 md:w-48 animate-pulse bg-white/20 rounded-lg h-12"></div>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 shadow-lg max-w-full sm:max-w-md mx-auto">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded mb-6"></div>
+            <div className="h-12 bg-gray-200 rounded mb-4"></div>
+            <div className="h-12 bg-gray-200 rounded"></div>
           </div>
         </div>
       </div>
