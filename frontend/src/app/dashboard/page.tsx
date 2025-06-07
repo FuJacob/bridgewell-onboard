@@ -621,7 +621,7 @@ export default function Dashboard() {
                     className="group p-4 sm:p-5 border-b border-gray-100 hover:border- hover:bg-primary w-full transition duration-300 ease-in-out "
                     onClick={() =>
                       router.push(
-                        `http://localhost:3000/client/form/${form.login_key}`
+                        `/client/form/${form.login_key}`
                       )
                     }
                   >
