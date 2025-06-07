@@ -52,7 +52,7 @@ export async function Nav() {
                   style={{ width: "100%", height: "auto" }}
                 />
               </div>
-              <span className="hidden sm:inline">Employee Login</span>
+              <span className="hidden sm:inline">Admin Login</span>
               <span className="sm:hidden">Login</span>
             </button>
           </Link>
