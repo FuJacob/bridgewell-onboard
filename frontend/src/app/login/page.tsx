@@ -36,7 +36,7 @@ const SignIn = () => {
             </div>
           </Link>
           <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
-            Employee Login
+            Admin Login
           </h2>
         </div>
 

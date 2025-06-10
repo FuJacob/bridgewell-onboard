@@ -29,8 +29,12 @@ async function deleteClientUploadsToQuestion(
       "Client folder name for deleting uploads to x question:",
       clientFolderName
     );
+    const sanitizedQuestion = question
+      .replace(/[^a-zA-Z0-9]/g, "_")
+      .substring(0, 50);
+
     const listResponse = await fetch(
-      `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}/${question}/answer:/children`,
+      `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}/${sanitizedQuestion}/answer:/children`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -43,6 +47,7 @@ async function deleteClientUploadsToQuestion(
       "ASDOSADKAOPSDKOPAKSPODKPOASKDPKAPDKPAKSPDAPSKDAPSDOPASDPPKSAKPD",
       listData
     );
+
     for (const listItem of listData.value) {
       await fetch(`${SITE_URL}/drive/items/${listItem.id}`, {
         method: "DELETE",
@@ -71,7 +76,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const response = await deleteClientUploadsToQuestion(loginKey, name, question.split(" ").join("_"));
+    const response = await deleteClientUploadsToQuestion(
+      loginKey,
+      name,
+      question.split(" ").join("_")
+    );
     return NextResponse.json({
       message: "Question reset successfully",
       success: response,

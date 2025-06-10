@@ -458,8 +458,8 @@ export default function Dashboard() {
                       <label className="block text-xs sm:text-sm font-medium mb-1">
                         Description (optional)
                       </label>
-                      <input
-                        type="text"
+                      <textarea
+                        rows={3}
                         value={q.description}
                         onChange={(e) =>
                           updateDescription(index, e.target.value)
@@ -581,7 +581,9 @@ export default function Dashboard() {
                     />
                   </Link>
                 </div>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Dashboard</h1>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">
+                  Dashboard
+                </h1>
               </div>{" "}
               {error && (
                 <p className="text-red-500 text-xs sm:text-sm mt-1">
@@ -604,7 +606,9 @@ export default function Dashboard() {
             <h3 className="text-base sm:text-lg font-medium text-gray-600 mb-2">
               Total Forms
             </h3>
-            <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">{forms.length}</p>
+            <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">
+              {forms.length}
+            </p>
           </div>
         </div>
 
@@ -620,9 +624,7 @@ export default function Dashboard() {
                   <button
                     className="group p-4 sm:p-5 border-b border-gray-100 hover:border- hover:bg-primary w-full transition duration-300 ease-in-out "
                     onClick={() =>
-                      router.push(
-                        `/client/form/${form.login_key}`
-                      )
+                      router.push(`/client/form/${form.login_key}`)
                     }
                   >
                     <div className="flex flex-col justify-center items-start ">
