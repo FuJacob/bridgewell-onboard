@@ -89,6 +89,9 @@ export default function Dashboard() {
   const [templateName, setTemplateName] = useState("");
   const [templateStatus, setTemplateStatus] = useState<string | null>(null);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [showTemplateSelectionModal, setShowTemplateSelectionModal] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
 
   async function checkSignedIn() {
     const supabase = await createClient();
@@ -282,6 +285,7 @@ export default function Dashboard() {
     setLoginKey(null);
     setFormError(null);
     setShowFormModal(false);
+    setShowTemplateSelectionModal(false);
   };
 
   const handleSaveAsTemplate = async () => {
@@ -346,6 +350,39 @@ export default function Dashboard() {
     } finally {
       setIsSavingTemplate(false);
     }
+  };
+
+  const fetchTemplates = async () => {
+    setIsLoadingTemplates(true);
+    try {
+      const response = await fetch("/api/admin/get-templates");
+      const data = await response.json();
+      if (response.ok) {
+        setTemplates(data.templates || []);
+      } else {
+        console.error("Failed to fetch templates:", data.error);
+      }
+    } catch (err) {
+      console.error("Error fetching templates:", err);
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  };
+
+  const loadTemplate = (template: any) => {
+    try {
+      const templateQuestions = JSON.parse(template.questions);
+      setQuestions(templateQuestions);
+      setShowTemplateSelectionModal(false);
+      setShowFormModal(true);
+    } catch (err) {
+      console.error("Error parsing template questions:", err);
+    }
+  };
+
+  const handleCreateNewForm = () => {
+    setShowTemplateSelectionModal(true);
+    fetchTemplates();
   };
 
   if (loading) {
@@ -430,7 +467,7 @@ export default function Dashboard() {
               </div>
             </div>
             <button
-              onClick={() => setShowFormModal(true)}
+              onClick={handleCreateNewForm}
               className="w-full sm:w-auto bg-primary text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold hover:bg-primary-DARK transition text-sm sm:text-base"
             >
               Create New Form
@@ -507,6 +544,71 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Template Selection Modal */}
+      {showTemplateSelectionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 99999 }}>
+          <div className="bg-white rounded-2xl p-8 max-w-2xl w-full text-center">
+            <h2 className="text-2xl font-bold mb-6 text-primary">Select Template</h2>
+            <p className="text-gray-600 mb-6">Choose a template to start with or create a blank form</p>
+            
+            {isLoadingTemplates ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <span className="ml-3">Loading templates...</span>
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {/* Blank Template Option */}
+                <button
+                  onClick={() => {
+                    setQuestions([]);
+                    setShowTemplateSelectionModal(false);
+                    setShowFormModal(true);
+                  }}
+                  className="w-full p-4 border-2 border-gray-200 hover:border-primary rounded-xl text-left transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-lg text-primary">Blank Form</h3>
+                      <p className="text-gray-600 text-sm">Start with an empty form and add your own questions</p>
+                    </div>
+                    <span className="text-gray-400">→</span>
+                  </div>
+                </button>
+
+                {/* Saved Templates */}
+                {templates.map((template, index) => (
+                  <button
+                    key={template.id}
+                    onClick={() => loadTemplate(template)}
+                    className="w-full p-4 border-2 border-gray-200 hover:border-primary rounded-xl text-left transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-lg text-primary">{template.template_name}</h3>
+                        <p className="text-gray-600 text-sm">
+                          {JSON.parse(template.questions).length} questions • Created {new Date(template.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <span className="text-gray-400">→</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-6">
+              <button
+                onClick={() => setShowTemplateSelectionModal(false)}
+                className="px-6 py-3 rounded-xl font-bold border-2 border-gray-300 hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Form Modal */}
       {showFormModal && (
