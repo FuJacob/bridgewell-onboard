@@ -92,6 +92,9 @@ export default function Dashboard() {
   const [showTemplateSelectionModal, setShowTemplateSelectionModal] = useState(false);
   const [templates, setTemplates] = useState<any[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<any>(null);
+  const [isDeletingTemplate, setIsDeletingTemplate] = useState(false);
 
   async function checkSignedIn() {
     const supabase = await createClient();
@@ -286,6 +289,8 @@ export default function Dashboard() {
     setFormError(null);
     setShowFormModal(false);
     setShowTemplateSelectionModal(false);
+    setShowDeleteConfirmation(false);
+    setTemplateToDelete(null);
   };
 
   const handleSaveAsTemplate = async () => {
@@ -371,7 +376,15 @@ export default function Dashboard() {
 
   const loadTemplate = (template: any) => {
     try {
+      if (!template.questions || typeof template.questions !== 'string') {
+        console.error("Invalid template questions format");
+        return;
+      }
       const templateQuestions = JSON.parse(template.questions);
+      if (!Array.isArray(templateQuestions)) {
+        console.error("Template questions is not an array");
+        return;
+      }
       setQuestions(templateQuestions);
       setShowTemplateSelectionModal(false);
       setShowFormModal(true);
@@ -383,6 +396,39 @@ export default function Dashboard() {
   const handleCreateNewForm = () => {
     setShowTemplateSelectionModal(true);
     fetchTemplates();
+  };
+
+  const handleDeleteTemplate = (template: any, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the template selection
+    setTemplateToDelete(template);
+    setShowDeleteConfirmation(true);
+  };
+
+  const confirmDeleteTemplate = async () => {
+    if (!templateToDelete) return;
+    
+    setIsDeletingTemplate(true);
+    try {
+      const response = await fetch("/api/admin/delete-template", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId: templateToDelete.id }),
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
+        // Remove the template from the local state
+        setTemplates(templates.filter(t => t.id !== templateToDelete.id));
+        setShowDeleteConfirmation(false);
+        setTemplateToDelete(null);
+      } else {
+        console.error("Failed to delete template:", data.error);
+      }
+    } catch (err) {
+      console.error("Error deleting template:", err);
+    } finally {
+      setIsDeletingTemplate(false);
+    }
   };
 
   if (loading) {
@@ -524,9 +570,10 @@ export default function Dashboard() {
                         </code>
                         <button
                           className="ml-2 text-primary hover:text-primary-DARK flex-shrink-0 p-1"
-                          onClick={() =>
-                            navigator.clipboard.writeText(form.login_key)
-                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(form.login_key);
+                          }}
                           title="Copy to clipboard"
                         >
                           📋
@@ -578,23 +625,44 @@ export default function Dashboard() {
                 </button>
 
                 {/* Saved Templates */}
-                {templates.map((template, index) => (
-                  <button
-                    key={template.id}
-                    onClick={() => loadTemplate(template)}
-                    className="w-full p-4 border-2 border-gray-200 hover:border-primary rounded-xl text-left transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold text-lg text-primary">{template.template_name}</h3>
-                        <p className="text-gray-600 text-sm">
-                          {JSON.parse(template.questions).length} questions • Created {new Date(template.created_at).toLocaleDateString()}
-                        </p>
+                {templates.map((template, index) => {
+                  let questionCount = 0;
+                  try {
+                    if (template.questions && typeof template.questions === 'string') {
+                      questionCount = JSON.parse(template.questions).length;
+                    }
+                  } catch (err) {
+                    console.error("Error parsing template questions:", err);
+                    questionCount = 0;
+                  }
+                  
+                  return (
+                    <div
+                      key={template.id}
+                      className="w-full p-4 border-2 border-gray-200 hover:border-primary rounded-xl text-left transition-colors relative cursor-pointer"
+                      onClick={() => loadTemplate(template)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold text-lg text-primary">{template.template_name}</h3>
+                          <p className="text-gray-600 text-sm">
+                            {questionCount} questions • Created {new Date(template.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-400">→</span>
+                          <button
+                            onClick={(e) => handleDeleteTemplate(template, e)}
+                            className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
+                            title="Delete template"
+                          >
+                            ×
+                          </button>
+                        </div>
                       </div>
-                      <span className="text-gray-400">→</span>
                     </div>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -885,6 +953,30 @@ export default function Dashboard() {
                 ) : (
                   "Save Template"
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 99999 }}>
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
+            <h2 className="text-xl font-bold mb-4 text-primary">Delete Template</h2>
+            <p className="text-gray-600 mb-6">Are you sure you want to delete this template?</p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => setShowDeleteConfirmation(false)}
+                className="px-6 py-2 rounded-xl font-bold border-2 border-gray-300 hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteTemplate}
+                className="bg-red-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-red-600 transition"
+              >
+                Delete
               </button>
             </div>
           </div>
