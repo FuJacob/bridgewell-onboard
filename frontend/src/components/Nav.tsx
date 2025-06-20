@@ -9,9 +9,6 @@ export async function Nav() {
   if (error || !data?.user) {
   }
 
-  async function signOut() {
-    const { error } = await supabase.auth.signOut();
-  }
   return (
     <nav className="mx-4 sm:mx-8 md:mx-16 lg:mx-32 xl:mx-40 py-6 md:py-12 text-lg md:text-2xl font-bold flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-6 lg:gap-12">
       <Link href="/">
@@ -26,8 +23,6 @@ export async function Nav() {
         </div>
       </Link>
       <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 lg:gap-12 text-center">
-        <Link href="/" className="hover:text-primary transition-colors">Tutorial</Link>
-        <Link href="/" className="hover:text-primary transition-colors">Contact</Link>
         <a
           href="https://bridgewellfinancial.com/"
           target="_blank"
@@ -57,7 +52,7 @@ export async function Nav() {
             </button>
           </Link>
         ) : (
-          <div className="flex flex-col items-center justify-center gap-2 md:gap-4 bg-primary rounded-3xl text-white px-6 md:px-24 py-4">
+          <div className="flex flex-col items-center justify-center gap-2 md:gap-4 bg-primary rounded-3xl text-white px-6 md:px-8 py-4">
             <div className="flex items-center justify-center gap-2 md:gap-4">
               <div className="w-8 sm:w-16 md:w-32">
                 <Image

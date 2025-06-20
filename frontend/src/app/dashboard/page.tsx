@@ -89,12 +89,53 @@ export default function Dashboard() {
   const [templateName, setTemplateName] = useState("");
   const [templateStatus, setTemplateStatus] = useState<string | null>(null);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
-  const [showTemplateSelectionModal, setShowTemplateSelectionModal] = useState(false);
+  const [showTemplateSelectionModal, setShowTemplateSelectionModal] =
+    useState(false);
   const [templates, setTemplates] = useState<any[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<any>(null);
   const [isDeletingTemplate, setIsDeletingTemplate] = useState(false);
+
+  async function deleteClient(loginKey: string, clientName: string) {
+    try {
+      const response = await fetch(`/api/admin/delete-client`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ loginKey, clientName }),
+      });
+
+      const result = await response.json();
+      console.log("API delete result:", result);
+
+      if (!response.ok) {
+        console.error("Failed to delete from SharePoint:", result.message);
+        return;
+      }
+
+      const supabase = await createClient();
+      const { data: deletedForms, error } = await supabase
+        .from("clients")
+        .delete()
+        .eq("login_key", loginKey)
+        .select("*");
+      console.log("Deleted from Supabase:", deletedForms);
+      if (error) {
+        console.error("Supabase deletion error:", error.message);
+        return;
+      }
+
+      setForms((prevForms) =>
+        prevForms.filter((form) => form.login_key !== loginKey)
+      );
+
+      console.log("Deleted from Supabase:", deletedForms);
+    } catch (err) {
+      console.error("Error deleting client:", err);
+    }
+  }
 
   async function checkSignedIn() {
     const supabase = await createClient();
@@ -298,7 +339,7 @@ export default function Dashboard() {
     console.log("handleSaveAsTemplate called");
     console.log("templateName:", templateName);
     console.log("questions:", questions);
-    
+
     if (!templateName.trim()) {
       setTemplateStatus("Template name is required");
       return;
@@ -307,9 +348,9 @@ export default function Dashboard() {
       setTemplateStatus("At least one question is required");
       return;
     }
-    
+
     setIsSavingTemplate(true);
-    
+
     // Process questions the same way as create-form API does
     const processedQuestions = questions.map((q, idx) => {
       if (
@@ -329,9 +370,9 @@ export default function Dashboard() {
       }
       return { ...q, template: q.template ? { ...q.template } : null };
     });
-    
+
     console.log("processedQuestions to save:", processedQuestions);
-    
+
     try {
       const response = await fetch("/api/admin/save-template", {
         method: "POST",
@@ -341,7 +382,7 @@ export default function Dashboard() {
       console.log("Response status:", response.status);
       const data = await response.json();
       console.log("Response data:", data);
-      
+
       if (!response.ok) {
         setTemplateStatus(data.error || "Failed to save template");
       } else {
@@ -376,7 +417,7 @@ export default function Dashboard() {
 
   const loadTemplate = (template: any) => {
     try {
-      if (!template.questions || typeof template.questions !== 'string') {
+      if (!template.questions || typeof template.questions !== "string") {
         console.error("Invalid template questions format");
         return;
       }
@@ -406,7 +447,7 @@ export default function Dashboard() {
 
   const confirmDeleteTemplate = async () => {
     if (!templateToDelete) return;
-    
+
     setIsDeletingTemplate(true);
     try {
       const response = await fetch("/api/admin/delete-template", {
@@ -414,11 +455,11 @@ export default function Dashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ templateId: templateToDelete.id }),
       });
-      
+
       const data = await response.json();
       if (response.ok) {
         // Remove the template from the local state
-        setTemplates(templates.filter(t => t.id !== templateToDelete.id));
+        setTemplates(templates.filter((t) => t.id !== templateToDelete.id));
         setShowDeleteConfirmation(false);
         setTemplateToDelete(null);
       } else {
@@ -503,7 +544,9 @@ export default function Dashboard() {
                       />
                     </Link>
                   </div>
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">Dashboard</h1>
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">
+                    Dashboard
+                  </h1>
                 </div>{" "}
                 {error && (
                   <p className="text-red-500 text-xs sm:text-sm mt-1">
@@ -526,7 +569,9 @@ export default function Dashboard() {
               <h3 className="text-base sm:text-lg font-medium text-gray-600 mb-2">
                 Total Forms
               </h3>
-              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">{forms.length}</p>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">
+                {forms.length}
+              </p>
             </div>
           </div>
 
@@ -542,9 +587,7 @@ export default function Dashboard() {
                     <button
                       className="group p-4 sm:p-5 border-b border-gray-100 hover:border- hover:bg-primary w-full transition duration-300 ease-in-out "
                       onClick={() =>
-                        router.push(
-                          `/client/form/${form.login_key}`
-                        )
+                        router.push(`/client/form/${form.login_key}`)
                       }
                     >
                       <div className="flex flex-col justify-center items-start ">
@@ -562,9 +605,6 @@ export default function Dashboard() {
                     </button>
                     <div className="p-3 sm:p-4 bg-gray-50">
                       <div className="flex items-center">
-                        <span className="text-xs font-medium text-gray-500 mr-2 flex-shrink-0">
-                          Login Key:
-                        </span>
                         <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono flex-1 overflow-hidden text-ellipsis">
                           {form.login_key}
                         </code>
@@ -577,6 +617,15 @@ export default function Dashboard() {
                           title="Copy to clipboard"
                         >
                           📋
+                        </button>
+
+                        <button
+                          className="pl-2"
+                          onClick={() =>
+                            deleteClient(form.login_key, form.client_name)
+                          }
+                        >
+                          🗑️
                         </button>
                       </div>
                     </div>
@@ -594,11 +643,18 @@ export default function Dashboard() {
 
       {/* Template Selection Modal */}
       {showTemplateSelectionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 99999 }}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+          style={{ zIndex: 99999 }}
+        >
           <div className="bg-white rounded-2xl p-8 max-w-2xl w-full text-center">
-            <h2 className="text-2xl font-bold mb-6 text-primary">Select Template</h2>
-            <p className="text-gray-600 mb-6">Choose a template to start with or create a blank form</p>
-            
+            <h2 className="text-2xl font-bold mb-6 text-primary">
+              Select Template
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Choose a template to start with or create a blank form
+            </p>
+
             {isLoadingTemplates ? (
               <div className="flex items-center justify-center py-8">
                 <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -617,8 +673,12 @@ export default function Dashboard() {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-semibold text-lg text-primary">Blank Form</h3>
-                      <p className="text-gray-600 text-sm">Start with an empty form and add your own questions</p>
+                      <h3 className="font-semibold text-lg text-primary">
+                        Blank Form
+                      </h3>
+                      <p className="text-gray-600 text-sm">
+                        Start with an empty form and add your own questions
+                      </p>
                     </div>
                     <span className="text-gray-400">→</span>
                   </div>
@@ -628,14 +688,17 @@ export default function Dashboard() {
                 {templates.map((template, index) => {
                   let questionCount = 0;
                   try {
-                    if (template.questions && typeof template.questions === 'string') {
+                    if (
+                      template.questions &&
+                      typeof template.questions === "string"
+                    ) {
                       questionCount = JSON.parse(template.questions).length;
                     }
                   } catch (err) {
                     console.error("Error parsing template questions:", err);
                     questionCount = 0;
                   }
-                  
+
                   return (
                     <div
                       key={template.id}
@@ -644,9 +707,12 @@ export default function Dashboard() {
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="font-semibold text-lg text-primary">{template.template_name}</h3>
+                          <h3 className="font-semibold text-lg text-primary">
+                            {template.template_name}
+                          </h3>
                           <p className="text-gray-600 text-sm">
-                            {questionCount} questions • Created {new Date(template.created_at).toLocaleDateString()}
+                            {questionCount} questions • Created{" "}
+                            {new Date(template.created_at).toLocaleDateString()}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -743,7 +809,8 @@ export default function Dashboard() {
                 {questions.length === 0 && (
                   <div className="text-center py-8 bg-gray-50 rounded-xl">
                     <p className="text-gray-500">
-                      No questions added yet. Click "Add Question" to get started.
+                      No questions added yet. Click "Add Question" to get
+                      started.
                     </p>
                   </div>
                 )}
@@ -796,7 +863,9 @@ export default function Dashboard() {
                         <input
                           type="text"
                           value={q.question}
-                          onChange={(e) => updateQuestion(index, e.target.value)}
+                          onChange={(e) =>
+                            updateQuestion(index, e.target.value)
+                          }
                           placeholder="Enter your question"
                           className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
                         />
@@ -841,7 +910,9 @@ export default function Dashboard() {
                           <input
                             type="date"
                             value={q.dueDate}
-                            onChange={(e) => updateDueDate(index, e.target.value)}
+                            onChange={(e) =>
+                              updateDueDate(index, e.target.value)
+                            }
                             className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
                           />
                         </div>
@@ -890,7 +961,10 @@ export default function Dashboard() {
                   <button
                     onClick={() => {
                       console.log("Save as Template button clicked");
-                      console.log("Current showTemplateModal state:", showTemplateModal);
+                      console.log(
+                        "Current showTemplateModal state:",
+                        showTemplateModal
+                      );
                       setShowTemplateModal(true);
                       console.log("Set showTemplateModal to true");
                     }}
@@ -923,18 +997,31 @@ export default function Dashboard() {
 
       {/* Template Modal - HIGHEST Z-INDEX */}
       {showTemplateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 99999 }}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+          style={{ zIndex: 99999 }}
+        >
           <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
-            <h2 className="text-xl font-bold mb-4 text-primary">Save as Template</h2>
+            <h2 className="text-xl font-bold mb-4 text-primary">
+              Save as Template
+            </h2>
             <input
               type="text"
               placeholder="Enter template name"
               value={templateName}
-              onChange={e => setTemplateName(e.target.value)}
+              onChange={(e) => setTemplateName(e.target.value)}
               className="block w-full p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-base mb-4"
             />
             {templateStatus && (
-              <div className={`mb-4 text-sm ${templateStatus.includes('success') ? 'text-green-600' : 'text-red-600'}`}>{templateStatus}</div>
+              <div
+                className={`mb-4 text-sm ${
+                  templateStatus.includes("success")
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
+                {templateStatus}
+              </div>
             )}
             <div className="flex justify-center gap-4 mt-4">
               <button
@@ -961,10 +1048,17 @@ export default function Dashboard() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 99999 }}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+          style={{ zIndex: 99999 }}
+        >
           <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
-            <h2 className="text-xl font-bold mb-4 text-primary">Delete Template</h2>
-            <p className="text-gray-600 mb-6">Are you sure you want to delete this template?</p>
+            <h2 className="text-xl font-bold mb-4 text-primary">
+              Delete Template
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete this template?
+            </p>
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => setShowDeleteConfirmation(false)}
