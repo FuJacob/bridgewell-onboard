@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const Landing = () => {
@@ -56,7 +55,9 @@ const Landing = () => {
               layout="responsive"
             />
           </div>
-          <h1 className="font-semibold text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl mb-2">Client Onboarding,</h1>
+          <h1 className="font-semibold text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl mb-2">
+            Client Onboarding,
+          </h1>
           <h1 className="font-bold text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl mb-4 md:mb-8">
             <span className="text-primary">Simplified</span>{" "}
             <span className="font-semibold">&</span>{" "}
@@ -70,7 +71,10 @@ const Landing = () => {
             Begin by entering your private key given by your Bridgewell Advisor
             below
           </h3>
-          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2 sm:gap-0">
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col sm:flex-row gap-2 sm:gap-0"
+          >
             <input
               className="border-primary border-2 text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold text-center rounded-2xl sm:rounded-l-2xl sm:rounded-r-none h-16 sm:h-20 md:h-24 w-full"
               type="text"
@@ -112,7 +116,9 @@ const Landing = () => {
             </h3>{" "}
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="bg-white rounded-2xl p-4 md:p-6 space-y-4 flex flex-col justify-center">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">Step 1</h1>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">
+                  Step 1
+                </h1>
                 <p className="text-sm sm:text-base">
                   Access your portal with your unique PIN. Secure authentication
                   keeps your information confidential and protected.{" "}
@@ -120,7 +126,9 @@ const Landing = () => {
               </div>
 
               <div className="bg-white rounded-2xl p-4 md:p-6 space-y-4 flex flex-col justify-center">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">Step 2</h1>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">
+                  Step 2
+                </h1>
                 <p className="text-sm sm:text-base">
                   Fill out forms and upload documents easily. Save time with
                   guided prompts and progress-saving features.
@@ -128,7 +136,9 @@ const Landing = () => {
               </div>
 
               <div className="bg-white rounded-2xl p-4 md:p-6 space-y-4 flex flex-col justify-center">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">Step 3</h1>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">
+                  Step 3
+                </h1>
                 <p className="text-sm sm:text-base">
                   Your submissions go directly to the Bridgewell team—no delays,
                   no attachments—ensuring fast processing and confirmation.

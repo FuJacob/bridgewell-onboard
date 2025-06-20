@@ -5,8 +5,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/app/utils/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
-import { create } from "domain";
-import { sign } from "crypto";
 import { getAllForms } from "../login/actions";
 import { useRouter } from "next/navigation";
 
@@ -84,6 +82,46 @@ export default function Dashboard() {
   const [tempLoginKey, setTempLoginKey] = useState<string>(
     () => "temp-" + Math.random().toString(36).substring(2, 15)
   );
+
+  async function deleteClient(loginKey: string, clientName: string) {
+    try {
+      const response = await fetch(`/api/admin/delete-client`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ loginKey, clientName }),
+      });
+
+      const result = await response.json();
+      console.log("API delete result:", result);
+
+      if (!response.ok) {
+        console.error("Failed to delete from SharePoint:", result.message);
+        return;
+      }
+
+      const supabase = await createClient();
+      const { data: deletedForms, error } = await supabase
+        .from("clients")
+        .delete()
+        .eq("login_key", loginKey)
+        .select("*");
+      console.log("Deleted from Supabase:", deletedForms);
+      if (error) {
+        console.error("Supabase deletion error:", error.message);
+        return;
+      }
+
+      setForms((prevForms) =>
+        prevForms.filter((form) => form.login_key !== loginKey)
+      );
+
+      console.log("Deleted from Supabase:", deletedForms);
+    } catch (err) {
+      console.error("Error deleting client:", err);
+    }
+  }
 
   async function checkSignedIn() {
     const supabase = await createClient();
@@ -458,8 +496,8 @@ export default function Dashboard() {
                       <label className="block text-xs sm:text-sm font-medium mb-1">
                         Description (optional)
                       </label>
-                      <textarea
-                        rows={3}
+                      <input
+                        type="text"
                         value={q.description}
                         onChange={(e) =>
                           updateDescription(index, e.target.value)
@@ -642,9 +680,6 @@ export default function Dashboard() {
                   </button>
                   <div className="p-3 sm:p-4 bg-gray-50">
                     <div className="flex items-center">
-                      <span className="text-xs font-medium text-gray-500 mr-2 flex-shrink-0">
-                        Login Key:
-                      </span>
                       <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono flex-1 overflow-hidden text-ellipsis">
                         {form.login_key}
                       </code>
@@ -656,6 +691,15 @@ export default function Dashboard() {
                         title="Copy to clipboard"
                       >
                         📋
+                      </button>
+
+                      <button
+                        className="pl-2"
+                        onClick={() =>
+                          deleteClient(form.login_key, form.client_name)
+                        }
+                      >
+                        🗑️
                       </button>
                     </div>
                   </div>
