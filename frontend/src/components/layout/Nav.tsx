@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/app/utils/supabase/server";
-import { SignOutButton } from "@/components/SignOutButton";
+import SignOutButton from "../ui/SignOutButton";
 export async function Nav() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();

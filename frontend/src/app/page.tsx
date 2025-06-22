@@ -1,6 +1,6 @@
-import Nav from "@/components/Nav";
-import Footer from "@/components/Footer";
-import Landing from "@/components/Landing";
+import Nav from "@/components/layout/Nav";
+import Footer from "@/components/layout/Footer";
+import Landing from "@/components/pages/Landing";
 export default function Home() {
   return (
     <>

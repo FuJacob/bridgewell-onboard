@@ -6,24 +6,12 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { createClient } from "@/app/utils/supabase/client";
+import { Question, ClientData } from "@/types";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
-type Question = {
-  question: string;
-  description: string;
-  responseType: string;
-  dueDate: string;
-  template?: {
-    fileName: string;
-    fileId: string;
-  };
-};
-
-type ClientData = {
-  id: string;
-  clientName: string;
-  organization: string;
-  questions: Question[];
-};
+import CompletionBar from "@/components/pages/CompletionBar";
+import QuestionCard from "@/components/pages/QuestionCard";
+import ErrorMessage from "@/components/shared/ErrorMessage";
 
 export default function ClientFormPage() {
   const [signedIn, setSignedIn] = useState(false);
@@ -52,25 +40,6 @@ export default function ClientFormPage() {
   const [submittedFiles, setSubmittedFiles] = useState<{
     [index: number]: { name: string; type: string; fileId?: string };
   }>({});
-
-  // Calculate completion percentage
-  const calculateCompletionPercentage = () => {
-    if (!questions || questions.length === 0) return 0;
-
-    const completedCount =
-      Object.values(submittedQuestions).filter(Boolean).length;
-    return Math.round((completedCount / questions.length) * 100);
-  };
-
-  // Build a status message based on completion
-  const getCompletionStatus = () => {
-    const percentage = calculateCompletionPercentage();
-    if (percentage === 100) return "Form Complete!";
-    if (percentage === 0) return "Form Not Started";
-    return `${percentage}% Complete`;
-  };
-
-  // delete question client uploads
 
   // Check if questions are already completed
   const checkCompletionStatus = useCallback(async () => {
@@ -185,18 +154,12 @@ export default function ClientFormPage() {
     }
   };
 
-  const handleFileChange = (
-    index: number,
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      setFiles({ ...files, [index]: file });
+  const handleFileChange = (index: number, file: File | null) => {
+    setFiles({ ...files, [index]: file });
 
-      // Clear error when selecting a file
-      if (questionErrors[index]) {
-        setQuestionErrors({ ...questionErrors, [index]: null });
-      }
+    // Clear error when selecting a file
+    if (questionErrors[index]) {
+      setQuestionErrors({ ...questionErrors, [index]: null });
     }
   };
 
@@ -349,24 +312,17 @@ export default function ClientFormPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6">
-        <div className="text-center">
-          <div className="w-20 h-20 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4">Loading your form...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading your form..." />;
   }
 
   if (error) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6">
         <div className="w-full max-w-md text-center">
-          <div className="text-red-500 text-xl mb-4">⚠️ {error}</div>
+          <ErrorMessage message={error} />
           <button
             onClick={() => router.push("/client")}
-            className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-DARK transition"
+            className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-DARK transition mt-4"
           >
             Back to Login
           </button>
@@ -374,6 +330,9 @@ export default function ClientFormPage() {
       </div>
     );
   }
+
+  const completedCount =
+    Object.values(submittedQuestions).filter(Boolean).length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -400,34 +359,12 @@ export default function ClientFormPage() {
         </div>
 
         {/* Completion bar */}
-        <div className="mb-4 md:mb-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-            <h2 className="text-base sm:text-lg font-medium">
-              {getCompletionStatus()}
-            </h2>
-            <span className="text-xs sm:text-sm text-gray-500">
-              {Object.values(submittedQuestions).filter(Boolean).length} of{" "}
-              {questions.length} completed
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div
-              className="bg-green-500 h-2.5 rounded-full transition-all duration-500"
-              style={{ width: `${calculateCompletionPercentage()}%` }}
-            ></div>
-          </div>
-        </div>
+        <CompletionBar
+          completedCount={completedCount}
+          totalCount={questions.length}
+        />
 
-        {/* Loading state */}
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-8 sm:h-12 w-8 sm:w-12 border-t-2 border-b-2 border-primary"></div>
-          </div>
-        ) : error ? (
-          <div className="p-3 sm:p-4 mb-4 bg-red-50 border-l-4 border-red-400 text-red-700 text-sm sm:text-base">
-            <p>{error}</p>
-          </div>
-        ) : clientData ? (
+        {clientData ? (
           <div>
             <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-6 md:mb-8">
               <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-2">
@@ -442,203 +379,28 @@ export default function ClientFormPage() {
             {/* Questions list */}
             <div className="space-y-6 md:space-y-8">
               {questions.map((question, index) => (
-                <div
+                <QuestionCard
                   key={index}
-                  className={`bg-white rounded-xl shadow-md p-4 sm:p-6 transition-all duration-300${
-                    submittedQuestions[index]
-                      ? " bg-green-50 border-l-4 border-green-500"
-                      : ""
-                  }`}
-                >
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 lg:gap-4">
-                    <h2 className="text-lg sm:text-xl font-semibold mb-2">
-                      {question.question}
-                      {submittedQuestions[index] && (
-                        <span className="ml-2 text-green-600 text-sm font-normal">
-                          ✓ Completed
-                        </span>
-                      )}
-                    </h2>
-                    {signedIn && (
-                      <div
-                        className={`bg-red-200 flex flex-col gap-2 justify-center items-center p-2 sm:p-4 rounded-3xl shrink-0`}
-                      >
-                        <h3 className="text-red-400 font-semibold text-xs sm:text-sm">
-                          Admin Panel
-                        </h3>
-                        <button
-                          onClick={() =>
-                            deleteClientUploads(
-                              loginKey,
-                              clientData.clientName,
-                              question.question,
-                              index
-                            )
-                          }
-                          className="bg-red-500 px-3 py-2 rounded-full text-xs font-semibold text-white"
-                        >
-                          Make client redo this question
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-sm sm:text-base text-gray-600 mb-4">
-                    {question.description}
-                  </p>
-                  {/* Download Template Button for file-type questions with a template */}
-                  {question.responseType === "file" &&
-                    question.template &&
-                    question.template.fileId && (
-                      <div className="mb-2">
-                        <a
-                          href={`/api/client/download-template?fileId=${encodeURIComponent(
-                            question.template.fileId
-                          )}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-block bg-secondary text-white px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-secondary-DARK transition text-sm sm:text-base"
-                        >
-                          Download Template
-                        </a>
-                      </div>
-                    )}
-                  {question.responseType === "text" ? (
-                    <div>
-                      <textarea
-                        value={responses[index] || ""}
-                        onChange={(e) =>
-                          handleTextChange(index, e.target.value)
-                        }
-                        placeholder="Type your response here..."
-                        className="w-full border-2 border-gray-300 rounded-lg p-2 sm:p-3 mb-3 focus:border-primary focus:ring-primary text-sm sm:text-base"
-                        rows={4}
-                        disabled={
-                          submittingQuestions[index] ||
-                          submittedQuestions[index]
-                        }
-                      ></textarea>
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="flex flex-col items-center px-3 sm:px-4 py-4 sm:py-6 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors">
-                        <div className="flex flex-col items-center text-center">
-                          <svg
-                            className="w-6 h-6 sm:w-8 sm:h-8 text-primary mb-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                            ></path>
-                          </svg>
-                          <p className="mb-1 text-sm text-gray-700">
-                            {files[index]
-                              ? files[index]?.name
-                              : "Click to upload or drag and drop"}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Allowed file types: PDF, DOC, DOCX, JPG, PNG
-                          </p>
-                        </div>
-                        <input
-                          id={`file-input-${index}`}
-                          type="file"
-                          onChange={(e) => handleFileChange(index, e)}
-                          className="hidden"
-                          disabled={
-                            submittingQuestions[index] ||
-                            submittedQuestions[index]
-                          }
-                        />
-                      </label>
-
-                      {files[index] && (
-                        <div className="mt-2 flex items-center p-2 sm:p-3 bg-gray-50 rounded-lg">
-                          <svg
-                            className="w-4 h-4 sm:w-5 sm:h-5 text-primary mr-2 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                            ></path>
-                          </svg>
-                          <span className="text-xs sm:text-sm text-gray-700 truncate">
-                            File selected: {files[index]?.name}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {questionErrors[index] && (
-                    <div className="text-red-500 text-xs sm:text-sm mt-2 p-2 bg-red-50 rounded border-l-2 border-red-200">
-                      {questionErrors[index]}
-                    </div>
-                  )}
-
-                  <div className="mt-4">
-                    <button
-                      onClick={() => handleSubmitQuestion(index, question)}
-                      disabled={
-                        submittingQuestions[index] ||
-                        submittedQuestions[index] ||
-                        (question.responseType === "text" &&
-                          !responses[index]) ||
-                        (question.responseType === "file" && !files[index])
-                      }
-                      className={`w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium text-sm sm:text-base ${
-                        submittedQuestions[index]
-                          ? "bg-green-100 text-green-600 cursor-default"
-                          : "bg-primary text-white hover:bg-primary-dark"
-                      } transition-colors ${
-                        submittingQuestions[index]
-                          ? "opacity-70 cursor-not-allowed"
-                          : ""
-                      }`}
-                    >
-                      {submittingQuestions[index] ? (
-                        <span className="flex items-center">
-                          <svg
-                            className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                          Submitting...
-                        </span>
-                      ) : submittedQuestions[index] ? (
-                        "Submitted"
-                      ) : (
-                        "Submit Response"
-                      )}
-                    </button>
-                  </div>
-                </div>
+                  question={question}
+                  index={index}
+                  isSubmitted={submittedQuestions[index] || false}
+                  isSubmitting={submittingQuestions[index] || false}
+                  error={questionErrors[index]}
+                  textResponse={responses[index] || ""}
+                  selectedFile={files[index]}
+                  onTextChange={(value) => handleTextChange(index, value)}
+                  onFileChange={(file) => handleFileChange(index, file)}
+                  onSubmit={() => handleSubmitQuestion(index, question)}
+                  showAdminPanel={signedIn}
+                  onRedoQuestion={() =>
+                    deleteClientUploads(
+                      loginKey,
+                      clientData.clientName,
+                      question.question,
+                      index
+                    )
+                  }
+                />
               ))}
             </div>
           </div>

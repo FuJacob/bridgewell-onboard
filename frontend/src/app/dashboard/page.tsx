@@ -6,39 +6,13 @@ import { createClient } from "@/app/utils/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
 import { getAllForms } from "../login/actions";
-import { useRouter } from "next/navigation";
-
-type FormData = {
-  id: string;
-  created_at: string;
-  client_name: string;
-  organization: string;
-  login_key: string;
-  questions: string;
-};
-
-interface Template {
-  id: string;
-  created_at: string;
-  name: string;
-  questions: string;
-}
-
-interface Question {
-  question: string;
-  description: string;
-  responseType: string;
-  dueDate: string;
-  template?: {
-    fileName: string;
-    fileId: string;
-    uploadedAt: string;
-    fileObject?: File;
-  } | null;
-}
+import { type FormData, type Template, type Question } from "@/types/dashboard";
+import FormCard from "@/components/pages/FormCard";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import SuccessModal from "@/components/shared/SuccessModal";
+import TemplateSelectionModal from "@/components/forms/TemplateSelectionModal";
 
 export default function Dashboard() {
-  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [forms, setForms] = useState<FormData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -462,53 +436,12 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6">
-        <div className="text-center">
-          <div className="w-20 h-20 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4">Loading dashboard...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading dashboard..." size="lg" />;
   }
 
   if (loginKey) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
-          <div className="w-24 bg-gray-200 rounded-full px-4 py-2 mb-4 mx-auto">
-            <Image
-              src="/logo-bridgewell.png"
-              alt="Bridgewell Financial Logo"
-              width={80}
-              height={80}
-              layout="responsive"
-            />
-          </div>
-          <h1 className="text-3xl font-bold mb-6 text-primary">
-            Client Form Generated Successfully!
-          </h1>
-          <p className="text-lg mb-2">Here is your client login key:</p>
-          <div className="flex items-center justify-center gap-2">
-            <p className="text-3xl font-mono bg-gray-100 p-6 rounded-2xl mt-4 border-2 border-secondary">
-              {loginKey}
-            </p>
-            <button
-              onClick={() => navigator.clipboard.writeText(loginKey)}
-              className="ml-2 bg-secondary text-white px-4 py-2 rounded-xl font-bold hover:bg-secondary-DARK transition"
-              title="Copy to clipboard"
-            >
-              📋 Copy Code
-            </button>
-          </div>
-          <button
-            onClick={resetForm}
-            className="mt-8 bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-DARK transition"
-          >
-            Close
-          </button>
-        </div>
-      </div>
+      <SuccessModal isOpen={true} loginKey={loginKey} onClose={resetForm} />
     );
   }
 
@@ -567,57 +500,8 @@ export default function Dashboard() {
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             {forms.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 p-4 sm:p-6">
-                {forms.map((form: FormData) => (
-                  <div
-                    key={form.id}
-                    className="bg-white border-2 border-gray-200 hover:border-primary transition-colors duration-300 rounded-xl shadow-sm hover:shadow-md overflow-hidden"
-                  >
-                    <button
-                      className="group p-4 sm:p-5 border-b border-gray-100 hover:border- hover:bg-primary w-full transition duration-300 ease-in-out "
-                      onClick={() =>
-                        router.push(`/client/form/${form.login_key}`)
-                      }
-                    >
-                      <div className="flex flex-col justify-center items-start ">
-                        <h2 className="font-bold text-lg sm:text-xl text-primary group-hover:text-white mb-1 truncate w-full text-left">
-                          {form.organization}
-                        </h2>
-                        <h3 className="text-gray-600 group-hover:text-white text-sm sm:text-md mb-2 truncate w-full text-left">
-                          {form.client_name}
-                        </h3>
-                        <p className="text-xs sm:text-sm text-gray-500 group-hover:text-white text-left">
-                          Created:{" "}
-                          {new Date(form.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </button>
-                    <div className="p-3 sm:p-4 bg-gray-50">
-                      <div className="flex items-center">
-                        <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono flex-1 overflow-hidden text-ellipsis">
-                          {form.login_key}
-                        </code>
-                        <button
-                          className="ml-2 text-primary hover:text-primary-DARK flex-shrink-0 p-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigator.clipboard.writeText(form.login_key);
-                          }}
-                          title="Copy to clipboard"
-                        >
-                          📋
-                        </button>
-
-                        <button
-                          className="pl-2"
-                          onClick={() =>
-                            deleteClient(form.login_key, form.client_name)
-                          }
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                {forms.map((form) => (
+                  <FormCard key={form.id} form={form} onDelete={deleteClient} />
                 ))}
               </div>
             ) : (
@@ -629,108 +513,19 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Template Selection Modal */}
-      {showTemplateSelectionModal && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
-          style={{ zIndex: 99999 }}
-        >
-          <div className="bg-white rounded-2xl p-8 max-w-2xl w-full text-center">
-            <h2 className="text-2xl font-bold mb-6 text-primary">
-              Select Template
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Choose a template to start with or create a blank form
-            </p>
-
-            {isLoadingTemplates ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                <span className="ml-3">Loading templates...</span>
-              </div>
-            ) : (
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {/* Blank Template Option */}
-                <button
-                  onClick={() => {
-                    setQuestions([]);
-                    setShowTemplateSelectionModal(false);
-                    setShowFormModal(true);
-                  }}
-                  className="w-full p-4 border-2 border-gray-200 hover:border-primary rounded-xl text-left transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-lg text-primary">
-                        Blank Form
-                      </h3>
-                      <p className="text-gray-600 text-sm">
-                        Start with an empty form and add your own questions
-                      </p>
-                    </div>
-                    <span className="text-gray-400">→</span>
-                  </div>
-                </button>
-
-                {/* Saved Templates */}
-                {templates.map((template) => {
-                  let questionCount = 0;
-                  try {
-                    if (
-                      template.questions &&
-                      typeof template.questions === "string"
-                    ) {
-                      questionCount = JSON.parse(template.questions).length;
-                    }
-                  } catch (err) {
-                    console.error("Error parsing template questions:", err);
-                    questionCount = 0;
-                  }
-
-                  return (
-                    <div
-                      key={template.id}
-                      className="w-full p-4 border-2 border-gray-200 hover:border-primary rounded-xl text-left transition-colors relative cursor-pointer"
-                      onClick={() => loadTemplate(template)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-lg text-primary">
-                            {template.name}
-                          </h3>
-                          <p className="text-gray-600 text-sm">
-                            {questionCount} questions • Created{" "}
-                            {new Date(template.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-400">→</span>
-                          <button
-                            onClick={(e) => handleDeleteTemplate(template, e)}
-                            className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
-                            title="Delete template"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="mt-6">
-              <button
-                onClick={() => setShowTemplateSelectionModal(false)}
-                className="px-6 py-3 rounded-xl font-bold border-2 border-gray-300 hover:bg-gray-50 transition"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <TemplateSelectionModal
+        isOpen={showTemplateSelectionModal}
+        templates={templates}
+        isLoading={isLoadingTemplates}
+        onClose={() => setShowTemplateSelectionModal(false)}
+        onSelectBlank={() => {
+          setQuestions([]);
+          setShowTemplateSelectionModal(false);
+          setShowFormModal(true);
+        }}
+        onSelectTemplate={loadTemplate}
+        onDeleteTemplate={handleDeleteTemplate}
+      />
 
       {/* Form Modal */}
       {showFormModal && (
