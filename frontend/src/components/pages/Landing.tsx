@@ -4,139 +4,203 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
+const PROCESS_STEPS = [
+  {
+    number: 1,
+    text: "Enter your PIN to access your personalized onboarding dashboard.",
+  },
+  {
+    number: 2,
+    text: "Fill out forms, upload documents, and track progress in real time.",
+  },
+  {
+    number: 3,
+    text: "Submit your documents instantly—no emails or delays.",
+  },
+];
+
+const ProcessStep = ({ number, text }: { number: number; text: string }) => (
+  <li className="bg-white rounded-2xl p-2 md:p-3 flex gap-4 items-center w-full">
+    <div className="font-bold text-white bg-primary rounded-full w-10 h-10  flex items-center justify-center flex-shrink-0">
+      {number}
+    </div>
+    <p className="text-xs sm:text-sm text-left">{text}</p>
+  </li>
+);
+
 const Landing = () => {
   const [loginKey, setLoginKey] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!loginKey.trim()) {
+      setError("Please enter your access code");
+      return;
+    }
+
     setIsSubmitting(true);
+    setError("");
 
     try {
-      // Validate the key
       const response = await fetch(
-        `/api/client/validate-key?key=${encodeURIComponent(loginKey)}`
+        `/api/client/validate-key?key=${encodeURIComponent(loginKey.trim())}`
       );
       const data = await response.json();
 
       if (response.ok && data.valid) {
-        // Redirect to the client form page with the key
-        router.push(`/client/form/${loginKey}`);
+        router.push(`/client/form/${loginKey.trim()}`);
+      } else {
+        setError(
+          data.message || "Invalid access code. Please check with your advisor."
+        );
       }
     } catch (err) {
       console.error("Error validating key:", err);
+      setError("Connection error. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <main className="mx-4 sm:mx-8 md:mx-16 lg:mx-32 xl:mx-40 min-h-1/2 flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-0">
-      <div className="flex flex-col lg:flex-row w-full lg:w-1/2">
-        <div className="flex flex-col w-full lg:w-4/5">
-          <div className="w-24 sm:w-32 md:w-36 bg-gray-200 rounded-full px-4 py-2 mb-4">
-            <Image
-              src="/logo-bridgewell.png"
-              alt="Bridgewell Financial Logo"
-              width={100}
-              height={100}
-            />
-          </div>
-          <h1 className="font-semibold text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl mb-2">
-            Client Onboarding,
+    <main className="min-h-1/2 flex flex-col lg:flex-row items-center justify-center gap-8">
+      {/* Left Section - Form */}
+      <header className="flex flex-col w-full lg:w-1/2 max-w-2xl space-y-6">
+        {/* Logo */}
+        <div className="w-24 sm:w-32 md:w-36 bg-gray-200 rounded-full px-4 py-2">
+          <Image
+            src="/logo-bridgewell.png"
+            alt="Bridgewell Financial Logo"
+            width={100}
+            height={100}
+            className="w-full h-auto"
+          />
+        </div>
+
+        {/* Headlines */}
+        <div className="space-y-2">
+          <h1 className="font-semibold text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl">
+            Welcome,
           </h1>
-          <h1 className="font-bold text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl mb-4 md:mb-8">
-            <span className="text-primary">Simplified</span>{" "}
-            <span className="font-semibold">&</span>{" "}
-            <span className="text-secondary">Secure</span>
-          </h1>
-          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl mb-4 md:mb-8">
-            Streamline your enrollment process with our secure client portal,
-            designed to make document submission seamless and efficient.
+          <p className="text-secondary font-semibold text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl py-2">
+            Bridgewell Client
+          </p>
+          <h2 className="font-bold sm:text-xl md:text-2xl lg:text-3xl">
+            <span className="text-primary">A Secure Portal Just for You</span>
           </h2>
-          <h3 className="font-semibold text-sm sm:text-base md:text-lg text-primary bg-gray-200 rounded-3xl px-4 py-4 md:py-6 mt-8 md:mt-24 mb-4">
+        </div>
+
+        {/* Subtitle */}
+        <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-700 leading-relaxed">
+          We’re excited to help you get started with Bridgewell. This secure
+          portal is your personalized space to complete the onboarding process
+          quickly, easily, and confidentially.
+        </p>
+
+        {/* Instructions */}
+        <aside className="flex items-center bg-secondary/10 border-l-4 border-secondary rounded-lg p-4 mt-8 md:mt-16">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+            className="w-6 h-6 text-secondary flex-shrink-0"
+            aria-hidden="true"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="9"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              fill="none"
+            />
+            <path
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 8v2m0 4h.01"
+            />
+          </svg>
+          <p className="ml-3 text-sm sm:text-base md:text-lg text-secondary font-medium">
             Begin by entering your private key given by your Bridgewell Advisor
             below
-          </h3>
-          <form
-            onSubmit={handleSubmit}
-            className="flex flex-col sm:flex-row gap-2 sm:gap-0"
-          >
+          </p>
+        </aside>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-0">
+            <label htmlFor="access-code" className="sr-only">
+              Access Code
+            </label>
             <input
-              className="border-primary border-2 text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold text-center rounded-2xl sm:rounded-l-2xl sm:rounded-r-none h-16 sm:h-20 md:h-24 w-full"
+              id="access-code"
+              className="w-full px-2 pb-2 border-b-2 border-gray-300 bg-transparent text-base sm:text-lg font-medium placeholder-gray-400 focus:outline-none focus:border-primary transition-colors"
               type="text"
               placeholder="Enter your code"
               value={loginKey}
-              onChange={(e) => setLoginKey(e.target.value)}
+              onChange={(e) => {
+                setLoginKey(e.target.value);
+                setError("");
+              }}
+              disabled={isSubmitting}
             />
             <button
               type="submit"
-              disabled={isSubmitting}
-              className={`bg-primary text-white text-lg sm:text-xl md:text-2xl font-bold rounded-2xl sm:rounded-r-2xl sm:rounded-l-none py-4 sm:py-6 md:py-8 w-full sm:w-32 md:w-36
-                    ${
-                      isSubmitting
-                        ? "opacity-70 cursor-not-allowed"
-                        : "hover:bg-primary-DARK"
-                    }`}
+              disabled={isSubmitting || !loginKey.trim()}
+              className="mt-4 sm:mt-0 sm:ml-4 px-6 py-3 bg-primary text-white font-semibold rounded-full shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? "Checking..." : "Submit"}
             </button>
-          </form>
-        </div>
-        <div className="hidden lg:block lg:w-1/5" />
-      </div>
+          </div>
 
-      <div className="flex flex-col items-center justify-center w-full lg:w-1/2 gap-6 rounded-3xl">
+          {error && (
+            <div className="text-red-600 text-sm text-center bg-red-50 rounded-lg p-3">
+              {error}
+            </div>
+          )}
+        </form>
+      </header>
+
+      {/* Right Section - Video & Process */}
+      <section className="flex flex-col items-center w-full lg:w-1/2 max-w-2xl space-y-8">
+        {/* Video */}
         <video
           src="video-bridgewell.mp4"
           autoPlay
           muted
-          className="w-full rounded-3xl border-4 md:border-8 border-secondary"
-        ></video>
+          loop
+          playsInline
+          className="w-full rounded-3xl border-4 md:border-8 border-secondary shadow-lg"
+          aria-label="Bridgewell onboarding process demonstration"
+        />
 
-        <div className="flex flex-col text-center items-center justify-center space-y-8 md:space-y-12">
-          <div className="">
-            <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-primary bg-gray-200 rounded-3xl px-4 py-4 md:py-6 mb-4">
-              How the{" "}
-              <span className="text-secondary">Client Onboarding Portal</span>{" "}
-              works
-            </h3>{" "}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="bg-white rounded-2xl p-4 md:p-6 space-y-4 flex flex-col justify-center">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">
-                  Step 1
-                </h1>
-                <p className="text-sm sm:text-base">
-                  Access your portal with your unique PIN. Secure authentication
-                  keeps your information confidential and protected.{" "}
-                </p>
-              </div>
-
-              <div className="bg-white rounded-2xl p-4 md:p-6 space-y-4 flex flex-col justify-center">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">
-                  Step 2
-                </h1>
-                <p className="text-sm sm:text-base">
-                  Fill out forms and upload documents easily. Save time with
-                  guided prompts and progress-saving features.
-                </p>
-              </div>
-
-              <div className="bg-white rounded-2xl p-4 md:p-6 space-y-4 flex flex-col justify-center">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">
-                  Step 3
-                </h1>
-                <p className="text-sm sm:text-base">
-                  Your submissions go directly to the Bridgewell team—no delays,
-                  no attachments—ensuring fast processing and confirmation.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+        {/* Process Steps */}
+        <section aria-labelledby="process-heading">
+          <h2
+            id="process-heading"
+            className="sm:text-lg md:text-xl lg:text-2xl font-semibold text-primary bg-gray-100 text-white bg-primary p-4 rounded-3xl text-center mb-4"
+          >
+            How our New Client Onboarding Portal Works
+          </h2>
+          <ol className="flex flex-col gap-3 list-none">
+            {PROCESS_STEPS.map((step) => (
+              <ProcessStep
+                key={step.number}
+                number={step.number}
+                text={step.text}
+              />
+            ))}
+          </ol>
+        </section>
+      </section>
     </main>
   );
 };

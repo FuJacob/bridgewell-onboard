@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-import { Poppins } from "next/font/google";
-
-const poppins = Poppins({
-  variable: "--font-poppins",
+import { Lexend } from "next/font/google";
+const lexend = Lexend({
+  variable: "--font-lexend",
   subsets: ["latin"],
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
@@ -22,11 +21,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${poppins.variable}`}>
+    <html lang="en" className={`${lexend.variable}`}>
       <head>
         <link rel="icon" href="favicon.png" />
       </head>
-      <body className={` antialiased`}>{children}</body>
+      <body className={` antialiased max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`}>
+        {children}
+      </body>
     </html>
   );
 }

@@ -17,7 +17,7 @@
 /* Add this to set Poppins as default font */
 @layer base {
   html {
-    font-family: var(--font-poppins), system-ui, sans-serif;
+    font-family: var(--font-lexend), system-ui, sans-serif;
   }
 }
 
