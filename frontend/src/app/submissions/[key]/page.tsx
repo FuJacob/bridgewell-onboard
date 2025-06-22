@@ -112,7 +112,6 @@ export default function SubmissionPage() {
                     alt="Bridgewell Financial Logo"
                     width={60}
                     height={60}
-                    layout="responsive"
                     className="cursor-pointer"
                   />
                 </Link>
@@ -196,7 +195,6 @@ export default function SubmissionPage() {
                   alt="Bridgewell Financial Logo"
                   width={60}
                   height={60}
-                  layout="responsive"
                   className="cursor-pointer"
                 />
               </Link>

@@ -8,7 +8,7 @@ const Footer = () => {
         <div className="flex items-center gap-4">
           <div>
             <Image
-              src="logo-bridgewell-white.png"
+              src="/logo-bridgewell-white.png"
               alt="Bridgewell Financial Logo"
               width={256}
               height={256}

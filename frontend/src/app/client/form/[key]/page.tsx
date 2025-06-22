@@ -387,7 +387,6 @@ export default function ClientFormPage() {
                 alt="Bridgewell Financial Logo"
                 width={160}
                 height={40}
-                layout="responsive"
                 className="cursor-pointer"
               />
             </div>

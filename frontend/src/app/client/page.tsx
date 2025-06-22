@@ -101,7 +101,6 @@ function ClientFormContent() {
                 alt="Bridgewell Financial Logo"
                 width={80}
                 height={80}
-                layout="responsive"
                 className="cursor-pointer"
               />
             </Link>

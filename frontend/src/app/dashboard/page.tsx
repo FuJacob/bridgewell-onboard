@@ -19,6 +19,7 @@ type FormData = {
 
 interface Template {
   id: string;
+  created_at: string;
   name: string;
   questions: string;
 }
@@ -527,7 +528,6 @@ export default function Dashboard() {
                         alt="Bridgewell Financial Logo"
                         width={100}
                         height={100}
-                        layout="responsive"
                         className="cursor-pointer"
                       />
                     </Link>

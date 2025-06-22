@@ -29,7 +29,6 @@ const SignIn = () => {
                 alt="Bridgewell Financial Logo"
                 width={100}
                 height={100}
-                layout="responsive"
               />
             </div>
           </Link>
