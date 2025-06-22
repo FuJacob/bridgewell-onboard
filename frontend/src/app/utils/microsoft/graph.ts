@@ -2,7 +2,6 @@ import { getAccessToken } from "@/app/utils/microsoft/auth";
 
 const SHAREPOINT_SITE_ID =
   "bridgewellfinancial.sharepoint.com,80def30d-85bd-4e18-969a-6346931d152d,deb319e5-cef4-4818-9ec3-805bedea8819";
-const BASE_URL = "https://graph.microsoft.com/v1.0";
 export const SITE_URL = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}`;
 
 export async function createClientFolder(
@@ -293,19 +292,23 @@ export async function uploadFileToClientFolder(
       const data = await response.json();
       console.log("File uploaded successfully with ID:", data.id);
       return data.id;
-    } catch (fetchError: any) {
+    } catch (fetchError: unknown) {
       // Handle fetch-specific errors
-      if (fetchError.name === "AbortError") {
-        throw new Error("Upload was aborted. Please try again.");
-      } else if (
-        fetchError.name === "TypeError" &&
-        fetchError.message.includes("NetworkError")
-      ) {
-        throw new Error(
-          "Network error. Please check your internet connection and try again."
-        );
+      if (fetchError instanceof Error) {
+        if (fetchError.name === "AbortError") {
+          throw new Error("Upload was aborted. Please try again.");
+        } else if (
+          fetchError.name === "TypeError" &&
+          fetchError.message.includes("NetworkError")
+        ) {
+          throw new Error(
+            "Network error. Please check your internet connection and try again."
+          );
+        } else {
+          throw fetchError; // Re-throw other errors
+        }
       } else {
-        throw fetchError; // Re-throw other errors
+        throw new Error("Failed to upload file due to an unexpected error");
       }
     }
   } catch (error) {

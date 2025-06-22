@@ -17,29 +17,36 @@ type FormData = {
   questions: string;
 };
 
+interface Template {
+  id: string;
+  name: string;
+  questions: string;
+}
+
+interface Question {
+  question: string;
+  description: string;
+  responseType: string;
+  dueDate: string;
+  template?: {
+    fileName: string;
+    fileId: string;
+    uploadedAt: string;
+    fileObject?: File;
+  } | null;
+}
+
 export default function Dashboard() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [forms, setForms] = useState<any[]>([]);
+  const [forms, setForms] = useState<FormData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFormModal, setShowFormModal] = useState(false);
   const [clientName, setClientName] = useState("");
   const [organization, setOrganization] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [questions, setQuestions] = useState<
-    {
-      question: string;
-      description: string;
-      responseType: string;
-      dueDate: string;
-      template?: {
-        fileName: string;
-        fileId: string;
-        uploadedAt: string;
-      } | null;
-    }[]
-  >([
+  const [questions, setQuestions] = useState<Question[]>([
     {
       question: "Please upload your master application package",
       description: "Based on the downloadable template",
@@ -79,9 +86,6 @@ export default function Dashboard() {
 
   const [loginKey, setLoginKey] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [tempLoginKey, setTempLoginKey] = useState<string>(
-    () => "temp-" + Math.random().toString(36).substring(2, 15)
-  );
 
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [templateName, setTemplateName] = useState("");
@@ -89,11 +93,12 @@ export default function Dashboard() {
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [showTemplateSelectionModal, setShowTemplateSelectionModal] =
     useState(false);
-  const [templates, setTemplates] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [templateToDelete, setTemplateToDelete] = useState<any>(null);
-  const [isDeletingTemplate, setIsDeletingTemplate] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<Template | null>(
+    null
+  );
 
   async function deleteClient(loginKey: string, clientName: string) {
     try {
@@ -130,8 +135,8 @@ export default function Dashboard() {
       );
 
       console.log("Deleted from Supabase:", deletedForms);
-    } catch (err) {
-      console.error("Error deleting client:", err);
+    } catch (_err) {
+      console.error("Error deleting client:", _err);
     }
   }
 
@@ -159,7 +164,7 @@ export default function Dashboard() {
         const data = await getAllForms();
         console.log(await getAllForms());
         setForms(data as FormData[]);
-      } catch (err) {
+      } catch {
         setError("Failed to load dashboard data");
         setForms([]);
       } finally {
@@ -230,36 +235,27 @@ export default function Dashboard() {
   };
 
   const handleFormSubmit = async () => {
-    setFormError(null);
-    setIsGenerating(true);
-
-    if (!clientName.trim()) {
-      setFormError("Client name is required");
-      setIsGenerating(false);
-      return;
-    }
-
-    if (!organization.trim()) {
-      setFormError("Organization is required");
-      setIsGenerating(false);
+    if (!clientName || !organization) {
+      setFormError("Please fill in all required fields");
       return;
     }
 
     if (questions.length === 0) {
-      setFormError("At least one question is required");
-      setIsGenerating(false);
+      setFormError("Please add at least one question");
       return;
     }
 
+    // Check if all questions have content
     for (let i = 0; i < questions.length; i++) {
       if (!questions[i].question.trim()) {
-        setFormError(`Question ${i + 1} requires a question text`);
-        setIsGenerating(false);
+        setFormError(`Question ${i + 1} is required`);
         return;
       }
     }
 
-    // Gather all form data and template files into a single FormData object
+    setIsGenerating(true);
+    setFormError(null);
+
     const formData = new FormData();
     formData.append("clientName", clientName);
     formData.append("organization", organization);
@@ -270,18 +266,15 @@ export default function Dashboard() {
           if (
             q.responseType === "file" &&
             q.template &&
-            (q.template as any).fileObject instanceof File
+            q.template.fileObject instanceof File
           ) {
             // We'll upload the file as part of the FormData
-            formData.append(
-              `templateFile_${idx}`,
-              (q.template as any).fileObject
-            );
+            formData.append(`templateFile_${idx}`, q.template.fileObject);
             return {
               ...q,
               template: {
                 ...q.template,
-                fileName: (q.template as any).fileObject.name,
+                fileName: q.template.fileObject.name,
               },
             };
           }
@@ -313,7 +306,7 @@ export default function Dashboard() {
       } else {
         setFormError(data.error || "An error occurred.");
       }
-    } catch (err) {
+    } catch {
       setFormError("Failed to save form in Supabase");
     } finally {
       setIsGenerating(false);
@@ -350,17 +343,17 @@ export default function Dashboard() {
     setIsSavingTemplate(true);
 
     // Process questions the same way as create-form API does
-    const processedQuestions = questions.map((q, idx) => {
+    const processedQuestions = questions.map((q) => {
       if (
         q.responseType === "file" &&
         q.template &&
-        (q.template as any).fileObject instanceof File
+        q.template.fileObject instanceof File
       ) {
         // Remove fileObject but keep other template properties
         return {
           ...q,
           template: {
-            fileName: (q.template as any).fileObject.name,
+            fileName: q.template.fileObject.name,
             fileId: q.template.fileId || "",
             uploadedAt: q.template.uploadedAt || new Date().toISOString(),
           },
@@ -388,8 +381,8 @@ export default function Dashboard() {
         setTemplateName("");
         setShowTemplateModal(false);
       }
-    } catch (err) {
-      console.error("Error saving template:", err);
+    } catch (_err) {
+      console.error("Error saving template:", _err);
       setTemplateStatus("Failed to save template");
     } finally {
       setIsSavingTemplate(false);
@@ -406,14 +399,14 @@ export default function Dashboard() {
       } else {
         console.error("Failed to fetch templates:", data.error);
       }
-    } catch (err) {
-      console.error("Error fetching templates:", err);
+    } catch (_err) {
+      console.error("Error fetching templates:", _err);
     } finally {
       setIsLoadingTemplates(false);
     }
   };
 
-  const loadTemplate = (template: any) => {
+  const loadTemplate = (template: Template) => {
     try {
       if (!template.questions || typeof template.questions !== "string") {
         console.error("Invalid template questions format");
@@ -427,8 +420,8 @@ export default function Dashboard() {
       setQuestions(templateQuestions);
       setShowTemplateSelectionModal(false);
       setShowFormModal(true);
-    } catch (err) {
-      console.error("Error parsing template questions:", err);
+    } catch (_err) {
+      console.error("Error parsing template questions:", _err);
     }
   };
 
@@ -437,7 +430,7 @@ export default function Dashboard() {
     fetchTemplates();
   };
 
-  const handleDeleteTemplate = (template: any, e: React.MouseEvent) => {
+  const handleDeleteTemplate = (template: Template, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering the template selection
     setTemplateToDelete(template);
     setShowDeleteConfirmation(true);
@@ -446,7 +439,6 @@ export default function Dashboard() {
   const confirmDeleteTemplate = async () => {
     if (!templateToDelete) return;
 
-    setIsDeletingTemplate(true);
     try {
       const response = await fetch("/api/admin/delete-template", {
         method: "DELETE",
@@ -463,10 +455,8 @@ export default function Dashboard() {
       } else {
         console.error("Failed to delete template:", data.error);
       }
-    } catch (err) {
-      console.error("Error deleting template:", err);
-    } finally {
-      setIsDeletingTemplate(false);
+    } catch (_err) {
+      console.error("Error deleting template:", _err);
     }
   };
 
@@ -577,9 +567,9 @@ export default function Dashboard() {
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             {forms.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 p-4 sm:p-6">
-                {forms.map((form: FormData, index: number) => (
+                {forms.map((form: FormData) => (
                   <div
-                    key={index}
+                    key={form.id}
                     className="bg-white border-2 border-gray-200 hover:border-primary transition-colors duration-300 rounded-xl shadow-sm hover:shadow-md overflow-hidden"
                   >
                     <button
@@ -683,7 +673,7 @@ export default function Dashboard() {
                 </button>
 
                 {/* Saved Templates */}
-                {templates.map((template, index) => {
+                {templates.map((template) => {
                   let questionCount = 0;
                   try {
                     if (
@@ -706,7 +696,7 @@ export default function Dashboard() {
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="font-semibold text-lg text-primary">
-                            {template.template_name}
+                            {template.name}
                           </h3>
                           <p className="text-gray-600 text-sm">
                             {questionCount} questions • Created{" "}
@@ -807,8 +797,8 @@ export default function Dashboard() {
                 {questions.length === 0 && (
                   <div className="text-center py-8 bg-gray-50 rounded-xl">
                     <p className="text-gray-500">
-                      No questions added yet. Click "Add Question" to get
-                      started.
+                      No questions added yet. Click &quot;Add Question&quot; to
+                      get started.
                     </p>
                   </div>
                 )}
@@ -933,7 +923,7 @@ export default function Dashboard() {
                                 fileId: "",
                                 uploadedAt: new Date().toISOString(),
                                 fileObject: file, // store the File object for later upload (not for backend)
-                              } as any; // type assertion to allow fileObject in state only
+                              };
                               setQuestions(newQuestions);
                             }}
                             className="block w-full p-2 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"

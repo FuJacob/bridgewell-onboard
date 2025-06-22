@@ -1,15 +1,17 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 const Footer = () => {
   return (
     <footer className="my-6 md:my-12 text-white rounded-3xl mx-4 sm:mx-8 md:mx-16 lg:mx-32 p-6 md:p-12 text-sm sm:text-base md:text-lg flex flex-col lg:flex-row bg-primary justify-between items-center gap-8 lg:gap-12">
       <div className="flex flex-col items-center lg:items-start space-y-4 md:space-y-6">
         <div className="flex items-center gap-4">
           <div>
-            <img
+            <Image
               src="logo-bridgewell-white.png"
               alt="Bridgewell Financial Logo"
-              className="w-64 "
+              width={256}
+              height={256}
             />
             <p className="text-sm sm:text-base md:text-lg opacity-90 text-center lg:text-left">
               Secure Client Onboarding Portal

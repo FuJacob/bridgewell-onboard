@@ -1,27 +1,9 @@
 "use client";
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { createClient } from "@/app/utils/supabase/client";
-import {
-  checkQuestionCompletion,
-  uploadFileToClientFolder,
-} from "@/app/utils/microsoft/graph";
+
 import Link from "next/link";
 import Image from "next/image";
-
-interface Question {
-  question: string;
-  description: string;
-  responseType: string;
-  dueDate: string;
-}
-
-interface ClientData {
-  client_name: string;
-  organization: string;
-  questions: string;
-  client_id: string;
-}
 
 export default function ClientForm() {
   return (
@@ -38,12 +20,38 @@ function ClientFormContent() {
   const [loginKey, setLoginKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [clientData, setClientData] = useState<ClientData | null>(null);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [completionStatus, setCompletionStatus] = useState<{
-    [key: string]: boolean;
-  }>({});
-  const [uploading, setUploading] = useState<{ [key: string]: boolean }>({});
+
+  const handleSubmitWithKey = useCallback(
+    async (key: string) => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Validate the login key with our API
+        const response = await fetch(
+          `/api/client/validate-key?key=${encodeURIComponent(key)}`
+        );
+
+        if (!response.ok) {
+          const data = await response.json();
+          setError(data.error || "Invalid login key");
+          return;
+        }
+
+        // Store in localStorage for persistence
+        localStorage.setItem("clientLoginKey", key);
+
+        // Redirect to the form page
+        router.push(`/client/form/${key}`);
+      } catch (err) {
+        console.error("Error:", err);
+        setError("Failed to validate login key");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [router]
+  );
 
   useEffect(() => {
     // Check for login key in localStorage
@@ -60,36 +68,7 @@ function ClientFormContent() {
       setLoginKey(key);
       handleSubmitWithKey(key);
     }
-  }, [searchParams, router]);
-
-  const handleSubmitWithKey = async (key: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Validate the login key with our API
-      const response = await fetch(
-        `/api/client/validate-key?key=${encodeURIComponent(key)}`
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-        setError(data.error || "Invalid login key");
-        return;
-      }
-
-      // Store in localStorage for persistence
-      localStorage.setItem("clientLoginKey", key);
-
-      // Redirect to the form page
-      router.push(`/client/form/${key}`);
-    } catch (err) {
-      console.error("Error:", err);
-      setError("Failed to validate login key");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [searchParams, router, handleSubmitWithKey]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,38 +77,6 @@ function ClientFormContent() {
       return;
     }
     await handleSubmitWithKey(loginKey);
-  };
-
-  const handleFileUpload = async (
-    question: string,
-    file: File,
-    index: number
-  ) => {
-    if (!clientData) return;
-
-    try {
-      setUploading((prev) => ({ ...prev, [question]: true }));
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const fileName = `${timestamp}_${file.name}`;
-
-      const buffer = await file.arrayBuffer();
-      await uploadFileToClientFolder(
-        loginKey,
-        clientData.client_name,
-        `${question
-          .replace(/[^a-zA-Z0-9]/g, "_")
-          .substring(0, 50)}/${fileName}`,
-        new Blob([buffer])
-      );
-
-      // Update completion status
-      setCompletionStatus((prev) => ({ ...prev, [question]: true }));
-    } catch (err) {
-      console.error("Error uploading file:", err);
-      setError("Failed to upload file");
-    } finally {
-      setUploading((prev) => ({ ...prev, [question]: false }));
-    }
   };
 
   if (loading) {
@@ -224,7 +171,10 @@ function ClientFormContent() {
           </form>
 
           <div className="mt-4 md:mt-6 text-center">
-            <Link href="/" className="text-primary hover:underline text-sm sm:text-base">
+            <Link
+              href="/"
+              className="text-primary hover:underline text-sm sm:text-base"
+            >
               Back to Home
             </Link>
           </div>

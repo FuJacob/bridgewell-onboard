@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { createClient } from "@/app/utils/supabase/client";
-import { login } from "@/app/login/actions";
-import { sign } from "crypto";
+
 type Question = {
   question: string;
   description: string;
@@ -27,7 +26,6 @@ type ClientData = {
 };
 
 export default function ClientFormPage() {
-  const [refresh, setRefresh] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const params = useParams();
   const router = useRouter();
@@ -74,66 +72,8 @@ export default function ClientFormPage() {
 
   // delete question client uploads
 
-  // Fetch client data and form questions
-  useEffect(() => {
-    async function fetchClientData() {
-      if (!loginKey) {
-        router.push("/client");
-        return;
-      }
-
-      try {
-        // Store login key in localStorage for persistence
-        localStorage.setItem("clientLoginKey", loginKey);
-
-        const response = await fetch(
-          `/api/client/form-data?key=${encodeURIComponent(loginKey)}`
-        );
-
-        if (!response.ok) {
-          throw new Error("Invalid key or form not found");
-        }
-
-        const data = await response.json();
-        setClientData(data);
-        setQuestions(data.questions);
-
-        // Initialize responses and status objects
-        const initialResponses: { [index: number]: string | null } = {};
-        const initialSubmitting: { [index: number]: boolean } = {};
-        const initialSubmitted: { [index: number]: boolean } = {};
-        const initialErrors: { [index: number]: string | null } = {};
-
-        data.questions.forEach((_: Question, index: number) => {
-          initialResponses[index] = "";
-          initialSubmitting[index] = false;
-          initialSubmitted[index] = false;
-          initialErrors[index] = null;
-        });
-
-        setResponses(initialResponses);
-        setSubmittingQuestions(initialSubmitting);
-        setSubmittedQuestions(initialSubmitted);
-        setQuestionErrors(initialErrors);
-
-        // Check completion status for questions
-        checkCompletionStatus(data);
-      } catch (err) {
-        console.error("Error fetching form data:", err);
-        setError(
-          "Failed to load form. Please check your login key and try again."
-        );
-        localStorage.removeItem("clientLoginKey");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchClientData();
-  }, [loginKey, router]);
-
   // Check if questions are already completed
-  const checkCompletionStatus = async (data: ClientData) => {
+  const checkCompletionStatus = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/client/submissions?key=${encodeURIComponent(loginKey)}`
@@ -156,7 +96,85 @@ export default function ClientFormPage() {
     } catch (err) {
       console.error("Error checking completion status:", err);
     }
-  };
+  }, [loginKey]);
+
+  const checkSignedIn = useCallback(async () => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const isAuthed = !!user?.aud;
+    setSignedIn(isAuthed);
+    if (isAuthed) {
+      console.log("ADMIN IS SIGNED INTO FORM PAGE", signedIn);
+    } else {
+      console.log("ADMIN IS NOT SIGNED INTO FORM PAGE", signedIn);
+    }
+  }, [signedIn]);
+
+  // Fetch client data and form questions
+  useEffect(() => {
+    async function fetchClientData() {
+      if (!loginKey) {
+        router.push("/client");
+        return;
+      }
+
+      try {
+        // Store login key in localStorage for persistence
+        localStorage.setItem("clientLoginKey", loginKey);
+
+        const response = await fetch(
+          `/api/client/form-data?key=${encodeURIComponent(loginKey)}`
+        );
+
+        if (!response.ok) {
+          throw new Error("Invalid key or form not found");
+        }
+
+        const clientData = await response.json();
+        setClientData(clientData);
+        setQuestions(clientData.questions);
+
+        // Initialize responses and status objects
+        const initialResponses: { [index: number]: string | null } = {};
+        const initialSubmitting: { [index: number]: boolean } = {};
+        const initialSubmitted: { [index: number]: boolean } = {};
+        const initialErrors: { [index: number]: string | null } = {};
+
+        clientData.questions.forEach((_question: Question, index: number) => {
+          initialResponses[index] = "";
+          initialSubmitting[index] = false;
+          initialSubmitted[index] = false;
+          initialErrors[index] = null;
+        });
+
+        setResponses(initialResponses);
+        setSubmittingQuestions(initialSubmitting);
+        setSubmittedQuestions(initialSubmitted);
+        setQuestionErrors(initialErrors);
+
+        // Check completion status for questions
+        checkCompletionStatus();
+      } catch (err) {
+        console.error("Error fetching form data:", err);
+        setError(
+          "Failed to load form. Please check your login key and try again."
+        );
+        localStorage.removeItem("clientLoginKey");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchClientData();
+  }, [loginKey, router, checkCompletionStatus]);
+
+  // Handle client-side mounting
+  useEffect(() => {
+    checkSignedIn();
+  }, [checkSignedIn]);
 
   const handleTextChange = (index: number, value: string) => {
     setResponses({ ...responses, [index]: value });
@@ -322,30 +340,6 @@ export default function ClientFormPage() {
     }
   };
 
-  async function checkSignedIn() {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    const isAuthed = !!user?.aud;
-
-    console.log("USER AID IS HERE", isAuthed);
-
-    if (isAuthed) {
-      setSignedIn(true);
-      console.log("ADMIN IS SIGNED INTO FORM PAGE", signedIn);
-    } else {
-      setSignedIn(false);
-      console.log("ADMIN IS NOT SIGNED INTO FORM PAGE", signedIn);
-    }
-  }
-
-  // Handle client-side mounting
-  useEffect(() => {
-    checkSignedIn();
-  }, []);
-
   // Handle logout
   const handleLogout = () => {
     // Clear login key from localStorage
@@ -409,7 +403,9 @@ export default function ClientFormPage() {
         {/* Completion bar */}
         <div className="mb-4 md:mb-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-            <h2 className="text-base sm:text-lg font-medium">{getCompletionStatus()}</h2>
+            <h2 className="text-base sm:text-lg font-medium">
+              {getCompletionStatus()}
+            </h2>
             <span className="text-xs sm:text-sm text-gray-500">
               {Object.values(submittedQuestions).filter(Boolean).length} of{" "}
               {questions.length} completed
@@ -487,20 +483,26 @@ export default function ClientFormPage() {
                       </div>
                     )}
                   </div>
-                  <p className="text-sm sm:text-base text-gray-600 mb-4">{question.description}</p>
+                  <p className="text-sm sm:text-base text-gray-600 mb-4">
+                    {question.description}
+                  </p>
                   {/* Download Template Button for file-type questions with a template */}
-                  {question.responseType === "file" && question.template && question.template.fileId && (
-                    <div className="mb-2">
-                      <a
-                        href={`/api/client/download-template?fileId=${encodeURIComponent(question.template.fileId)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block bg-secondary text-white px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-secondary-DARK transition text-sm sm:text-base"
-                      >
-                        Download Template
-                      </a>
-                    </div>
-                  )}
+                  {question.responseType === "file" &&
+                    question.template &&
+                    question.template.fileId && (
+                      <div className="mb-2">
+                        <a
+                          href={`/api/client/download-template?fileId=${encodeURIComponent(
+                            question.template.fileId
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block bg-secondary text-white px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-secondary-DARK transition text-sm sm:text-base"
+                        >
+                          Download Template
+                        </a>
+                      </div>
+                    )}
                   {question.responseType === "text" ? (
                     <div>
                       <textarea

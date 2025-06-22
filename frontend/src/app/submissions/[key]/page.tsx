@@ -23,6 +23,14 @@ type FormSubmission = {
   submitted_at: string;
 };
 
+interface ResponseData {
+  questionText: string;
+  responseType: string;
+  fileUrl?: string;
+  fileName?: string;
+  textResponse?: string;
+}
+
 export default function SubmissionPage() {
   const params = useParams();
   const router = useRouter();
@@ -113,7 +121,9 @@ export default function SubmissionPage() {
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-primary mb-1">
                   Form Submission
                 </h1>
-                {error && <p className="text-red-500 text-sm sm:text-base">{error}</p>}
+                {error && (
+                  <p className="text-red-500 text-sm sm:text-base">{error}</p>
+                )}
               </div>
             </div>
             <Link
@@ -171,7 +181,6 @@ export default function SubmissionPage() {
     );
   }
 
-  const questions = JSON.parse(form.questions);
   const responses = JSON.parse(submission.responses);
 
   return (
@@ -218,74 +227,85 @@ export default function SubmissionPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <p className="text-xs sm:text-sm text-gray-500">Client Name</p>
-              <p className="font-medium text-sm sm:text-base">{form.client_name}</p>
+              <p className="font-medium text-sm sm:text-base">
+                {form.client_name}
+              </p>
             </div>
             <div>
               <p className="text-xs sm:text-sm text-gray-500">Organization</p>
-              <p className="font-medium text-sm sm:text-base">{form.organization}</p>
+              <p className="font-medium text-sm sm:text-base">
+                {form.organization}
+              </p>
             </div>
           </div>
         </div>
 
         {/* Responses */}
         <div className="space-y-4 sm:space-y-6">
-          {Object.entries(responses).map(([index, response]: [string, any]) => {
-            const question = questions[parseInt(index)];
-            return (
-              <div
-                key={index}
-                className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-200 shadow-sm"
-              >
-                <div className="mb-3 sm:mb-4">
-                  <span className="bg-primary text-white text-xs sm:text-sm py-1 px-2 sm:px-3 rounded-full">
-                    Question {parseInt(index) + 1}
-                  </span>
-                </div>
+          {Object.entries(responses).map(
+            ([index, response]: [string, ResponseData]) => {
+              return (
+                <div
+                  key={index}
+                  className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-200 shadow-sm"
+                >
+                  <div className="mb-3 sm:mb-4">
+                    <span className="bg-primary text-white text-xs sm:text-sm py-1 px-2 sm:px-3 rounded-full">
+                      Question {parseInt(index) + 1}
+                    </span>
+                  </div>
 
-                <h3 className="text-base sm:text-lg font-medium mb-2">
-                  {response.questionText}
-                </h3>
+                  <h3 className="text-base sm:text-lg font-medium mb-2">
+                    {response.questionText}
+                  </h3>
 
-                {response.responseType === "file" ? (
-                  <div className="mt-2">
-                    <p className="text-xs sm:text-sm text-gray-500 mb-1">File Upload</p>
-                    {response.fileUrl ? (
-                      <a
-                        href={response.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:text-primary-DARK flex items-center gap-2 text-sm sm:text-base"
-                      >
-                        <svg
-                          className="w-4 h-4 sm:w-5 sm:h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                  {response.responseType === "file" ? (
+                    <div className="mt-2">
+                      <p className="text-xs sm:text-sm text-gray-500 mb-1">
+                        File Upload
+                      </p>
+                      {response.fileUrl ? (
+                        <a
+                          href={response.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:text-primary-DARK flex items-center gap-2 text-sm sm:text-base"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                          ></path>
-                        </svg>
-                        {response.fileName}
-                      </a>
-                    ) : (
-                      <p className="text-gray-500 text-sm sm:text-base">No file uploaded</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="mt-2">
-                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Text Response</p>
-                    <p className="bg-gray-50 p-3 sm:p-4 rounded-xl whitespace-pre-wrap text-sm sm:text-base">
-                      {response.textResponse}
-                    </p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                          <svg
+                            className="w-4 h-4 sm:w-5 sm:h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                            ></path>
+                          </svg>
+                          {response.fileName}
+                        </a>
+                      ) : (
+                        <p className="text-gray-500 text-sm sm:text-base">
+                          No file uploaded
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-2">
+                      <p className="text-xs sm:text-sm text-gray-500 mb-1">
+                        Text Response
+                      </p>
+                      <p className="bg-gray-50 p-3 sm:p-4 rounded-xl whitespace-pre-wrap text-sm sm:text-base">
+                        {response.textResponse}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+          )}
         </div>
       </div>
     </div>

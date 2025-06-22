@@ -2,15 +2,13 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useState, FormEvent, ChangeEvent } from "react";
+import { useState, ChangeEvent } from "react";
 
-import { useRouter } from "next/navigation";
 import { login } from "./actions";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const router = useRouter();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.name === "email") {

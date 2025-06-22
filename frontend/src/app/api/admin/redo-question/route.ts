@@ -3,7 +3,6 @@ import { getAccessToken } from "@/app/utils/microsoft/auth";
 
 const SHAREPOINT_SITE_ID =
   "bridgewellfinancial.sharepoint.com,80def30d-85bd-4e18-969a-6346931d152d,deb319e5-cef4-4818-9ec3-805bedea8819";
-const BASE_URL = "https://graph.microsoft.com/v1.0";
 const SITE_URL = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}`;
 
 async function deleteClientUploadsToQuestion(

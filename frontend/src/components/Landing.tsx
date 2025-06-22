@@ -6,20 +6,13 @@ import { useRouter } from "next/navigation";
 
 const Landing = () => {
   const [loginKey, setLoginKey] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!loginKey.trim()) {
-      setError("Please enter your login key");
-      return;
-    }
-
     setIsSubmitting(true);
-    setError(null);
 
     try {
       // Validate the key
@@ -31,12 +24,9 @@ const Landing = () => {
       if (response.ok && data.valid) {
         // Redirect to the client form page with the key
         router.push(`/client/form/${loginKey}`);
-      } else {
-        setError(data.error || "Invalid key. Please try again.");
       }
     } catch (err) {
       console.error("Error validating key:", err);
-      setError("An error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
