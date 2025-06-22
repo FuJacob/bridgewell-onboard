@@ -1,6 +1,6 @@
 import React from "react";
-import Link from "next/link";
 import Image from "next/image";
+import { FaEnvelope, FaPhone, FaMapMarkerAlt } from "react-icons/fa";
 const Footer = () => {
   return (
     <footer className="my-6 md:my-12 text-white rounded-3xl p-6 md:p-12 text-sm sm:text-base md:text-lg flex flex-col lg:flex-row bg-primary justify-between items-center gap-8 lg:gap-12">
@@ -25,19 +25,27 @@ const Footer = () => {
       </div>
 
       <div className="flex flex-col items-center space-y-6 md:space-y-8">
-        <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-center">
-          Need Assistance?
-        </h2>
-        <p className="text-sm sm:text-base md:text-lg opacity-90 text-center max-w-md leading-relaxed">
-          Contact Bridgewell for help with your onboarding process. We&apos;re
-          here to guide you through steps.
+        <p className="text-sm sm:text-base md:text-lg opacity-90 max-w-md leading-relaxed">
+          <span className="font-bold text-center">Need Assistance?</span>{" "}
+          Contact us for help. We&apos;re here to guide you through our
+          onboarding portal.
         </p>
-        <Link
-          href="mailto:support@bridgewell.com"
-          className="bg-secondary hover:bg-opacity-90 rounded-full text-white px-6 sm:px-8 md:px-12 py-3 md:py-4 text-base sm:text-lg md:text-xl font-semibold text-center transition-all duration-200 shadow-lg hover:shadow-xl"
-        >
-          Email Support Team
-        </Link>
+        <div className="space-y-1 text-center lg:text-left w-full bg-white rounded-3xl p-4 text-primary font-light">
+          <p className="flex items-center text-sm">
+            <FaEnvelope className="mr-2" />
+            <strong className="mr-2">Email:</strong>{" "}
+            inquiries@bridgewellfinancial.com
+          </p>
+          <p className="flex items-center text-sm">
+            <FaPhone className="mr-2" />
+            <strong className="mr-2">Phone:</strong> (416) 479-4401
+          </p>
+          <p className="flex items-center text-sm">
+            <FaMapMarkerAlt className="mr-2" />
+            <strong className="mr-2">Mail:</strong> 33 Hillsdale Ave West,
+            Toronto, ON; M5P 1E9
+          </p>
+        </div>
       </div>
     </footer>
   );

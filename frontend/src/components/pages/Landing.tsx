@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { FaInfoCircle } from "react-icons/fa";
 
 const PROCESS_STEPS = [
   {
@@ -103,34 +104,12 @@ const Landing = () => {
 
         {/* Instructions */}
         <aside className="flex items-center bg-secondary/10 border-l-4 border-secondary rounded-lg p-4 mt-8 md:mt-16">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
+          <FaInfoCircle
             className="w-6 h-6 text-secondary flex-shrink-0"
             aria-hidden="true"
-          >
-            <circle
-              cx="12"
-              cy="12"
-              r="9"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              fill="none"
-            />
-            <path
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 8v2m0 4h.01"
-            />
-          </svg>
-          <p className="ml-3 text-sm sm:text-base md:text-lg text-secondary font-medium">
-            Begin by entering your private key given by your Bridgewell Advisor
-            below
+          />
+          <p className="ml-3 text-secondary font-medium">
+            You should have received your private access key from your Bridgewell advisor via email. Enter it below to begin.
           </p>
         </aside>
 
