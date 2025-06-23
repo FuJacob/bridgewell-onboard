@@ -1,5 +1,4 @@
-const TOKEN_ENDPOINT =
-  "https://login.microsoftonline.com/${process.env.TENANT_ID}/oauth2/v2.0/token";
+const TOKEN_ENDPOINT = `https://login.microsoftonline.com/${process.env.TENANT_ID}/oauth2/v2.0/token`;
 
 interface TokenResponse {
   access_token: string;

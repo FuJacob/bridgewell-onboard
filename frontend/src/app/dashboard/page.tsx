@@ -7,12 +7,23 @@ import Link from "next/link";
 import Image from "next/image";
 import { getAllForms } from "../login/actions";
 import { type FormData, type Template, type Question } from "@/types/dashboard";
+import {
+  deleteClient as deleteClientService,
+  createForm,
+} from "@/services/admin";
+import {
+  saveTemplate,
+  getTemplates,
+  deleteTemplate as deleteTemplateService,
+} from "@/services/templates";
 import FormCard from "@/components/pages/FormCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import SuccessModal from "@/components/shared/SuccessModal";
 import TemplateSelectionModal from "@/components/forms/TemplateSelectionModal";
+import { FaPlus, FaClipboardList, FaSearch } from "react-icons/fa";
 
 export default function Dashboard() {
+  const [searchQuery, setSearchQuery] = useState("");
   const [mounted, setMounted] = useState(false);
   const [forms, setForms] = useState<FormData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,23 +86,14 @@ export default function Dashboard() {
     null
   );
 
+  const filteredForms = forms.filter((form) =>
+    form.organization.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   async function deleteClient(loginKey: string, clientName: string) {
     try {
-      const response = await fetch(`/api/admin/delete-client`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ loginKey, clientName }),
-      });
-
-      const result = await response.json();
+      const result = await deleteClientService(loginKey, clientName);
       console.log("API delete result:", result);
-
-      if (!response.ok) {
-        console.error("Failed to delete from SharePoint:", result.message);
-        return;
-      }
 
       const supabase = await createClient();
       const { data: deletedForms, error } = await supabase
@@ -110,8 +112,8 @@ export default function Dashboard() {
       );
 
       console.log("Deleted from Supabase:", deletedForms);
-    } catch (_err) {
-      console.error("Error deleting client:", _err);
+    } catch (err) {
+      console.error("Error deleting client:", err);
     }
   }
 
@@ -259,16 +261,25 @@ export default function Dashboard() {
     );
 
     try {
-      const response = await fetch("/api/admin/create-form", {
-        method: "POST",
-        body: formData,
+      // Collect template files
+      const templateFiles: { [key: string]: File } = {};
+      questions.forEach((q, idx) => {
+        if (
+          q.responseType === "file" &&
+          q.template &&
+          q.template.fileObject instanceof File
+        ) {
+          templateFiles[`templateFile_${idx}`] = q.template.fileObject;
+        }
       });
-      const data = await response.json();
-      if (!response.ok) {
-        setFormError(data.error || "Failed to create form");
-        setIsGenerating(false);
-        return;
-      }
+
+      const data = await createForm(
+        clientName,
+        organization,
+        questions,
+        templateFiles
+      );
+
       if (data.loginKey) {
         setLoginKey(data.loginKey);
         // Refresh the forms list
@@ -281,8 +292,10 @@ export default function Dashboard() {
       } else {
         setFormError(data.error || "An error occurred.");
       }
-    } catch {
-      setFormError("Failed to save form in Supabase");
+    } catch (err) {
+      setFormError(
+        err instanceof Error ? err.message : "Failed to save form in Supabase"
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -340,25 +353,15 @@ export default function Dashboard() {
     console.log("processedQuestions to save:", processedQuestions);
 
     try {
-      const response = await fetch("/api/admin/save-template", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateName, questions: processedQuestions }),
-      });
-      console.log("Response status:", response.status);
-      const data = await response.json();
-      console.log("Response data:", data);
-
-      if (!response.ok) {
-        setTemplateStatus(data.error || "Failed to save template");
-      } else {
-        setTemplateStatus("Template saved successfully!");
-        setTemplateName("");
-        setShowTemplateModal(false);
-      }
-    } catch (_err) {
-      console.error("Error saving template:", _err);
-      setTemplateStatus("Failed to save template");
+      await saveTemplate(templateName, processedQuestions);
+      setTemplateStatus("Template saved successfully!");
+      setTemplateName("");
+      setShowTemplateModal(false);
+    } catch (err) {
+      console.error("Error saving template:", err);
+      setTemplateStatus(
+        err instanceof Error ? err.message : "Failed to save template"
+      );
     } finally {
       setIsSavingTemplate(false);
     }
@@ -367,15 +370,10 @@ export default function Dashboard() {
   const fetchTemplates = async () => {
     setIsLoadingTemplates(true);
     try {
-      const response = await fetch("/api/admin/get-templates");
-      const data = await response.json();
-      if (response.ok) {
-        setTemplates(data.templates || []);
-      } else {
-        console.error("Failed to fetch templates:", data.error);
-      }
-    } catch (_err) {
-      console.error("Error fetching templates:", _err);
+      const templates = await getTemplates();
+      setTemplates(templates);
+    } catch (err) {
+      console.error("Error fetching templates:", err);
     } finally {
       setIsLoadingTemplates(false);
     }
@@ -415,23 +413,13 @@ export default function Dashboard() {
     if (!templateToDelete) return;
 
     try {
-      const response = await fetch("/api/admin/delete-template", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId: templateToDelete.id }),
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        // Remove the template from the local state
-        setTemplates(templates.filter((t) => t.id !== templateToDelete.id));
-        setShowDeleteConfirmation(false);
-        setTemplateToDelete(null);
-      } else {
-        console.error("Failed to delete template:", data.error);
-      }
-    } catch (_err) {
-      console.error("Error deleting template:", _err);
+      await deleteTemplateService(templateToDelete.id);
+      // Remove the template from the local state
+      setTemplates(templates.filter((t) => t.id !== templateToDelete.id));
+      setShowDeleteConfirmation(false);
+      setTemplateToDelete(null);
+    } catch (err) {
+      console.error("Error deleting template:", err);
     }
   };
 
@@ -447,71 +435,97 @@ export default function Dashboard() {
 
   return (
     <>
-      <div className="min-h-screen p-4 sm:p-6 lg:p-8">
-        {/* Header */}
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
-            <div className="flex items-center gap-4 sm:gap-6">
-              <div>
-                <div className="flex items-center gap-3 sm:gap-5">
-                  <div className="w-16 sm:w-20 md:w-24">
-                    <Link href="/">
-                      <Image
-                        src="/logo-bridgewell.png"
-                        alt="Bridgewell Financial Logo"
-                        width={100}
-                        height={100}
-                        className="cursor-pointer"
-                      />
-                    </Link>
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">
-                    Dashboard
-                  </h1>
-                </div>{" "}
-                {error && (
-                  <p className="text-red-500 text-xs sm:text-sm mt-1">
-                    {error} - Showing available data
-                  </p>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={handleCreateNewForm}
-              className="w-full sm:w-auto bg-primary text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold hover:bg-primary-DARK transition text-sm sm:text-base"
-            >
-              Create New Form
-            </button>
+      <main className="h-screen px-4 sm:px-6 lg:px-8 overflow-y-auto">
+        <Link href="/" className="flex justify-center mt-24 mb-12">
+          <Image
+            src="/logo-bridgewell.png"
+            alt="Bridgewell Financial Logo"
+            width={200}
+            height={200}
+            className="object-contain"
+          />
+        </Link>
+        <nav className="w-full max-w-7xl mx-auto flex items-center justify-between py-4 text-2xl sm:text-3xl font-bold text-primary">
+          {/* Logo + Title */}
+          <div className="flex flex-col space-y-1 text-center lg:text-left">
+            <h1 className="text-2xl sm:text-3xl font-semibold text-primary">
+              Welcome, Bridgewell Admin
+            </h1>
+            <p className="text-sm text-gray-500">
+              Create and manage client onboarding forms quickly and securely.
+            </p>
           </div>
+          {/* Error Message */}
+          {error && (
+            <p className="text-red-500 text-sm sm:text-base">
+              {error} - Showing available data
+            </p>
+          )}
+          {/* Action Button */}
+          <button
+            onClick={handleCreateNewForm}
+            className="inline-flex items-center space-x-2 bg-secondary hover:bg-secondary/90 text-white text-sm font-medium px-4 py-2 rounded-full shadow-sm transition"
+          >
+            <FaPlus className="w-4 h-4" />
+            <span>Create New Form</span>
+          </button>
+        </nav>
 
-          {/* Stats Overview */}
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 md:mb-8">
-            <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-200 shadow-sm">
-              <h3 className="text-base sm:text-lg font-medium text-gray-600 mb-2">
+        {/* Stats Overview */}
+        <section
+          aria-labelledby="stats-heading"
+          className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 md:mb-8"
+        >
+          <h2 id="stats-heading" className="sr-only">
+            Dashboard Stats
+          </h2>
+          <article className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-200 shadow-sm flex items-center space-x-4">
+            <FaClipboardList className="w-6 h-6 text-primary flex-shrink-0" />
+            <div>
+              <h3 className="text-sm sm:text-base font-medium text-gray-600">
                 Total Forms
               </h3>
-              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">
+              <p className="text-xl sm:text-2xl font-bold text-primary">
                 {forms.length}
               </p>
             </div>
+          </article>
+        </section>
+
+        {/* Forms List */}
+        <section
+          aria-labelledby="forms-heading"
+          className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
+        >
+          <div className="p-4">
+            <div className="flex items-center bg-white border border-gray-200 rounded-full px-4 py-2 shadow-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors">
+              <FaSearch className="w-5 h-5 text-gray-400 flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="Search forms by organization"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="ml-3 flex-1 bg-transparent text-sm sm:text-base text-gray-700 placeholder-gray-400 focus:outline-none"
+              />
+            </div>
           </div>
 
-          {/* Forms List */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            {forms.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 p-4 sm:p-6">
-                {forms.map((form) => (
-                  <FormCard key={form.id} form={form} onDelete={deleteClient} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 sm:py-12 text-gray-500">
-                <p className="text-sm sm:text-base">No forms available</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+          <h2 id="forms-heading" className="sr-only">
+            Client Forms
+          </h2>
+          {filteredForms.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6">
+              {filteredForms.map((form) => (
+                <FormCard key={form.id} form={form} onDelete={deleteClient} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 sm:py-12 text-gray-500">
+              <p className="text-sm sm:text-base">No forms available</p>
+            </div>
+          )}
+        </section>
+      </main>
 
       <TemplateSelectionModal
         isOpen={showTemplateSelectionModal}

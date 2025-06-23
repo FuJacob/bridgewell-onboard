@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FaInfoCircle } from "react-icons/fa";
+import { validateClientKey } from "@/services/client";
 
 const PROCESS_STEPS = [
   {
@@ -47,21 +48,15 @@ const Landing = () => {
     setError("");
 
     try {
-      const response = await fetch(
-        `/api/client/validate-key?key=${encodeURIComponent(loginKey.trim())}`
-      );
-      const data = await response.json();
-
-      if (response.ok && data.valid) {
-        router.push(`/client/form/${loginKey.trim()}`);
-      } else {
-        setError(
-          data.message || "Invalid access code. Please check with your advisor."
-        );
-      }
+      await validateClientKey(loginKey.trim());
+      router.push(`/client/form/${loginKey.trim()}`);
     } catch (err) {
       console.error("Error validating key:", err);
-      setError("Connection error. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Invalid access code. Please check with your advisor."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -109,7 +104,8 @@ const Landing = () => {
             aria-hidden="true"
           />
           <p className="ml-3 text-secondary font-medium">
-            You should have received your private access key from your Bridgewell advisor via email. Enter it below to begin.
+            You should have received your private access key from your
+            Bridgewell advisor via email. Enter it below to begin.
           </p>
         </aside>
 

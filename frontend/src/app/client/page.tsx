@@ -3,6 +3,7 @@ import React, { useEffect, useState, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import ClientLoginForm from "@/components/forms/ClientLoginForm";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { validateClientKey } from "@/services/client";
 
 export default function ClientForm() {
   return (
@@ -27,15 +28,7 @@ function ClientFormContent() {
         setError(null);
 
         // Validate the login key with our API
-        const response = await fetch(
-          `/api/client/validate-key?key=${encodeURIComponent(key)}`
-        );
-
-        if (!response.ok) {
-          const data = await response.json();
-          setError(data.error || "Invalid login key");
-          return;
-        }
+        await validateClientKey(key);
 
         // Store in localStorage for persistence
         localStorage.setItem("clientLoginKey", key);
@@ -44,7 +37,9 @@ function ClientFormContent() {
         router.push(`/client/form/${key}`);
       } catch (err) {
         console.error("Error:", err);
-        setError("Failed to validate login key");
+        setError(
+          err instanceof Error ? err.message : "Failed to validate login key"
+        );
       } finally {
         setLoading(false);
       }

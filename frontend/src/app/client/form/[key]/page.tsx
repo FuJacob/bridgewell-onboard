@@ -6,8 +6,15 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { createClient } from "@/app/utils/supabase/client";
-import { Question, ClientData } from "@/types";
+import { Question } from "@/types";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import {
+  getClientFormData,
+  getClientSubmissions,
+  submitQuestionResponse,
+  type ClientData,
+} from "@/services/client";
+import { redoQuestion } from "@/services/admin";
 
 import CompletionBar from "@/components/pages/CompletionBar";
 import QuestionCard from "@/components/pages/QuestionCard";
@@ -44,23 +51,17 @@ export default function ClientFormPage() {
   // Check if questions are already completed
   const checkCompletionStatus = useCallback(async () => {
     try {
-      const response = await fetch(
-        `/api/client/submissions?key=${encodeURIComponent(loginKey)}`
-      );
+      const submissionData = await getClientSubmissions(loginKey);
 
-      if (response.ok) {
-        const submissionData = await response.json();
+      if (submissionData && submissionData.responses) {
+        const completedQuestions: { [index: number]: boolean } = {};
 
-        if (submissionData && submissionData.responses) {
-          const completedQuestions: { [index: number]: boolean } = {};
+        Object.keys(submissionData.responses).forEach((index) => {
+          const questionIndex = parseInt(index);
+          completedQuestions[questionIndex] = true;
+        });
 
-          Object.keys(submissionData.responses).forEach((index) => {
-            const questionIndex = parseInt(index);
-            completedQuestions[questionIndex] = true;
-          });
-
-          setSubmittedQuestions(completedQuestions);
-        }
+        setSubmittedQuestions(completedQuestions);
       }
     } catch (err) {
       console.error("Error checking completion status:", err);
@@ -94,15 +95,7 @@ export default function ClientFormPage() {
         // Store login key in localStorage for persistence
         localStorage.setItem("clientLoginKey", loginKey);
 
-        const response = await fetch(
-          `/api/client/form-data?key=${encodeURIComponent(loginKey)}`
-        );
-
-        if (!response.ok) {
-          throw new Error("Invalid key or form not found");
-        }
-
-        const clientData = await response.json();
+        const clientData = await getClientFormData(loginKey);
         setClientData(clientData);
         setQuestions(clientData.questions);
 
@@ -169,26 +162,19 @@ export default function ClientFormPage() {
     question: string,
     index: number
   ) => {
-    const response = await fetch(`/api/admin/redo-question`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        loginKey,
-        name,
-        question,
-      }),
-    });
-    const data = await response.json();
-    console.log("DELETE CLIENT UPLOADS", data);
-    if (data.success) {
-      setSubmittedQuestions({
-        ...submittedQuestions,
-        [index]: false,
-      });
-    } else {
-      console.log("Error deleting client uploads");
+    try {
+      const data = await redoQuestion(loginKey, name, question);
+      console.log("DELETE CLIENT UPLOADS", data);
+      if (data.success) {
+        setSubmittedQuestions({
+          ...submittedQuestions,
+          [index]: false,
+        });
+      } else {
+        console.log("Error deleting client uploads");
+      }
+    } catch (err) {
+      console.error("Error deleting client uploads:", err);
     }
   };
 
@@ -220,32 +206,30 @@ export default function ClientFormPage() {
     setSubmittingQuestions({ ...submittingQuestions, [index]: true });
 
     try {
-      const formData = new FormData();
-      formData.append("loginKey", loginKey);
-      formData.append("questionIndex", index.toString());
-      formData.append("questionText", question.question);
-      formData.append("responseType", question.responseType);
+      let responseData;
 
       if (question.responseType === "text" && responses[index]) {
-        formData.append("textResponse", responses[index] as string);
         console.log("Submitting text response for question", index);
+        responseData = await submitQuestionResponse(
+          loginKey,
+          index,
+          question.question,
+          question.responseType,
+          responses[index] as string
+        );
       } else if (question.responseType === "file" && files[index]) {
-        formData.append("file", files[index] as File);
         console.log("Submitting file for question", index, files[index]?.name);
+        responseData = await submitQuestionResponse(
+          loginKey,
+          index,
+          question.question,
+          question.responseType,
+          undefined,
+          files[index] as File
+        );
       }
 
-      const response = await fetch("/api/client/submit-question", {
-        method: "POST",
-        body: formData,
-      });
-
-      const responseData = await response.json();
       console.log("Submission response:", responseData);
-
-      if (!response.ok) {
-        console.error("Submission error response:", responseData);
-        throw new Error(responseData.error || "Failed to submit response");
-      }
 
       // Mark as submitted
       setSubmittedQuestions({ ...submittedQuestions, [index]: true });

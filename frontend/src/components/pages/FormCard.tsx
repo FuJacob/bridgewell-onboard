@@ -1,5 +1,6 @@
 import React from "react";
 import { useRouter } from "next/navigation";
+import { FaClipboard, FaTrash } from "react-icons/fa";
 
 interface FormCardProps {
   form: {
@@ -31,9 +32,9 @@ export default function FormCard({ form, onDelete }: FormCardProps) {
   };
 
   return (
-    <div className="bg-white border-2 border-gray-200 hover:border-primary transition-colors duration-300 rounded-xl shadow-sm hover:shadow-md overflow-hidden">
+    <div className="bg-white border border-gray-200 hover:border-primary transition-colors duration-300 rounded-xl shadow-sm group hover:shadow-lg hover:scale-[1.01] transition-transform duration-200 overflow-hidden">
       <button
-        className="group p-4 sm:p-5 border-b border-gray-100 hover:border- hover:bg-primary w-full transition duration-300 ease-in-out"
+        className="group w-full p-4 sm:p-5 border-b border-gray-100 hover:border-primary group-hover:bg-primary group-hover:text-white transition-colors duration-200"
         onClick={handleFormClick}
       >
         <div className="flex flex-col justify-center items-start">
@@ -48,20 +49,24 @@ export default function FormCard({ form, onDelete }: FormCardProps) {
           </p>
         </div>
       </button>
-      <div className="p-3 sm:p-4 bg-gray-50">
+      <div className="p-3 sm:p-4 bg-gray-50 group-hover:bg-gray-100 transition-colors duration-200">
         <div className="flex items-center">
-          <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono flex-1 overflow-hidden text-ellipsis">
+          <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono flex-1 overflow-hidden text-ellipsis transition-colors duration-200 group-hover:bg-gray-200">
             {form.login_key}
           </code>
           <button
-            className="ml-2 text-primary hover:text-primary-DARK flex-shrink-0 p-1"
+            className="ml-2 text-primary hover:text-primary-dark p-1"
             onClick={(e) => handleCopyToClipboard(e, form.login_key)}
             title="Copy to clipboard"
           >
-            📋
+            <FaClipboard className="text-primary hover:text-primary-dark" />
           </button>
-          <button className="pl-2" onClick={handleDelete} title="Delete form">
-            🗑️
+          <button
+            className="ml-2 p-1"
+            onClick={handleDelete}
+            title="Delete form"
+          >
+            <FaTrash className="text-red-500 hover:text-red-700" />
           </button>
         </div>
       </div>
