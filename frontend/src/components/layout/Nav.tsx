@@ -28,7 +28,6 @@ export async function Nav() {
             <button className="flex justify-center font-semibold items-center gap-2 md:gap-4 bg-primary rounded-full text-white px-4 md:px-6 py-2 md:py-4 text-sm md:text-base">
               <FaSignInAlt />
               <span className="hidden sm:inline">Admin Login</span>
-              <span className="sm:hidden">Login</span>
             </button>
           </Link>
         ) : (

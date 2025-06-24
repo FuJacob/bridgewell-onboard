@@ -19,6 +19,7 @@ import { redoQuestion } from "@/services/admin";
 import CompletionBar from "@/components/pages/CompletionBar";
 import QuestionCard from "@/components/pages/QuestionCard";
 import ErrorMessage from "@/components/shared/ErrorMessage";
+import { FaSignInAlt } from "react-icons/fa";
 
 export default function ClientFormPage() {
   const [signedIn, setSignedIn] = useState(false);
@@ -87,7 +88,7 @@ export default function ClientFormPage() {
   useEffect(() => {
     async function fetchClientData() {
       if (!loginKey) {
-        router.push("/client");
+        router.push("/");
         return;
       }
 
@@ -236,13 +237,17 @@ export default function ClientFormPage() {
 
       // Store submission in local state
       const newSubmittedFiles = { ...submittedFiles };
-      if (question.responseType === "file" && files[index]) {
+      if (question.responseType === "file" && files[index] && responseData) {
         newSubmittedFiles[index] = {
           name: files[index].name,
           type: files[index].type,
           fileId: responseData.fileId,
         };
-      } else if (question.responseType === "text" && responses[index]) {
+      } else if (
+        question.responseType === "text" &&
+        responses[index] &&
+        responseData
+      ) {
         newSubmittedFiles[index] = {
           name: `Text Response (${new Date().toLocaleTimeString()})`,
           type: "text/plain",
@@ -292,7 +297,7 @@ export default function ClientFormPage() {
     // Clear login key from localStorage
     localStorage.removeItem("clientLoginKey");
     // Redirect to client login page
-    router.push("/client");
+    router.push("/");
   };
 
   if (loading) {
@@ -305,7 +310,7 @@ export default function ClientFormPage() {
         <div className="w-full max-w-md text-center">
           <ErrorMessage message={error} />
           <button
-            onClick={() => router.push("/client")}
+            onClick={() => router.push("/")}
             className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-DARK transition mt-4"
           >
             Back to Login
@@ -319,8 +324,8 @@ export default function ClientFormPage() {
     Object.values(submittedQuestions).filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto p-4 sm:p-6">
+    <div className="min-h-screen flex flex-col items-center justify-center">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 w-full">
         {/* Header with logo */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 md:mb-8">
           <Link href="/">
@@ -334,11 +339,13 @@ export default function ClientFormPage() {
               />
             </div>
           </Link>
+
           <button
             onClick={handleLogout}
-            className="text-primary hover:underline text-xs sm:text-sm font-medium"
+            className="flex justify-center font-semibold items-center gap-2 md:gap-4 bg-primary rounded-full text-white px-3 md:px-4 py-1.5 md:py-2.5 text-sm"
           >
-            Logout
+            <FaSignInAlt />
+            <span className="hidden sm:inline">Exit form</span>
           </button>
         </div>
 

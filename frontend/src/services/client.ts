@@ -8,18 +8,18 @@ export interface ClientData {
 }
 
 interface QuestionTemplate {
-  fileName?: string;
-  fileId?: string;
+  fileName: string;
+  fileId: string;
   uploadedAt?: string;
   fileObject?: File;
 }
 
 interface Question {
   question: string;
-  description?: string;
+  description: string;
   responseType: string;
-  dueDate?: string;
-  template?: QuestionTemplate | null;
+  dueDate: string;
+  templates?: QuestionTemplate[] | null;
 }
 
 export interface SubmissionData {
