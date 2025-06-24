@@ -415,7 +415,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <main className="h-screen px-4 sm:px-6 lg:px-8 overflow-y-auto">
+      <main className="min-h-screen px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex justify-center mt-24 mb-12">
           <Image
             src="/logo-bridgewell.png"
