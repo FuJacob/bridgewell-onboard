@@ -139,7 +139,8 @@ export default function QuestionEditor({
             </label>
             <input
               type="file"
-              accept=".pdf,.doc,.docx,.jpg,.png"
+              multiple
+              accept=".pdf,.doc,.docx,.jpg,.png,.xls,.xlsx,.xlsm"
               onChange={handleFileUpload}
               className="block w-full p-2 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
             />

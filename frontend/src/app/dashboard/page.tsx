@@ -703,7 +703,7 @@ export default function Dashboard() {
                           <input
                             type="file"
                             multiple
-                            accept=".pdf,.doc,.docx,.jpg,.png"
+                            accept=".pdf,.doc,.docx,.jpg,.png,.xls,.xlsx,.xlsm"
                             onChange={(e) => {
                               const files = e.target.files;
                               if (!files || files.length === 0) return;
