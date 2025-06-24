@@ -5,10 +5,11 @@ export interface Question {
   description: string;
   responseType: string;
   dueDate: string;
-  template?: {
+  templates?: {
     fileName: string;
     fileId: string;
-  };
+    uploadedAt?: string;
+  }[] | null;
 }
 
 export interface ClientData {

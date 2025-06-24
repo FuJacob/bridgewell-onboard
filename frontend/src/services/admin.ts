@@ -52,7 +52,7 @@ interface Question {
   description?: string;
   responseType: string;
   dueDate?: string;
-  template?: QuestionTemplate | null;
+  templates?: QuestionTemplate[] | null;
 }
 
 export async function createForm(
@@ -74,20 +74,17 @@ export async function createForm(
 
   // Process questions and handle template files
   const processedQuestions = questions.map((q) => {
-    if (
-      q.responseType === "file" &&
-      q.template &&
-      q.template.fileObject instanceof File
-    ) {
+    if (q.responseType === "file" && q.templates && q.templates.length > 0) {
       return {
         ...q,
-        template: {
-          ...q.template,
-          fileName: q.template.fileObject.name,
-        },
+        templates: q.templates.map(template => ({
+          fileName: template.fileObject?.name || template.fileName,
+          fileId: template.fileId || "",
+          uploadedAt: template.uploadedAt || new Date().toISOString(),
+        }))
       };
     }
-    return { ...q, template: q.template ? { ...q.template } : null };
+    return { ...q, templates: q.templates ? [...q.templates] : null };
   });
 
   formData.append("questions", JSON.stringify(processedQuestions));

@@ -38,35 +38,35 @@ export default function Dashboard() {
       description: "Based on the downloadable template",
       responseType: "file",
       dueDate: "",
-      template: null,
+      templates: null,
     },
     {
       question: "Please upload proof of employee enrollment",
       description: "Must be in PDF format",
       responseType: "file",
       dueDate: "",
-      template: null,
+      templates: null,
     },
     {
       question: "Void Cheque",
       description: "For direct deposit",
       responseType: "file",
       dueDate: "",
-      template: null,
+      templates: null,
     },
     {
       question: "Termination Letter",
       description: "",
       responseType: "file",
       dueDate: "",
-      template: null,
+      templates: null,
     },
     {
       question: "Digital Signature",
       description: "Please type your intials",
       responseType: "text",
       dueDate: "",
-      template: null,
+      templates: null,
     },
   ]);
 
@@ -160,7 +160,7 @@ export default function Dashboard() {
         description: "",
         responseType: "text",
         dueDate: "",
-        template: null,
+        templates: null,
       },
     ]);
   };
@@ -233,50 +233,34 @@ export default function Dashboard() {
     setIsGenerating(true);
     setFormError(null);
 
-    const formData = new FormData();
-    formData.append("clientName", clientName);
-    formData.append("organization", organization);
-    formData.append(
-      "questions",
-      JSON.stringify(
-        questions.map((q, idx) => {
-          if (
-            q.responseType === "file" &&
-            q.template &&
-            q.template.fileObject instanceof File
-          ) {
-            // We'll upload the file as part of the FormData
-            formData.append(`templateFile_${idx}`, q.template.fileObject);
-            return {
-              ...q,
-              template: {
-                ...q.template,
-                fileName: q.template.fileObject.name,
-              },
-            };
-          }
-          return { ...q, template: q.template ? { ...q.template } : null };
-        })
-      )
-    );
-
     try {
       // Collect template files
       const templateFiles: { [key: string]: File } = {};
-      questions.forEach((q, idx) => {
-        if (
-          q.responseType === "file" &&
-          q.template &&
-          q.template.fileObject instanceof File
-        ) {
-          templateFiles[`templateFile_${idx}`] = q.template.fileObject;
+      const processedQuestions = questions.map((q, idx) => {
+        if (q.responseType === "file" && q.templates && q.templates.length > 0) {
+          // Add all template files to FormData
+          q.templates.forEach((template, templateIdx) => {
+            if (template.fileObject instanceof File) {
+              templateFiles[`templateFile_${idx}_${templateIdx}`] = template.fileObject;
+            }
+          });
+          
+          return {
+            ...q,
+            templates: q.templates.map(template => ({
+              fileName: template.fileObject?.name || template.fileName,
+              fileId: template.fileId || "",
+              uploadedAt: template.uploadedAt || new Date().toISOString(),
+            }))
+          };
         }
+        return { ...q, templates: q.templates ? [...q.templates] : null };
       });
 
       const data = await createForm(
         clientName,
         organization,
-        questions,
+        processedQuestions,
         templateFiles
       );
 
@@ -332,22 +316,18 @@ export default function Dashboard() {
 
     // Process questions the same way as create-form API does
     const processedQuestions = questions.map((q) => {
-      if (
-        q.responseType === "file" &&
-        q.template &&
-        q.template.fileObject instanceof File
-      ) {
+      if (q.responseType === "file" && q.templates && q.templates.length > 0) {
         // Remove fileObject but keep other template properties
         return {
           ...q,
-          template: {
-            fileName: q.template.fileObject.name,
-            fileId: q.template.fileId || "",
-            uploadedAt: q.template.uploadedAt || new Date().toISOString(),
-          },
+          templates: q.templates.map(template => ({
+            fileName: template.fileObject?.name || template.fileName,
+            fileId: template.fileId || "",
+            uploadedAt: template.uploadedAt || new Date().toISOString(),
+          }))
         };
       }
-      return { ...q, template: q.template ? { ...q.template } : null };
+      return { ...q, templates: q.templates ? [...q.templates] : null };
     });
 
     console.log("processedQuestions to save:", processedQuestions);
@@ -718,28 +698,32 @@ export default function Dashboard() {
                       {q.responseType === "file" && (
                         <div>
                           <label className="block text-sm font-medium mb-1">
-                            Template Document (optional)
+                            Template Documents (optional)
                           </label>
                           <input
                             type="file"
+                            multiple
                             accept=".pdf,.doc,.docx,.jpg,.png"
                             onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
+                              const files = e.target.files;
+                              if (!files || files.length === 0) return;
+                              
                               const newQuestions = [...questions];
-                              newQuestions[index].template = {
+                              const templateFiles = Array.from(files).map(file => ({
                                 fileName: file.name,
                                 fileId: "",
                                 uploadedAt: new Date().toISOString(),
-                                fileObject: file, // store the File object for later upload (not for backend)
-                              };
+                                fileObject: file,
+                              }));
+                              
+                              newQuestions[index].templates = templateFiles;
                               setQuestions(newQuestions);
                             }}
                             className="block w-full p-2 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
                           />
-                          {q.template && q.template.fileName && (
+                          {q.templates && q.templates.length > 0 && (
                             <div className="text-xs text-gray-600 mt-1">
-                              Uploaded: {q.template.fileName}
+                              Uploaded: {q.templates.map(t => t.fileName).join(", ")}
                             </div>
                           )}
                         </div>

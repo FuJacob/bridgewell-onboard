@@ -32,24 +32,31 @@ export async function POST(request: Request) {
 
     // 2. Upload template files and update question metadata
     for (let i = 0; i < questions.length; i++) {
-      const file = formData.get(`templateFile_${i}`) as File | null;
-      if (file) {
-        const sanitizedQuestion = questions[i].question
+      const question = questions[i];
+      if (question.responseType === "file" && question.templates && question.templates.length > 0) {
+        const sanitizedQuestion = question.question
           .replace(/[^a-zA-Z0-9]/g, "_")
           .substring(0, 50);
-        const buffer = await file.arrayBuffer();
-        const fileName = file.name;
-        const fileId = await uploadFileToClientFolder(
-          loginKey,
-          clientName,
-          `${sanitizedQuestion}/template/${fileName}`,
-          new Blob([buffer], { type: file.type })
-        );
-        questions[i].template = {
-          fileName,
-          fileId,
-          uploadedAt: new Date().toISOString(),
-        };
+        
+        // Upload each template file
+        for (let templateIdx = 0; templateIdx < question.templates.length; templateIdx++) {
+          const file = formData.get(`templateFile_${i}_${templateIdx}`) as File | null;
+          if (file) {
+            const buffer = await file.arrayBuffer();
+            const fileName = file.name;
+            const fileId = await uploadFileToClientFolder(
+              loginKey,
+              clientName,
+              `${sanitizedQuestion}/template/${fileName}`,
+              new Blob([buffer], { type: file.type })
+            );
+            question.templates[templateIdx] = {
+              fileName,
+              fileId,
+              uploadedAt: new Date().toISOString(),
+            };
+          }
+        }
       }
     }
 

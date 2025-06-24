@@ -70,20 +70,20 @@ export default function QuestionCard({
         {question.description}
       </p>
 
-      {/* Download Template Button for file-type questions with a template */}
+      {/* Download Template Button for file-type questions with templates */}
       {question.responseType === "file" &&
-        question.template &&
-        question.template.fileId && (
+        question.templates &&
+        question.templates.length > 0 && (
           <div className="mb-2">
             <a
-              href={`/api/client/download-template?fileId=${encodeURIComponent(
-                question.template.fileId
-              )}`}
+              href={`/api/client/download-templates?fileIds=${encodeURIComponent(
+                question.templates.map(t => t.fileId).join(',')
+              )}&question=${encodeURIComponent(question.question)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block bg-secondary text-white px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-secondary-DARK transition text-sm sm:text-base"
             >
-              Download Template
+              Download Templates ({question.templates.length} file{question.templates.length > 1 ? 's' : ''})
             </a>
           </div>
         )}
