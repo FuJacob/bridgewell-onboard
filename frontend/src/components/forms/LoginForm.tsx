@@ -1,12 +1,14 @@
+"use client";
 import React, { useState, ChangeEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 import { LoginFormData } from "@/types";
+import { FaInfoCircle } from "react-icons/fa";
 
 interface LoginFormProps {
-  onSubmit: (formData: FormData) => void;
+  onSubmit: (formData: FormData) => Promise<{ status: string }>;
   loading?: boolean;
 }
 
@@ -14,6 +16,7 @@ export default function LoginForm({
   onSubmit,
   loading = false,
 }: LoginFormProps) {
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
     password: "",
@@ -27,34 +30,45 @@ export default function LoginForm({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData();
     form.append("email", formData.email);
     form.append("password", formData.password);
-    onSubmit(form);
+    const result = await onSubmit(form);
+
+    if (result && result.status) {
+      setError(result.status);
+    }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen text-center p-4">
+    <div className="flex justify-center items-center min-h-screen p-4 inset-0 fixed">
       <form
         onSubmit={handleSubmit}
-        className="bg-white w-full max-w-sm sm:max-w-md md:max-w-lg lg:w-96 min-h-80 md:h-96 p-6 sm:p-8 md:p-12 rounded-2xl flex gap-4 flex-col items-center justify-center shadow-lg"
+        className="bg-white w-full max-w-md p-6 sm:p-8 md:p-10 rounded-2xl flex flex-col gap-6 justify-center shadow-xl"
+        onFocus={() => setError(null)}
       >
-        <div className="mb-4">
-          <Link href="/">
-            <div className="w-24 sm:w-32 md:w-40 mx-auto mb-4">
+        <div className="flex flex-col gap-4 items-center">
+          <div className="flex gap-2 items-center justify-center">
+            <Link href="/">
               <Image
                 src="/logo-bridgewell.png"
                 alt="Bridgewell Financial Logo"
                 width={100}
                 height={100}
               />
-            </div>
-          </Link>
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
-            Admin Login
-          </h2>
+            </Link>
+            <h2 className="text-sm sm:text-base md:text-lg font-bold text-primary">
+              Admin Login
+            </h2>
+          </div>
+          {error && (
+            <aside className="flex items-center bg-secondary/10 border-l-4 border-secondary rounded-lg px-4 py-2 text-sm w-full gap-2">
+              <FaInfoCircle className="text-secondary" aria-hidden="true" />
+              <p className="text-secondary font-medium">{error}</p>
+            </aside>
+          )}
         </div>
 
         <Input

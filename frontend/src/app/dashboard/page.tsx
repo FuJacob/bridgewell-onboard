@@ -237,21 +237,26 @@ export default function Dashboard() {
       // Collect template files
       const templateFiles: { [key: string]: File } = {};
       const processedQuestions = questions.map((q, idx) => {
-        if (q.responseType === "file" && q.templates && q.templates.length > 0) {
+        if (
+          q.responseType === "file" &&
+          q.templates &&
+          q.templates.length > 0
+        ) {
           // Add all template files to FormData
           q.templates.forEach((template, templateIdx) => {
             if (template.fileObject instanceof File) {
-              templateFiles[`templateFile_${idx}_${templateIdx}`] = template.fileObject;
+              templateFiles[`templateFile_${idx}_${templateIdx}`] =
+                template.fileObject;
             }
           });
-          
+
           return {
             ...q,
-            templates: q.templates.map(template => ({
+            templates: q.templates.map((template) => ({
               fileName: template.fileObject?.name || template.fileName,
               fileId: template.fileId || "",
               uploadedAt: template.uploadedAt || new Date().toISOString(),
-            }))
+            })),
           };
         }
         return { ...q, templates: q.templates ? [...q.templates] : null };
@@ -320,11 +325,11 @@ export default function Dashboard() {
         // Remove fileObject but keep other template properties
         return {
           ...q,
-          templates: q.templates.map(template => ({
+          templates: q.templates.map((template) => ({
             fileName: template.fileObject?.name || template.fileName,
             fileId: template.fileId || "",
             uploadedAt: template.uploadedAt || new Date().toISOString(),
-          }))
+          })),
         };
       }
       return { ...q, templates: q.templates ? [...q.templates] : null };
@@ -404,7 +409,7 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return <LoadingSpinner message="Loading dashboard..." size="lg" />;
+    return <LoadingSpinner message="Loading dashboard..." />;
   }
 
   if (loginKey) {
@@ -415,8 +420,8 @@ export default function Dashboard() {
 
   return (
     <>
-      <main className="min-h-screen px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex justify-center mt-24 mb-12">
+      <main className="min-h-screen flex flex-col items-center justify-start pt-16 sm:pt-24 md:pt-32 lg:pt-40">
+        <Link href="/" className="flex ">
           <Image
             src="/logo-bridgewell.png"
             alt="Bridgewell Financial Logo"
@@ -454,7 +459,7 @@ export default function Dashboard() {
         {/* Stats Overview */}
         <section
           aria-labelledby="stats-heading"
-          className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 md:mb-8"
+          className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 md:mb-8 w-full"
         >
           <h2 id="stats-heading" className="sr-only">
             Dashboard Stats
@@ -707,15 +712,17 @@ export default function Dashboard() {
                             onChange={(e) => {
                               const files = e.target.files;
                               if (!files || files.length === 0) return;
-                              
+
                               const newQuestions = [...questions];
-                              const templateFiles = Array.from(files).map(file => ({
-                                fileName: file.name,
-                                fileId: "",
-                                uploadedAt: new Date().toISOString(),
-                                fileObject: file,
-                              }));
-                              
+                              const templateFiles = Array.from(files).map(
+                                (file) => ({
+                                  fileName: file.name,
+                                  fileId: "",
+                                  uploadedAt: new Date().toISOString(),
+                                  fileObject: file,
+                                })
+                              );
+
                               newQuestions[index].templates = templateFiles;
                               setQuestions(newQuestions);
                             }}
@@ -723,7 +730,8 @@ export default function Dashboard() {
                           />
                           {q.templates && q.templates.length > 0 && (
                             <div className="text-xs text-gray-600 mt-1">
-                              Uploaded: {q.templates.map(t => t.fileName).join(", ")}
+                              Uploaded:{" "}
+                              {q.templates.map((t) => t.fileName).join(", ")}
                             </div>
                           )}
                         </div>

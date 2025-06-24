@@ -1,28 +1,23 @@
-import React from "react";
+import Image from "next/image";
 
 interface LoadingSpinnerProps {
   message?: string;
-  size?: "sm" | "md" | "lg";
 }
 
 export default function LoadingSpinner({
   message = "Loading...",
-  size = "md",
 }: LoadingSpinnerProps) {
-  const sizeClasses = {
-    sm: "w-4 h-4",
-    md: "w-8 h-8",
-    lg: "w-20 h-20",
-  };
-
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6">
-      <div className="text-center">
-        <div
-          className={`${sizeClasses[size]} border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto`}
-        ></div>
-        <p className="mt-4">{message}</p>
-      </div>
+    <div className="h-screen flex flex-col items-center justify-center p-6">
+      <Image
+        src="/favicon.png"
+        className="rounded-full relative animate-pulse"
+        alt="Bridgewell Financial Logo"
+        width={100}
+        height={100}
+      />
+
+      <p className="mt-5 text-xl text-gray-600 font-medium">{message}</p>
     </div>
   );
 }

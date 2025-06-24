@@ -22,7 +22,7 @@ export async function getAllForms() {
   }
 }
 
-export async function login(formData: FormData) {
+export async function login(formData: FormData): Promise<{ status: string }> {
   const supabase = await createClient();
 
   // type-casting here for convenience
@@ -35,10 +35,8 @@ export async function login(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword(data);
 
   if (error) {
-    redirect("/login");
+    return { status: "Invalid email or password" };
   }
-
-  revalidatePath("/", "layout");
   redirect("/");
 }
 

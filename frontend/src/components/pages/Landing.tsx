@@ -98,12 +98,12 @@ const Landing = () => {
         </p>
 
         {/* Instructions */}
-        <aside className="flex items-center bg-secondary/10 border-l-4 border-secondary rounded-lg p-4 mt-8 md:mt-16">
+        <aside className="flex items-center bg-green-600/10 border-l-4 border-green-600 rounded-lg p-4 mt-8 md:mt-16 gap-2">
           <FaInfoCircle
-            className="w-6 h-6 text-secondary flex-shrink-0"
+            className="text-green-600 text-4xl"
             aria-hidden="true"
           />
-          <p className="ml-3 text-secondary font-medium">
+          <p className="ml-3 text-green-600 font-medium">
             You should have received your private access key from your
             Bridgewell advisor via email. Enter it below to begin.
           </p>
@@ -111,29 +111,35 @@ const Landing = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-0">
-            <label htmlFor="access-code" className="sr-only">
-              Access Code
-            </label>
-            <input
-              id="access-code"
-              className="w-full px-2 pb-2 border-b-2 border-gray-300 bg-transparent text-base sm:text-lg font-medium placeholder-gray-400 focus:outline-none focus:border-primary transition-colors"
-              type="text"
-              placeholder="Enter your code"
-              value={loginKey}
-              onChange={(e) => {
-                setLoginKey(e.target.value);
-                setError("");
-              }}
-              disabled={isSubmitting}
-            />
-            <button
-              type="submit"
-              disabled={isSubmitting || !loginKey.trim()}
-              className="mt-4 sm:mt-0 sm:ml-4 px-6 py-3 bg-primary text-white font-semibold rounded-full shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? "Checking..." : "Submit"}
-            </button>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-0">
+              <label htmlFor="access-code" className="sr-only">
+                Access Code
+              </label>
+              <input
+                id="access-code"
+                className="w-full px-2 pb-2 border-b-2 border-gray-300 bg-transparent text-base sm:text-lg font-medium placeholder-gray-400 focus:outline-none focus:border-primary transition-colors"
+                type="text"
+                placeholder="Enter your code"
+                value={loginKey}
+                onChange={(e) => {
+                  setLoginKey(e.target.value);
+                  setError("");
+                }}
+                disabled={isSubmitting}
+              />
+
+              <button
+                type="submit"
+                disabled={isSubmitting || !loginKey.trim()}
+                className="mt-4 sm:mt-0 sm:ml-4 px-6 py-3 bg-primary text-white font-semibold rounded-full shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? "Checking..." : "Submit"}
+              </button>
+            </div>
+            <p className="text-sm text-gray-500">
+              Need Assistance? Feel free to contact your advisor anytime.
+            </p>
           </div>
 
           {error && (
@@ -163,7 +169,7 @@ const Landing = () => {
             id="process-heading"
             className="sm:text-lg md:text-xl lg:text-2xl font-semibold text-primary bg-gray-100 text-white bg-primary p-4 rounded-3xl text-center mb-4"
           >
-            How our New Client Onboarding Portal Works
+            How Our New Client Onboarding Portal Works
           </h2>
           <ol className="flex flex-col gap-3 list-none">
             {PROCESS_STEPS.map((step) => (
