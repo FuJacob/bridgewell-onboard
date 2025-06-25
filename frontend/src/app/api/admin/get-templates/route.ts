@@ -15,8 +15,16 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     
-    console.log("Templates fetched successfully:", data);
-    return NextResponse.json({ success: true, templates: data });
+    // Map database column names to frontend interface
+    const mappedTemplates = data?.map(template => ({
+      id: template.id,
+      name: template.template_name, // Map template_name to name
+      questions: template.questions,
+      created_at: template.created_at
+    })) || [];
+    
+    console.log("Templates fetched successfully:", mappedTemplates);
+    return NextResponse.json({ success: true, templates: mappedTemplates });
   } catch (err) {
     console.error("Server error in get-templates:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
