@@ -87,6 +87,7 @@ export default function Dashboard() {
   );
   const [showFormDeleteConfirmation, setShowFormDeleteConfirmation] = useState(false);
   const [formToDelete, setFormToDelete] = useState<{ loginKey: string; clientName: string; organization: string } | null>(null);
+  const [isDeletingForm, setIsDeletingForm] = useState(false);
 
   const filteredForms = forms.filter((form) =>
     form.organization.toLowerCase().includes(searchQuery.toLowerCase())
@@ -99,6 +100,8 @@ export default function Dashboard() {
 
   const confirmDeleteForm = async () => {
     if (!formToDelete) return;
+
+    setIsDeletingForm(true);
 
     try {
       const result = await deleteClientService(formToDelete.loginKey, formToDelete.clientName);
@@ -124,6 +127,7 @@ export default function Dashboard() {
     } catch (err) {
       console.error("Error deleting client:", err);
     } finally {
+      setIsDeletingForm(false);
       setShowFormDeleteConfirmation(false);
       setFormToDelete(null);
     }
@@ -902,17 +906,45 @@ export default function Dashboard() {
                   setShowFormDeleteConfirmation(false);
                   setFormToDelete(null);
                 }}
-                className="px-6 py-2 rounded-xl font-bold border-2 border-gray-300 hover:bg-gray-50 transition"
+                disabled={isDeletingForm}
+                className="px-6 py-2 rounded-xl font-bold border-2 border-gray-300 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDeleteForm}
-                className="bg-red-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-red-600 transition"
+                disabled={isDeletingForm}
+                className="bg-red-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Delete
+                {isDeletingForm ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Form Deletion Loading Overlay */}
+      {isDeletingForm && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4"
+          style={{ zIndex: 100000 }}
+        >
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
+            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <h2 className="text-xl font-bold mb-2 text-primary">
+              Deleting Form
+            </h2>
+            <p className="text-gray-600">
+              Please wait while we delete the form for{" "}
+              <span className="font-semibold">{formToDelete?.clientName}</span>...
+            </p>
           </div>
         </div>
       )}
