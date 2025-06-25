@@ -85,21 +85,30 @@ export default function Dashboard() {
   const [templateToDelete, setTemplateToDelete] = useState<Template | null>(
     null
   );
+  const [showFormDeleteConfirmation, setShowFormDeleteConfirmation] = useState(false);
+  const [formToDelete, setFormToDelete] = useState<{ loginKey: string; clientName: string; organization: string } | null>(null);
 
   const filteredForms = forms.filter((form) =>
     form.organization.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  async function deleteClient(loginKey: string, clientName: string) {
+  async function deleteClient(loginKey: string, clientName: string, organization: string) {
+    setFormToDelete({ loginKey, clientName, organization });
+    setShowFormDeleteConfirmation(true);
+  }
+
+  const confirmDeleteForm = async () => {
+    if (!formToDelete) return;
+
     try {
-      const result = await deleteClientService(loginKey, clientName);
+      const result = await deleteClientService(formToDelete.loginKey, formToDelete.clientName);
       console.log("API delete result:", result);
 
       const supabase = await createClient();
       const { data: deletedForms, error } = await supabase
         .from("clients")
         .delete()
-        .eq("login_key", loginKey)
+        .eq("login_key", formToDelete.loginKey)
         .select("*");
       console.log("Deleted from Supabase:", deletedForms);
       if (error) {
@@ -108,14 +117,17 @@ export default function Dashboard() {
       }
 
       setForms((prevForms) =>
-        prevForms.filter((form) => form.login_key !== loginKey)
+        prevForms.filter((form) => form.login_key !== formToDelete.loginKey)
       );
 
       console.log("Deleted from Supabase:", deletedForms);
     } catch (err) {
       console.error("Error deleting client:", err);
+    } finally {
+      setShowFormDeleteConfirmation(false);
+      setFormToDelete(null);
     }
-  }
+  };
 
   async function checkSignedIn() {
     const supabase = await createClient();
@@ -857,6 +869,45 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={confirmDeleteTemplate}
+                className="bg-red-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-red-600 transition"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Form Delete Confirmation Modal */}
+      {showFormDeleteConfirmation && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+          style={{ zIndex: 99999 }}
+        >
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
+            <h2 className="text-xl font-bold mb-4 text-primary">
+              Delete Form
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete the form for{" "}
+              <span className="font-semibold">{formToDelete?.clientName}</span> from{" "}
+              <span className="font-semibold">{formToDelete?.organization}</span>?
+            </p>
+            <p className="text-sm text-red-600 mb-6">
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => {
+                  setShowFormDeleteConfirmation(false);
+                  setFormToDelete(null);
+                }}
+                className="px-6 py-2 rounded-xl font-bold border-2 border-gray-300 hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteForm}
                 className="bg-red-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-red-600 transition"
               >
                 Delete

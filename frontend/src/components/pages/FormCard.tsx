@@ -11,7 +11,7 @@ interface FormCardProps {
     login_key: string;
     questions: string;
   };
-  onDelete: (loginKey: string, clientName: string) => void;
+  onDelete: (loginKey: string, clientName: string, organization: string) => void;
 }
 
 export default function FormCard({ form, onDelete }: FormCardProps) {
@@ -24,7 +24,7 @@ export default function FormCard({ form, onDelete }: FormCardProps) {
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onDelete(form.login_key, form.client_name);
+    onDelete(form.login_key, form.client_name, form.organization);
   };
 
   const handleFormClick = () => {
