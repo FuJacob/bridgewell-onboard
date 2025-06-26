@@ -30,8 +30,7 @@ export default function TemplateSelectionModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
-      style={{ zIndex: 99999 }}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
     >
       <div className="bg-white rounded-2xl p-8 max-w-2xl w-full text-center">
         <h2 className="text-2xl font-bold mb-6 text-primary">

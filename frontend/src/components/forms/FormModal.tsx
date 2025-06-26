@@ -1,17 +1,18 @@
 import React from "react";
-import QuestionEditor from "./QuestionEditor";
 
 interface Question {
   question: string;
   description: string;
   responseType: string;
   dueDate: string;
-  template?: {
-    fileName: string;
-    fileId: string;
-    uploadedAt: string;
-    fileObject?: File;
-  } | null;
+  templates?:
+    | {
+        fileName: string;
+        fileId: string;
+        uploadedAt: string;
+        fileObject?: File;
+      }[]
+    | null;
 }
 
 interface FormModalProps {
@@ -25,15 +26,14 @@ interface FormModalProps {
   onClientNameChange: (value: string) => void;
   onOrganizationChange: (value: string) => void;
   onAddQuestion: () => void;
-  onUpdateQuestion: (
-    index: number,
-    field: keyof Question,
-    value: string
-  ) => void;
+  onUpdateQuestion: (index: number, value: string) => void;
+  onUpdateDescription: (index: number, value: string) => void;
+  onUpdateResponseType: (index: number, value: string) => void;
+  onUpdateDueDate: (index: number, value: string) => void;
   onRemoveQuestion: (index: number) => void;
   onMoveQuestionUp: (index: number) => void;
   onMoveQuestionDown: (index: number) => void;
-  onTemplateUpload: (index: number, file: File) => void;
+  onTemplateUpload: (index: number, files: FileList) => void;
   onSubmit: () => void;
   onSaveAsTemplate: () => void;
 }
@@ -50,6 +50,9 @@ export default function FormModal({
   onOrganizationChange,
   onAddQuestion,
   onUpdateQuestion,
+  onUpdateDescription,
+  onUpdateResponseType,
+  onUpdateDueDate,
   onRemoveQuestion,
   onMoveQuestionUp,
   onMoveQuestionDown,
@@ -130,18 +133,132 @@ export default function FormModal({
               </div>
             )}
 
-            {questions.map((question, index) => (
-              <QuestionEditor
+            {questions.map((q, index) => (
+              <div
                 key={index}
-                question={question}
-                index={index}
-                totalQuestions={questions.length}
-                onUpdate={onUpdateQuestion}
-                onRemove={onRemoveQuestion}
-                onMoveUp={onMoveQuestionUp}
-                onMoveDown={onMoveQuestionDown}
-                onTemplateUpload={onTemplateUpload}
-              />
+                className="mb-4 sm:mb-6 p-4 sm:p-6 border-2 border-gray-200 rounded-xl bg-gray-50"
+              >
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-0 mb-4">
+                  <span className="bg-primary text-white text-xs sm:text-sm py-1 px-2 sm:px-3 rounded-full">
+                    Question {index + 1}
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => onMoveQuestionUp(index)}
+                      disabled={index === 0}
+                      className={`p-1 sm:p-2 rounded text-sm sm:text-base ${
+                        index === 0
+                          ? "text-gray-400"
+                          : "text-primary hover:bg-gray-200"
+                      }`}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      onClick={() => onMoveQuestionDown(index)}
+                      disabled={index === questions.length - 1}
+                      className={`p-1 sm:p-2 rounded text-sm sm:text-base ${
+                        index === questions.length - 1
+                          ? "text-gray-400"
+                          : "text-primary hover:bg-gray-200"
+                      }`}
+                    >
+                      ↓
+                    </button>
+                    <button
+                      onClick={() => onRemoveQuestion(index)}
+                      className="bg-red-500 text-white p-1 sm:p-2 rounded-lg hover:bg-red-600 text-sm sm:text-base"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3 sm:space-y-4">
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium mb-1">
+                      Question
+                    </label>
+                    <input
+                      type="text"
+                      value={q.question}
+                      onChange={(e) => onUpdateQuestion(index, e.target.value)}
+                      placeholder="Enter your question"
+                      className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium mb-1">
+                      Description (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={q.description}
+                      onChange={(e) =>
+                        onUpdateDescription(index, e.target.value)
+                      }
+                      placeholder="Add a short description or hint for this question"
+                      className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium mb-1">
+                        Response Type
+                      </label>
+                      <select
+                        value={q.responseType}
+                        onChange={(e) =>
+                          onUpdateResponseType(index, e.target.value)
+                        }
+                        className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl bg-white text-sm sm:text-base"
+                      >
+                        <option value="text">Text Response</option>
+                        <option value="file">File Upload</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium mb-1">
+                        Due Date (optional)
+                      </label>
+                      <input
+                        type="date"
+                        value={q.dueDate}
+                        onChange={(e) => onUpdateDueDate(index, e.target.value)}
+                        className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
+                      />
+                    </div>
+                  </div>
+
+                  {q.responseType === "file" && (
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Template Documents (optional)
+                      </label>
+                      <input
+                        type="file"
+                        multiple
+                        accept=".pdf,.doc,.docx,.jpg,.png,.xls,.xlsx,.xlsm"
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            onTemplateUpload(index, e.target.files);
+                          }
+                        }}
+                        className="block w-full p-2 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+                      />
+                      {q.templates && q.templates.length > 0 && (
+                        <div className="text-xs text-gray-600 mt-1">
+                          Uploaded:{" "}
+                          {q.templates.map((t) => t.fileName).join(", ")}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             ))}
 
             <div className="flex justify-end gap-4 mt-6">
