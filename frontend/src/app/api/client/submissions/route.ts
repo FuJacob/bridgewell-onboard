@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     // Get client data to verify login key and get questions
     const { data: clientData, error: clientError } = await supabase
       .from("clients")
-      .select("id, client_name, questions")
+      .select("client_name")
       .eq("login_key", loginKey)
       .single();
 
@@ -30,10 +30,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid login key" }, { status: 400 });
     }
 
-    const questions =
-      typeof clientData.questions === "string"
-        ? JSON.parse(clientData.questions)
-        : clientData.questions;
+    // get questions
+    const { data: questionsData, error: questionsError } = await supabase
+      .from("questions")
+      .select("*")
+      .eq("login_key", loginKey);
+
+    if (questionsError || !questionsData) {
+      console.error("Error fetching questions:", questionsError);
+      return NextResponse.json(
+        { error: "Failed to fetch questions" },
+        { status: 500 }
+      );
+    }
+    const questions = questionsData;
+    console.log("Questions:", questions);
 
     // Check OneDrive folder for completions
     const completionStatus = await checkQuestionCompletion(

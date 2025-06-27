@@ -64,6 +64,7 @@ export async function getClientFormData(loginKey: string): Promise<ClientData> {
 export async function getClientSubmissions(
   loginKey: string
 ): Promise<SubmissionData> {
+  console.log("Getting client submissions for login key:", loginKey);
   const response = await fetch(
     `/api/client/submissions?key=${encodeURIComponent(loginKey)}`
   );

@@ -18,10 +18,11 @@ export async function GET(request: NextRequest) {
     // Use service client instead of regular client to avoid auth requirements
     const supabase = createServiceClient();
 
+    console.log("Checking if login key exists in database:", key);
     // Check if the login key exists in the database
     const { data, error } = await supabase
       .from("clients")
-      .select("id, client_name, organization")
+      .select("client_name, organization")
       .eq("login_key", key)
       .single();
 
@@ -36,7 +37,6 @@ export async function GET(request: NextRequest) {
     // Key is valid, return success
     return NextResponse.json({
       valid: true,
-      clientId: data.id,
       clientName: data.client_name,
       organization: data.organization,
     });

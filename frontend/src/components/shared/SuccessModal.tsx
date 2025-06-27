@@ -1,5 +1,4 @@
 import React from "react";
-import Image from "next/image";
 
 interface SuccessModalProps {
   isOpen: boolean;
@@ -19,39 +18,51 @@ export default function SuccessModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
-        <div className="w-24 bg-gray-200 rounded-full px-4 py-2 mb-4 mx-auto">
-          <Image
-            src="/logo-bridgewell.png"
-            alt="Bridgewell Financial Logo"
-            width={80}
-            height={80}
-            style={{ width: "100%", height: "auto" }}
-          />
+    <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full text-center shadow-xl">
+        {/* Success Icon */}
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg
+            className="w-8 h-8 text-green-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
         </div>
-        <h1 className="text-3xl font-bold mb-6 text-primary">
-          Client Form Generated Successfully!
+
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 text-primary">
+          Form Created Successfully!
         </h1>
-        <p className="text-lg mb-2">Here is your client login key:</p>
-        <div className="flex items-center justify-center gap-2">
-          <p className="text-3xl font-mono bg-gray-100 p-6 rounded-2xl mt-4 border-2 border-secondary">
+
+        <p className="text-gray-600 mb-6">Here is your client login key:</p>
+
+        <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 mb-4">
+          <p className="text-xl font-mono font-bold text-primary break-all">
             {loginKey}
           </p>
+        </div>
+
+        <div className="flex gap-3">
           <button
             onClick={handleCopyToClipboard}
-            className="ml-2 bg-secondary text-white px-4 py-2 rounded-xl font-bold hover:bg-secondary-DARK transition"
-            title="Copy to clipboard"
+            className="flex-1 bg-secondary hover:bg-secondary/90 text-white px-4 py-3 rounded-xl font-medium transition-colors"
           >
-            📋 Copy Code
+            Copy Code
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 bg-primary hover:bg-primary/90 text-white px-4 py-3 rounded-xl font-medium transition-colors"
+          >
+            Close
           </button>
         </div>
-        <button
-          onClick={onClose}
-          className="mt-8 bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-DARK transition"
-        >
-          Close
-        </button>
       </div>
     </div>
   );

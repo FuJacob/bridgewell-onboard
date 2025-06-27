@@ -517,7 +517,7 @@ export default function Dashboard() {
         {/* Forms List */}
         <section
           aria-labelledby="forms-heading"
-          className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
+          className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden w-full"
         >
           <div className="p-4">
             <div className="flex items-center bg-white border border-gray-200 rounded-full px-4 py-2 shadow-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors">
