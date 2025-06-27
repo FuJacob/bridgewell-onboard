@@ -1,5 +1,5 @@
 // Template-related API services
-import { Template, Question, QuestionTemplate } from "@/types";
+import { Template, Question } from "@/types";
 
 export interface SaveTemplateResponse {
   success: boolean;

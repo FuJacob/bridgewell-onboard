@@ -114,6 +114,17 @@ export async function POST(request: Request) {
             };
           }
         }
+
+        // Update the question in the database with the new template fileIds
+        const { error: updateError } = await supabase
+          .from("questions")
+          .update({ templates: question.templates })
+          .eq("login_key", loginKey)
+          .eq("question", question.question);
+
+        if (updateError) {
+          console.error("Error updating question templates:", updateError);
+        }
       }
     }
 

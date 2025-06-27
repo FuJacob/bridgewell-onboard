@@ -1,5 +1,5 @@
 // Admin-related API services
-import { Question, QuestionTemplate } from "@/types";
+import { Question } from "@/types";
 
 export interface CreateFormResponse {
   loginKey?: string;
@@ -12,7 +12,7 @@ export interface CreateFormResponse {
 export async function deleteClient(
   loginKey: string,
   clientName: string
-): Promise<{ message?: string }> {
+): Promise<{ message?: string; status: number }> {
   const response = await fetch(`/api/admin/delete-client`, {
     method: "DELETE",
     headers: {
@@ -27,7 +27,7 @@ export async function deleteClient(
     throw new Error(result.message || "Failed to delete client");
   }
 
-  return result;
+  return { ...result, status: response.status };
 }
 
 /**

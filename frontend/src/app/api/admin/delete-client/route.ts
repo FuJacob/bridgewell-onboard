@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAccessToken } from "@/app/utils/microsoft/auth";
+import { createClient } from "@/app/utils/supabase/server";
 
 const SHAREPOINT_SITE_ID =
   "bridgewellfinancial.sharepoint.com,80def30d-85bd-4e18-969a-6346931d152d,deb319e5-cef4-4818-9ec3-805bedea8819";
@@ -9,6 +10,40 @@ export async function DELETE(request: Request) {
   try {
     const { loginKey, clientName } = await request.json();
     const accessToken = await getAccessToken();
+
+    // Delete from Supabase first
+    const supabase = await createClient();
+    const { data: deletedForms, error } = await supabase
+      .from("clients")
+      .delete()
+      .eq("login_key", loginKey)
+      .select("*");
+
+    console.log("Deleted from Supabase:", deletedForms);
+    if (error) {
+      console.error("Supabase deletion error:", error.message);
+      return NextResponse.json({
+        message: "Failed to delete from database",
+        error: error.message,
+        status: 500,
+      });
+    }
+
+    const { data: deletedQuestions, error: questionError } = await supabase
+      .from("questions")
+      .delete()
+      .eq("login_key", loginKey)
+      .select("*");
+
+    console.log("Deleted questions from Supabase:", deletedQuestions);
+    if (questionError) {
+      console.error("Supabase deletion error:", questionError.message);
+      return NextResponse.json({
+        message: "Failed to delete questions from database",
+        error: questionError.message,
+        status: 500,
+      });
+    }
 
     const clientFolderName = `${clientName}_${loginKey}`;
     console.log(

@@ -126,23 +126,14 @@ export default function Dashboard() {
       );
       console.log("API delete result:", result);
 
-      const supabase = await createClient();
-      const { data: deletedForms, error } = await supabase
-        .from("clients")
-        .delete()
-        .eq("login_key", formToDelete.loginKey)
-        .select("*");
-      console.log("Deleted from Supabase:", deletedForms);
-      if (error) {
-        console.error("Supabase deletion error:", error.message);
-        return;
+      // Update the UI only if the API call was successful
+      if (result.status === 200) {
+        setForms((prevForms) =>
+          prevForms.filter((form) => form.login_key !== formToDelete.loginKey)
+        );
+      } else {
+        console.error("Failed to delete client:", result.message);
       }
-
-      setForms((prevForms) =>
-        prevForms.filter((form) => form.login_key !== formToDelete.loginKey)
-      );
-
-      console.log("Deleted from Supabase:", deletedForms);
     } catch (err) {
       console.error("Error deleting client:", err);
     } finally {
