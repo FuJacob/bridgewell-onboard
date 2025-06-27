@@ -3,13 +3,15 @@
 export interface Question {
   question: string;
   description: string;
-  responseType: string;
-  dueDate: string;
-  templates?: {
-    fileName: string;
-    fileId: string;
-    uploadedAt?: string;
-  }[] | null;
+  response_type: string;
+  due_date: string;
+  templates?:
+    | {
+        fileName: string;
+        fileId: string;
+        uploadedAt?: string;
+      }[]
+    | null;
 }
 
 export interface ClientData {
@@ -38,7 +40,7 @@ export interface FormSubmission {
 
 export interface ResponseData {
   questionText: string;
-  responseType: string;
+  response_type: string;
   fileUrl?: string;
   fileName?: string;
   textResponse?: string;

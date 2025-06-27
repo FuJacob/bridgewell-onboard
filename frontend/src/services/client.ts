@@ -17,8 +17,8 @@ interface QuestionTemplate {
 interface Question {
   question: string;
   description: string;
-  responseType: string;
-  dueDate: string;
+  response_type: string;
+  due_date: string;
   templates?: QuestionTemplate[] | null;
 }
 
@@ -83,7 +83,7 @@ export async function submitQuestionResponse(
   loginKey: string,
   questionIndex: number,
   questionText: string,
-  responseType: string,
+  response_type: string,
   textResponse?: string,
   file?: File
 ): Promise<{ fileId?: string }> {
@@ -91,11 +91,11 @@ export async function submitQuestionResponse(
   formData.append("loginKey", loginKey);
   formData.append("questionIndex", questionIndex.toString());
   formData.append("questionText", questionText);
-  formData.append("responseType", responseType);
+  formData.append("response_type", response_type);
 
-  if (responseType === "text" && textResponse) {
+  if (response_type === "text" && textResponse) {
     formData.append("textResponse", textResponse);
-  } else if (responseType === "file" && file) {
+  } else if (response_type === "file" && file) {
     formData.append("file", file);
   }
 

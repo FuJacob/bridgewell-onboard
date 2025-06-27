@@ -17,12 +17,14 @@ export interface Template {
 export interface Question {
   question: string;
   description: string;
-  responseType: string;
-  dueDate: string;
-  templates?: {
-    fileName: string;
-    fileId: string;
-    uploadedAt: string;
-    fileObject?: File;
-  }[] | null;
+  response_type: string;
+  due_date: string;
+  templates?:
+    | {
+        fileName: string;
+        fileId: string;
+        uploadedAt: string;
+        fileObject?: File;
+      }[]
+    | null;
 }

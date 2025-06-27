@@ -5,7 +5,7 @@ const SHAREPOINT_SITE_ID =
 export const SITE_URL = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}`;
 
 export async function createClientFolder(
-  clientId: string,
+  loginKey: string,
   clientName: string
 ): Promise<string> {
   try {
@@ -16,7 +16,7 @@ export async function createClientFolder(
     const sanitizedName = clientName
       .replace(/[^a-zA-Z0-9]/g, "_")
       .substring(0, 50);
-    const folderName = `${sanitizedName}_${clientId}`;
+    const folderName = `${sanitizedName}_${loginKey}`;
     console.log("Creating folder with name:", folderName);
 
     // First, try to create the CLIENTS folder if it doesn't exist
@@ -125,7 +125,7 @@ export async function createClientFolder(
 }
 
 export async function createQuestionFolders(
-  clientId: string,
+  loginKey: string,
   clientName: string,
   questions: Array<{ question: string }>
 ): Promise<void> {
@@ -137,7 +137,7 @@ export async function createQuestionFolders(
     const sanitizedClientName = clientName
       .replace(/[^a-zA-Z0-9]/g, "_")
       .substring(0, 50);
-    const clientFolderName = `${sanitizedClientName}_${clientId}`;
+    const clientFolderName = `${sanitizedClientName}_${loginKey}`;
     console.log(
       "Creating question folders in client folder:",
       clientFolderName
@@ -217,7 +217,7 @@ export async function createQuestionFolders(
 }
 
 export async function uploadFileToClientFolder(
-  clientId: string,
+  loginKey: string,
   clientName: string,
   filePath: string,
   fileContent: Blob
@@ -235,9 +235,9 @@ export async function uploadFileToClientFolder(
     const sanitizedClientName = clientName
       .replace(/[^a-zA-Z0-9]/g, "_")
       .substring(0, 50);
-    const clientFolderName = `${sanitizedClientName}_${clientId}`;
+    const clientFolderName = `${sanitizedClientName}_${loginKey}`;
     console.log("Client folder name for upload:", clientFolderName);
-    console.log("Using clientId:", clientId);
+    console.log("Using loginKey:", loginKey);
 
     // Ensure the path includes CLIENTS as the root folder
     const fullPath = `CLIENTS/${clientFolderName}/${filePath}`;
@@ -322,7 +322,7 @@ export async function uploadFileToClientFolder(
 }
 
 export async function checkQuestionCompletion(
-  clientId: string,
+  loginKey: string,
   clientName: string,
   questions: Array<{ question: string }>
 ): Promise<{ [key: string]: boolean }> {
@@ -331,12 +331,12 @@ export async function checkQuestionCompletion(
     const sanitizedClientName = clientName
       .replace(/[^a-zA-Z0-9]/g, "_")
       .substring(0, 50);
-    const clientFolderName = `${sanitizedClientName}_${clientId}`;
+    const clientFolderName = `${sanitizedClientName}_${loginKey}`;
     console.log(
       "Client folder name for checking completion:",
       clientFolderName
     );
-    console.log("Using clientId for completion check:", clientId);
+    console.log("Using loginKey for completion check:", loginKey);
 
     const completionStatus: { [key: string]: boolean } = {};
 

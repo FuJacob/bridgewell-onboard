@@ -22,7 +22,7 @@ export default function SubmissionResponseCard({
         {response.questionText}
       </h3>
 
-      {response.responseType === "file" ? (
+      {response.response_type === "file" ? (
         <div className="mt-2">
           <p className="text-xs sm:text-sm text-gray-500 mb-1">File Upload</p>
           {response.fileUrl ? (

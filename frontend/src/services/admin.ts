@@ -50,19 +50,21 @@ interface QuestionTemplate {
 interface Question {
   question: string;
   description?: string;
-  responseType: string;
-  dueDate?: string;
+  response_type: string;
+  due_date?: string;
   templates?: QuestionTemplate[] | null;
 }
 
 export async function createForm(
   clientName: string,
+  email: string,
   organization: string,
   questions: Question[],
   templateFiles?: { [key: string]: File }
 ): Promise<CreateFormResponse> {
   const formData = new FormData();
   formData.append("clientName", clientName);
+  formData.append("email", email);
   formData.append("organization", organization);
 
   // Add template files to FormData
@@ -74,14 +76,14 @@ export async function createForm(
 
   // Process questions and handle template files
   const processedQuestions = questions.map((q) => {
-    if (q.responseType === "file" && q.templates && q.templates.length > 0) {
+    if (q.response_type === "file" && q.templates && q.templates.length > 0) {
       return {
         ...q,
-        templates: q.templates.map(template => ({
+        templates: q.templates.map((template) => ({
           fileName: template.fileObject?.name || template.fileName,
           fileId: template.fileId || "",
           uploadedAt: template.uploadedAt || new Date().toISOString(),
-        }))
+        })),
       };
     }
     return { ...q, templates: q.templates ? [...q.templates] : null };

@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     const loginKey = formData.get("loginKey") as string;
     const questionIndex = formData.get("questionIndex") as string;
     const questionText = formData.get("questionText") as string;
-    const responseType = formData.get("responseType") as string;
+    const response_type = formData.get("response_type") as string;
 
     // Text response or file
     const textResponse = formData.get("textResponse") as string;
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       loginKey,
       questionIndex,
       questionText,
-      responseType,
+      response_type,
       hasTextResponse: !!textResponse,
       hasFile: !!file,
     });
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     let fileId;
 
     try {
-      if (responseType === "file" && file) {
+      if (response_type === "file" && file) {
         // Upload file
         const buffer = await file.arrayBuffer();
         const fileName = `${timestamp}_${file.name}`;
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
           new Blob([buffer])
         );
         console.log("File uploaded successfully:", fileName);
-      } else if (responseType === "text" && textResponse) {
+      } else if (response_type === "text" && textResponse) {
         // Convert text response to file and upload
         const fileName = `response_${timestamp}.txt`;
         fileId = await uploadFileToClientFolder(

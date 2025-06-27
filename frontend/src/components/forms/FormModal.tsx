@@ -3,8 +3,8 @@ import React from "react";
 interface Question {
   question: string;
   description: string;
-  responseType: string;
-  dueDate: string;
+  response_type: string;
+  due_date: string;
   templates?:
     | {
         fileName: string;
@@ -19,12 +19,14 @@ interface FormModalProps {
   isOpen: boolean;
   clientName: string;
   organization: string;
+  email: string;
   questions: Question[];
   formError: string | null;
   isGenerating: boolean;
   onClose: () => void;
   onClientNameChange: (value: string) => void;
   onOrganizationChange: (value: string) => void;
+  onEmailChange: (value: string) => void;
   onAddQuestion: () => void;
   onUpdateQuestion: (index: number, value: string) => void;
   onUpdateDescription: (index: number, value: string) => void;
@@ -42,12 +44,14 @@ export default function FormModal({
   isOpen,
   clientName,
   organization,
+  email,
   questions,
   formError,
   isGenerating,
   onClose,
   onClientNameChange,
   onOrganizationChange,
+  onEmailChange,
   onAddQuestion,
   onUpdateQuestion,
   onUpdateDescription,
@@ -84,7 +88,7 @@ export default function FormModal({
         )}
 
         <div className="space-y-4 sm:space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             <div>
               <label className="block text-xs sm:text-sm font-medium mb-1">
                 Client Name
@@ -106,6 +110,18 @@ export default function FormModal({
                 placeholder="Enter organization name"
                 value={organization}
                 onChange={(e) => onOrganizationChange(e.target.value)}
+                className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
+              />
+            </div>
+            <div>
+              <label className="block text-xs sm:text-sm font-medium mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                placeholder="Enter client email"
+                value={email}
+                onChange={(e) => onEmailChange(e.target.value)}
                 className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
               />
             </div>
@@ -209,7 +225,7 @@ export default function FormModal({
                         Response Type
                       </label>
                       <select
-                        value={q.responseType}
+                        value={q.response_type}
                         onChange={(e) =>
                           onUpdateResponseType(index, e.target.value)
                         }
@@ -226,14 +242,14 @@ export default function FormModal({
                       </label>
                       <input
                         type="date"
-                        value={q.dueDate}
+                        value={q.due_date}
                         onChange={(e) => onUpdateDueDate(index, e.target.value)}
                         className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
                       />
                     </div>
                   </div>
 
-                  {q.responseType === "file" && (
+                  {q.response_type === "file" && (
                     <div>
                       <label className="block text-sm font-medium mb-1">
                         Template Documents (optional)

@@ -187,7 +187,7 @@ export default function ClientFormPage() {
 
     // Check if we have a response for this question
     if (
-      question.responseType === "text" &&
+      question.response_type === "text" &&
       (!responses[index] || responses[index]?.trim() === "")
     ) {
       setQuestionErrors({
@@ -195,7 +195,7 @@ export default function ClientFormPage() {
         [index]: "Please enter a text response",
       });
       return;
-    } else if (question.responseType === "file" && !files[index]) {
+    } else if (question.response_type === "file" && !files[index]) {
       setQuestionErrors({
         ...questionErrors,
         [index]: "Please select a file to upload",
@@ -209,22 +209,22 @@ export default function ClientFormPage() {
     try {
       let responseData;
 
-      if (question.responseType === "text" && responses[index]) {
+      if (question.response_type === "text" && responses[index]) {
         console.log("Submitting text response for question", index);
         responseData = await submitQuestionResponse(
           loginKey,
           index,
           question.question,
-          question.responseType,
+          question.response_type,
           responses[index] as string
         );
-      } else if (question.responseType === "file" && files[index]) {
+      } else if (question.response_type === "file" && files[index]) {
         console.log("Submitting file for question", index, files[index]?.name);
         responseData = await submitQuestionResponse(
           loginKey,
           index,
           question.question,
-          question.responseType,
+          question.response_type,
           undefined,
           files[index] as File
         );
@@ -237,14 +237,14 @@ export default function ClientFormPage() {
 
       // Store submission in local state
       const newSubmittedFiles = { ...submittedFiles };
-      if (question.responseType === "file" && files[index] && responseData) {
+      if (question.response_type === "file" && files[index] && responseData) {
         newSubmittedFiles[index] = {
           name: files[index].name,
           type: files[index].type,
           fileId: responseData.fileId,
         };
       } else if (
-        question.responseType === "text" &&
+        question.response_type === "text" &&
         responses[index] &&
         responseData
       ) {
@@ -257,9 +257,9 @@ export default function ClientFormPage() {
       setSubmittedFiles(newSubmittedFiles);
 
       // Clear form field after successful submission
-      if (question.responseType === "text") {
+      if (question.response_type === "text") {
         setResponses({ ...responses, [index]: null });
-      } else if (question.responseType === "file") {
+      } else if (question.response_type === "file") {
         setFiles({ ...files, [index]: null });
         // Reset the file input
         const fileInput = document.getElementById(

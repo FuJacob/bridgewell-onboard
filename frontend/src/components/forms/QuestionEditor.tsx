@@ -3,8 +3,8 @@ import React from "react";
 interface Question {
   question: string;
   description: string;
-  responseType: string;
-  dueDate: string;
+  response_type: string;
+  due_date: string;
   template?: {
     fileName: string;
     fileId: string;
@@ -110,8 +110,8 @@ export default function QuestionEditor({
               Response Type
             </label>
             <select
-              value={question.responseType}
-              onChange={(e) => onUpdate(index, "responseType", e.target.value)}
+              value={question.response_type}
+              onChange={(e) => onUpdate(index, "response_type", e.target.value)}
               className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl bg-white text-sm sm:text-base"
             >
               <option value="text">Text Response</option>
@@ -125,14 +125,14 @@ export default function QuestionEditor({
             </label>
             <input
               type="date"
-              value={question.dueDate}
-              onChange={(e) => onUpdate(index, "dueDate", e.target.value)}
+              value={question.due_date}
+              onChange={(e) => onUpdate(index, "due_date", e.target.value)}
               className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
             />
           </div>
         </div>
 
-        {question.responseType === "file" && (
+        {question.response_type === "file" && (
           <div>
             <label className="block text-sm font-medium mb-1">
               Template Document (optional)

@@ -37,41 +37,42 @@ export default function Dashboard() {
   const [showFormModal, setShowFormModal] = useState(false);
   const [clientName, setClientName] = useState("");
   const [organization, setOrganization] = useState("");
+  const [email, setEmail] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([
     {
       question: "Please upload your master application package",
       description: "Based on the downloadable template",
-      responseType: "file",
-      dueDate: "",
+      response_type: "file",
+      due_date: "",
       templates: null,
     },
     {
       question: "Please upload proof of employee enrollment",
       description: "Must be in PDF format",
-      responseType: "file",
-      dueDate: "",
+      response_type: "file",
+      due_date: "",
       templates: null,
     },
     {
       question: "Void Cheque",
       description: "For direct deposit",
-      responseType: "file",
-      dueDate: "",
+      response_type: "file",
+      due_date: "",
       templates: null,
     },
     {
       question: "Termination Letter",
       description: "",
-      responseType: "file",
-      dueDate: "",
+      response_type: "file",
+      due_date: "",
       templates: null,
     },
     {
       question: "Digital Signature",
       description: "Please type your intials",
-      responseType: "text",
-      dueDate: "",
+      response_type: "text",
+      due_date: "",
       templates: null,
     },
   ]);
@@ -192,8 +193,8 @@ export default function Dashboard() {
       {
         question: "",
         description: "",
-        responseType: "text",
-        dueDate: "",
+        response_type: "text",
+        due_date: "",
         templates: null,
       },
     ]);
@@ -217,13 +218,13 @@ export default function Dashboard() {
 
   const updateResponseType = (index: number, value: string) => {
     const newQuestions = [...questions];
-    newQuestions[index].responseType = value;
+    newQuestions[index].response_type = value;
     setQuestions(newQuestions);
   };
 
   const updateDueDate = (index: number, value: string) => {
     const newQuestions = [...questions];
-    newQuestions[index].dueDate = value;
+    newQuestions[index].due_date = value;
     setQuestions(newQuestions);
   };
 
@@ -246,7 +247,7 @@ export default function Dashboard() {
   };
 
   const handleFormSubmit = async () => {
-    if (!clientName || !organization) {
+    if (!clientName || !organization || !email) {
       setFormError("Please fill in all required fields");
       return;
     }
@@ -272,7 +273,7 @@ export default function Dashboard() {
       const templateFiles: { [key: string]: File } = {};
       const processedQuestions = questions.map((q, idx) => {
         if (
-          q.responseType === "file" &&
+          q.response_type === "file" &&
           q.templates &&
           q.templates.length > 0
         ) {
@@ -298,6 +299,7 @@ export default function Dashboard() {
 
       const data = await createForm(
         clientName,
+        email,
         organization,
         processedQuestions,
         templateFiles
@@ -327,6 +329,7 @@ export default function Dashboard() {
   const resetForm = () => {
     setClientName("");
     setOrganization("");
+    setEmail("");
     setQuestions([]);
     setLoginKey(null);
     setFormError(null);
@@ -355,7 +358,7 @@ export default function Dashboard() {
 
     // Process questions the same way as create-form API does
     const processedQuestions = questions.map((q) => {
-      if (q.responseType === "file" && q.templates && q.templates.length > 0) {
+      if (q.response_type === "file" && q.templates && q.templates.length > 0) {
         // Remove fileObject but keep other template properties
         return {
           ...q,
@@ -565,12 +568,14 @@ export default function Dashboard() {
         isOpen={showFormModal}
         clientName={clientName}
         organization={organization}
+        email={email}
         questions={questions}
         formError={formError}
         isGenerating={isGenerating}
         onClose={resetForm}
         onClientNameChange={setClientName}
         onOrganizationChange={setOrganization}
+        onEmailChange={setEmail}
         onAddQuestion={addQuestion}
         onUpdateQuestion={updateQuestion}
         onUpdateDescription={updateDescription}

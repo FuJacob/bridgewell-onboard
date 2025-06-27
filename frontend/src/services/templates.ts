@@ -30,8 +30,8 @@ interface QuestionTemplate {
 interface Question {
   question: string;
   description?: string;
-  responseType: string;
-  dueDate?: string;
+  response_type: string;
+  due_date?: string;
   template?: QuestionTemplate | null;
 }
 
