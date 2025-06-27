@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { createClient } from "@/app/utils/supabase/client";
-import { FormData, FormSubmission, ResponseData } from "@/types";
+import { ClientFormData, FormSubmission, ResponseData } from "@/types";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import PageHeader from "@/components/layout/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
@@ -13,7 +13,7 @@ import SubmissionResponseCard from "@/components/pages/SubmissionResponseCard";
 export default function SubmissionPage() {
   const params = useParams();
   const router = useRouter();
-  const [form, setForm] = useState<FormData | null>(null);
+  const [form, setForm] = useState<ClientFormData | null>(null);
   const [submission, setSubmission] = useState<FormSubmission | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

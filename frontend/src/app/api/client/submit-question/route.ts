@@ -39,7 +39,6 @@ export async function POST(request: Request) {
     }
 
     console.log("Client data retrieved:", {
-      id: clientData.id,
       clientName: clientData.client_name,
     });
 

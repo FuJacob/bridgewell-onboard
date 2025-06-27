@@ -47,7 +47,6 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      id: clientData.id,
       clientName: clientData.client_name,
       organization: clientData.organization,
       loginKey: clientData.login_key,

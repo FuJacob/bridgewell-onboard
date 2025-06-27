@@ -1,10 +1,5 @@
 // Template-related API services
-export interface Template {
-  id: string;
-  name: string;
-  questions: string;
-  created_at: string;
-}
+import { Template, Question, QuestionTemplate } from "@/types";
 
 export interface SaveTemplateResponse {
   success: boolean;
@@ -20,20 +15,6 @@ export interface GetTemplatesResponse {
 /**
  * Save a new template
  */
-interface QuestionTemplate {
-  fileName?: string;
-  fileId?: string;
-  uploadedAt?: string;
-  fileObject?: File;
-}
-
-interface Question {
-  question: string;
-  description?: string;
-  response_type: string;
-  due_date?: string;
-  template?: QuestionTemplate | null;
-}
 
 export async function saveTemplate(
   templateName: string,

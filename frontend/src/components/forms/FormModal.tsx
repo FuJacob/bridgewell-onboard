@@ -1,19 +1,5 @@
 import React from "react";
-
-interface Question {
-  question: string;
-  description: string;
-  response_type: string;
-  due_date: string;
-  templates?:
-    | {
-        fileName: string;
-        fileId: string;
-        uploadedAt: string;
-        fileObject?: File;
-      }[]
-    | null;
-}
+import { Question } from "@/types";
 
 interface FormModalProps {
   isOpen: boolean;

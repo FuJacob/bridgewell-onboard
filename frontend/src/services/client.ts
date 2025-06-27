@@ -1,33 +1,5 @@
 // Client-related API services
-export interface ClientData {
-  id: string;
-  clientName: string;
-  organization: string;
-  questions: Question[];
-  loginKey: string;
-}
-
-interface QuestionTemplate {
-  fileName: string;
-  fileId: string;
-  uploadedAt?: string;
-  fileObject?: File;
-}
-
-interface Question {
-  question: string;
-  description: string;
-  response_type: string;
-  due_date: string;
-  templates?: QuestionTemplate[] | null;
-}
-
-export interface SubmissionData {
-  client_id: string;
-  client_name: string;
-  login_key: string;
-  responses: Record<string, { completed: boolean }>;
-}
+import { ClientData, SubmissionData } from "@/types";
 
 /**
  * Validate a client login key

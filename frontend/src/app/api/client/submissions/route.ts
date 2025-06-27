@@ -63,7 +63,6 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({
-      client_id: clientData.id,
       client_name: clientData.client_name,
       login_key: loginKey,
       responses,

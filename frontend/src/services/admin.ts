@@ -1,12 +1,5 @@
 // Admin-related API services
-export interface FormData {
-  id: string;
-  client_name: string;
-  organization: string;
-  login_key: string;
-  questions: string;
-  created_at: string;
-}
+import { Question, QuestionTemplate } from "@/types";
 
 export interface CreateFormResponse {
   loginKey?: string;
@@ -40,20 +33,6 @@ export async function deleteClient(
 /**
  * Create a new form for a client
  */
-interface QuestionTemplate {
-  fileName?: string;
-  fileId?: string;
-  uploadedAt?: string;
-  fileObject?: File;
-}
-
-interface Question {
-  question: string;
-  description?: string;
-  response_type: string;
-  due_date?: string;
-  templates?: QuestionTemplate[] | null;
-}
 
 export async function createForm(
   clientName: string,

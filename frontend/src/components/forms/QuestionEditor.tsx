@@ -1,17 +1,5 @@
 import React from "react";
-
-interface Question {
-  question: string;
-  description: string;
-  response_type: string;
-  due_date: string;
-  template?: {
-    fileName: string;
-    fileId: string;
-    uploadedAt: string;
-    fileObject?: File;
-  } | null;
-}
+import { Question } from "@/types";
 
 interface QuestionEditorProps {
   question: Question;
@@ -144,11 +132,13 @@ export default function QuestionEditor({
               onChange={handleFileUpload}
               className="block w-full p-2 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
             />
-            {question.template && question.template.fileName && (
-              <div className="text-xs text-gray-600 mt-1">
-                Uploaded: {question.template.fileName}
-              </div>
-            )}
+            {question.templates &&
+              question.templates[0] &&
+              question.templates[0].fileName && (
+                <div className="text-xs text-gray-600 mt-1">
+                  Uploaded: {question.templates[0].fileName}
+                </div>
+              )}
           </div>
         )}
       </div>

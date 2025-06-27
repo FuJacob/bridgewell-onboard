@@ -6,7 +6,7 @@ import { createClient } from "@/app/utils/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
 import { getAllForms } from "../login/actions";
-import { type FormData, type Template, type Question } from "@/types/dashboard";
+import { type ClientFormData, type Template, type Question } from "@/types";
 import {
   deleteClient as deleteClientService,
   createForm,
@@ -31,7 +31,7 @@ import { FaPlus, FaClipboardList, FaSearch } from "react-icons/fa";
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [mounted, setMounted] = useState(false);
-  const [forms, setForms] = useState<FormData[]>([]);
+  const [forms, setForms] = useState<ClientFormData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFormModal, setShowFormModal] = useState(false);
@@ -175,7 +175,7 @@ export default function Dashboard() {
       try {
         const data = await getAllForms();
         console.log(await getAllForms());
-        setForms(data as FormData[]);
+        setForms(data as ClientFormData[]);
       } catch {
         setError("Failed to load dashboard data");
         setForms([]);
