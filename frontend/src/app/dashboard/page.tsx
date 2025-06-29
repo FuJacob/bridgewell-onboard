@@ -37,7 +37,7 @@ export default function Dashboard() {
   const [showFormModal, setShowFormModal] = useState(false);
   const [clientName, setClientName] = useState("");
   const [organization, setOrganization] = useState("");
-  const [email, setEmail  ] = useState("");
+  const [email, setEmail] = useState("");
   const [description, setDescription] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([
@@ -47,6 +47,7 @@ export default function Dashboard() {
       response_type: "file",
       due_date: "",
       templates: null,
+      link: "",
     },
     {
       question: "Please upload proof of employee enrollment",
@@ -54,6 +55,7 @@ export default function Dashboard() {
       response_type: "file",
       due_date: "",
       templates: null,
+      link: "",
     },
     {
       question: "Void Cheque",
@@ -61,6 +63,7 @@ export default function Dashboard() {
       response_type: "file",
       due_date: "",
       templates: null,
+      link: "",
     },
     {
       question: "Termination Letter",
@@ -68,6 +71,7 @@ export default function Dashboard() {
       response_type: "file",
       due_date: "",
       templates: null,
+      link: "",
     },
     {
       question: "Digital Signature",
@@ -75,6 +79,7 @@ export default function Dashboard() {
       response_type: "text",
       due_date: "",
       templates: null,
+      link: "",
     },
   ]);
 
@@ -188,6 +193,7 @@ export default function Dashboard() {
         response_type: "text",
         due_date: "",
         templates: null,
+        link: "",
       },
     ]);
   };
@@ -217,6 +223,12 @@ export default function Dashboard() {
   const updateDueDate = (index: number, value: string) => {
     const newQuestions = [...questions];
     newQuestions[index].due_date = value;
+    setQuestions(newQuestions);
+  };
+
+  const updateLink = (index: number, value: string) => {
+    const newQuestions = [...questions];
+    newQuestions[index].link = value;
     setQuestions(newQuestions);
   };
 
@@ -561,7 +573,7 @@ export default function Dashboard() {
         clientName={clientName}
         organization={organization}
         email={email}
-        onUpdateLink={() => {}}
+        onUpdateLink={updateLink}
         description={description}
         questions={questions}
         formError={formError}
