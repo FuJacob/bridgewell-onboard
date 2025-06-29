@@ -1,11 +1,13 @@
 import React from "react";
 import { Question } from "@/types";
+import QuestionEditor from "./QuestionEditor";
 
 interface FormModalProps {
   isOpen: boolean;
   clientName: string;
   organization: string;
   email: string;
+  description: string;
   questions: Question[];
   formError: string | null;
   isGenerating: boolean;
@@ -13,11 +15,13 @@ interface FormModalProps {
   onClientNameChange: (value: string) => void;
   onOrganizationChange: (value: string) => void;
   onEmailChange: (value: string) => void;
+  ondescriptionChange: (value: string) => void;
   onAddQuestion: () => void;
   onUpdateQuestion: (index: number, value: string) => void;
   onUpdateDescription: (index: number, value: string) => void;
   onUpdateResponseType: (index: number, value: string) => void;
   onUpdateDueDate: (index: number, value: string) => void;
+  onUpdateLink: (index: number, value: string) => void;
   onRemoveQuestion: (index: number) => void;
   onMoveQuestionUp: (index: number) => void;
   onMoveQuestionDown: (index: number) => void;
@@ -32,17 +36,20 @@ export default function FormModal({
   organization,
   email,
   questions,
+  description,
   formError,
   isGenerating,
   onClose,
   onClientNameChange,
   onOrganizationChange,
   onEmailChange,
+  ondescriptionChange,
   onAddQuestion,
   onUpdateQuestion,
   onUpdateDescription,
   onUpdateResponseType,
   onUpdateDueDate,
+  onUpdateLink,
   onRemoveQuestion,
   onMoveQuestionUp,
   onMoveQuestionDown,
@@ -74,45 +81,64 @@ export default function FormModal({
         )}
 
         <div className="space-y-4 sm:space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-            <div>
-              <label className="block text-xs sm:text-sm font-medium mb-1">
-                Client Name
-              </label>
-              <input
-                type="text"
-                placeholder="Enter client name"
-                value={clientName}
-                onChange={(e) => onClientNameChange(e.target.value)}
-                className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
-              />
-            </div>
-            <div>
-              <label className="block text-xs sm:text-sm font-medium mb-1">
-                Organization
-              </label>
-              <input
-                type="text"
-                placeholder="Enter organization name"
-                value={organization}
-                onChange={(e) => onOrganizationChange(e.target.value)}
-                className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
-              />
-            </div>
-            <div>
-              <label className="block text-xs sm:text-sm font-medium mb-1">
-                Email
-              </label>
-              <input
-                type="email"
-                placeholder="Enter client email"
-                value={email}
-                onChange={(e) => onEmailChange(e.target.value)}
-                className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
-              />
+          <div className="flex flex-col sm:flex-row gap-y-4 sm:gap-x-6">
+            {/* Left Column: Name, Org, Email */}
+            <div className="flex flex-col items-between justify-center w-full sm:flex-row gap-y-4 sm:gap-x-6">
+              <div className="flex-1 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:gap-4">
+                  <div className="flex-1">
+                    <label className="block text-xs sm:text-sm font-medium mb-1">
+                      Client Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="John Smith"
+                      value={clientName}
+                      onChange={(e) => onClientNameChange(e.target.value)}
+                      className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs sm:text-sm font-medium mb-1">
+                      Organization
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Bridgewell Financial"
+                      value={organization}
+                      onChange={(e) => onOrganizationChange(e.target.value)}
+                      className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="johnsmith@bridgewellfinancial.com"
+                    value={email}
+                    onChange={(e) => onEmailChange(e.target.value)}
+                    className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
+                  />
+                </div>
+              </div>
+
+              {/* Right Column: Description */}
+              <div className="flex-1">
+                <label className="block text-xs sm:text-sm font-medium mb-1">
+                  Description of Client
+                </label>
+                <textarea
+                  placeholder="John Smith is a client of Bridgewell Financial"
+                  value={description}
+                  onChange={(e) => ondescriptionChange(e.target.value)}
+                  className="mt-1 block w-full h-[208px] p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
+                />
+              </div>
             </div>
           </div>
-
           <div className="border-t border-gray-200 pt-4 sm:pt-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mb-4">
               <h3 className="text-lg sm:text-xl font-semibold text-primary">
@@ -135,133 +161,25 @@ export default function FormModal({
               </div>
             )}
 
-            {questions.map((q, index) => (
-              <div
-                key={index}
-                className="mb-4 sm:mb-6 p-4 sm:p-6 border-2 border-gray-200 rounded-xl bg-gray-50"
-              >
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-0 mb-4">
-                  <span className="bg-primary text-white text-xs sm:text-sm py-1 px-2 sm:px-3 rounded-full">
-                    Question {index + 1}
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => onMoveQuestionUp(index)}
-                      disabled={index === 0}
-                      className={`p-1 sm:p-2 rounded text-sm sm:text-base ${
-                        index === 0
-                          ? "text-gray-400"
-                          : "text-primary hover:bg-gray-200"
-                      }`}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      onClick={() => onMoveQuestionDown(index)}
-                      disabled={index === questions.length - 1}
-                      className={`p-1 sm:p-2 rounded text-sm sm:text-base ${
-                        index === questions.length - 1
-                          ? "text-gray-400"
-                          : "text-primary hover:bg-gray-200"
-                      }`}
-                    >
-                      ↓
-                    </button>
-                    <button
-                      onClick={() => onRemoveQuestion(index)}
-                      className="bg-red-500 text-white p-1 sm:p-2 rounded-lg hover:bg-red-600 text-sm sm:text-base"
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-3 sm:space-y-4">
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium mb-1">
-                      Question
-                    </label>
-                    <input
-                      type="text"
-                      value={q.question}
-                      onChange={(e) => onUpdateQuestion(index, e.target.value)}
-                      placeholder="Enter your question"
-                      className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium mb-1">
-                      Description (optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={q.description}
-                      onChange={(e) =>
-                        onUpdateDescription(index, e.target.value)
-                      }
-                      placeholder="Add a short description or hint for this question"
-                      className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium mb-1">
-                        Response Type
-                      </label>
-                      <select
-                        value={q.response_type}
-                        onChange={(e) =>
-                          onUpdateResponseType(index, e.target.value)
-                        }
-                        className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl bg-white text-sm sm:text-base"
-                      >
-                        <option value="text">Text Response</option>
-                        <option value="file">File Upload</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium mb-1">
-                        Due Date (optional)
-                      </label>
-                      <input
-                        type="date"
-                        value={q.due_date}
-                        onChange={(e) => onUpdateDueDate(index, e.target.value)}
-                        className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
-                      />
-                    </div>
-                  </div>
-
-                  {q.response_type === "file" && (
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Template Documents (optional)
-                      </label>
-                      <input
-                        type="file"
-                        multiple
-                        accept=".pdf,.doc,.docx,.jpg,.png,.xls,.xlsx,.xlsm"
-                        onChange={(e) => {
-                          if (e.target.files) {
-                            onTemplateUpload(index, e.target.files);
-                          }
-                        }}
-                        className="block w-full p-2 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
-                      />
-                      {q.templates && q.templates.length > 0 && (
-                        <div className="text-xs text-gray-600 mt-1">
-                          Uploaded:{" "}
-                          {q.templates.map((t) => t.fileName).join(", ")}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+            <div className="space-y-6">
+              {questions.map((q, index) => (
+                <QuestionEditor
+                  key={index}
+                  question={q}
+                  index={index}
+                  totalQuestions={questions.length}
+                  onUpdateQuestion={onUpdateQuestion}
+                  onUpdateDescription={onUpdateDescription}
+                  onUpdateResponseType={onUpdateResponseType}
+                  onUpdateDueDate={onUpdateDueDate}
+                  onUpdateLink={onUpdateLink}
+                  onRemoveQuestion={onRemoveQuestion}
+                  onMoveQuestionUp={onMoveQuestionUp}
+                  onMoveQuestionDown={onMoveQuestionDown}
+                  onTemplateUpload={onTemplateUpload}
+                />
+              ))}
+            </div>
 
             <div className="flex justify-end gap-4 mt-6">
               <button

@@ -1,6 +1,5 @@
 // Client-related API services
 import { ClientData, SubmissionData } from "@/types";
-
 /**
  * Validate a client login key
  */
@@ -20,7 +19,7 @@ export async function validateClientKey(key: string): Promise<void> {
  */
 export async function getClientFormData(loginKey: string): Promise<ClientData> {
   const response = await fetch(
-    `/api/client/form-data?key=${encodeURIComponent(loginKey)}`
+  `/api/client/form-data?key=${encodeURIComponent(loginKey)}`
   );
 
   if (!response.ok) {

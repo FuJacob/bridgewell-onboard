@@ -13,6 +13,7 @@ export interface Question {
   response_type: string;
   due_date: string;
   templates?: QuestionTemplate[] | null;
+  link?: string;
 }
 
 export interface ClientData {
@@ -21,6 +22,7 @@ export interface ClientData {
   organization: string;
   questions: Question[];
   loginKey: string;
+  last_active_at: string;
 }
 
 export interface ClientFormData {

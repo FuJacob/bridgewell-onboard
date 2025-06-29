@@ -11,6 +11,7 @@ export async function createClientFolder(
   try {
     console.log("Getting access token for OneDrive...");
     const accessToken = await getAccessToken();
+    console.log("Access token:", accessToken);
     console.log("Access token received successfully");
 
     const sanitizedName = clientName

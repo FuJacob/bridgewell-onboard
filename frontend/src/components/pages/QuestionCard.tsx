@@ -4,6 +4,12 @@ import Textarea from "../ui/Textarea";
 import FileUpload from "../ui/FileUpload";
 import Button from "../ui/Button";
 import ErrorMessage from "../shared/ErrorMessage";
+import {
+  FaCheckCircle,
+  FaDownload,
+  FaUserShield,
+  FaRedo,
+} from "react-icons/fa";
 
 interface QuestionCardProps {
   question: Question;
@@ -41,102 +47,177 @@ export default function QuestionCard({
 
   return (
     <div
-      className={`bg-white rounded-xl shadow-md p-4 sm:p-6 transition-all duration-300${
-        isSubmitted ? " bg-green-50 border-l-4 border-green-500" : ""
+      className={`relative bg-white rounded-2xl shadow-lg border transition-all duration-300 hover:shadow-xl ${
+        isSubmitted ? "bg-gradient-to-r from-green-50 to-emerald-50" : ""
       }`}
     >
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 lg:gap-4">
-        <h2 className="text-lg sm:text-xl font-semibold mb-2">
-          {question.question}
-          {isSubmitted && (
-            <span className="ml-2 text-green-600 text-sm font-normal">
-              ✓ Completed
-            </span>
-          )}
-        </h2>
-        {showAdminPanel && (
-          <div className="bg-red-200 flex flex-col gap-2 justify-center items-center p-2 sm:p-4 rounded-3xl shrink-0">
-            <h3 className="text-red-400 font-semibold text-xs sm:text-sm">
-              Admin Panel
-            </h3>
-            <Button variant="danger" size="sm" onClick={onRedoQuestion}>
-              Make client redo this question
-            </Button>
+      {/* Header Section */}
+      <div className="p-6 pb-4 border-b border-gray-100">
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-start gap-3 mb-3">
+              <div
+                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                  isSubmitted ? "bg-green-500" : "bg-primary"
+                }`}
+              >
+                {isSubmitted ? <FaCheckCircle /> : index + 1}
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
+                  {question.question}
+                </h2>
+                {question.link && (
+                  <div className="mb-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
+                    <div className="flex items-center gap-2">
+                      <span className="text-blue-700 font-medium text-sm">
+                        Reference Link:
+                      </span>
+                      <a
+                        href={question.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 underline font-medium"
+                      >
+                        {question.link.replace(/^https?:\/\//, "")}
+                      </a>
+                    </div>
+                  </div>
+                )}
+                {question.description && (
+                  <p className="text-gray-600 leading-relaxed">
+                    {question.description}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
-        )}
+
+          {/* Admin Panel */}
+          {showAdminPanel && (
+            <div className="bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200 rounded-xl p-4 shrink-0 min-w-[200px]">
+              <div className="flex items-center gap-2 mb-3">
+                <FaUserShield className="text-orange-600 w-4 h-4" />
+                <h3 className="text-orange-800 font-bold text-sm">
+                  Admin Controls
+                </h3>
+              </div>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={onRedoQuestion}
+                className="w-full flex items-center justify-center gap-2"
+              >
+                <FaRedo className="w-3 h-3" />
+                Reset Question
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
-      <p className="text-sm sm:text-base text-gray-600 mb-4">
-        {question.description}
-      </p>
+      {/* Content Section */}
+      <div className="p-6">
+        {/* Download Template Button */}
+        {question.response_type === "file" &&
+          question.templates &&
+          question.templates.length > 0 &&
+          question.templates.some(
+            (t) => t.fileId && t.fileId.trim() !== ""
+          ) && (
+            <div className="mb-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <FaDownload className="text-blue-600 w-4 h-4" />
+                  <h4 className="text-blue-800 font-semibold text-sm">
+                    Required Templates
+                  </h4>
+                </div>
+                <p className="text-blue-700 text-sm mb-3">
+                  Download the required template files before completing this
+                  question.
+                </p>
+                <a
+                  href={`/api/client/download-templates?fileIds=${encodeURIComponent(
+                    question.templates
+                      .filter((t) => t.fileId && t.fileId.trim() !== "")
+                      .map((t) => t.fileId)
+                      .join(",")
+                  )}&question=${encodeURIComponent(question.question)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  <FaDownload className="w-4 h-4" />
+                  Download Templates (
+                  {
+                    question.templates.filter(
+                      (t) => t.fileId && t.fileId.trim() !== ""
+                    ).length
+                  }{" "}
+                  file
+                  {question.templates.filter(
+                    (t) => t.fileId && t.fileId.trim() !== ""
+                  ).length > 1
+                    ? "s"
+                    : ""}
+                  )
+                </a>
+              </div>
+            </div>
+          )}
 
-      {/* Download Template Button for file-type questions with templates */}
-      {question.response_type === "file" &&
-        question.templates &&
-        question.templates.length > 0 &&
-        question.templates.some((t) => t.fileId && t.fileId.trim() !== "") && (
-          <div className="mb-2">
-            <a
-              href={`/api/client/download-templates?fileIds=${encodeURIComponent(
-                question.templates
-                  .filter((t) => t.fileId && t.fileId.trim() !== "")
-                  .map((t) => t.fileId)
-                  .join(",")
-              )}&question=${encodeURIComponent(question.question)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block bg-secondary text-white px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-secondary-DARK transition text-sm sm:text-base"
-            >
-              Download Templates (
-              {
-                question.templates.filter(
-                  (t) => t.fileId && t.fileId.trim() !== ""
-                ).length
-              }{" "}
-              file
-              {question.templates.filter(
-                (t) => t.fileId && t.fileId.trim() !== ""
-              ).length > 1
-                ? "s"
-                : ""}
-              )
-            </a>
-          </div>
-        )}
+        {/* Response Input */}
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-gray-700 mb-3">
+            Your Response
+          </label>
+          {question.response_type === "text" ? (
+            <Textarea
+              value={textResponse}
+              onChange={(e) => onTextChange(e.target.value)}
+              placeholder="Type your response here..."
+              rows={4}
+              disabled={isSubmitting || isSubmitted}
+              className="resize-none"
+            />
+          ) : (
+            <FileUpload
+              selectedFile={selectedFile}
+              onFileChange={onFileChange}
+              disabled={isSubmitting || isSubmitted}
+              id={`file-input-${index}`}
+            />
+          )}
+        </div>
 
-      {/* Question Input */}
-      {question.response_type === "text" ? (
-        <Textarea
-          value={textResponse}
-          onChange={(e) => onTextChange(e.target.value)}
-          placeholder="Type your response here..."
-          rows={4}
-          disabled={isSubmitting || isSubmitted}
-        />
-      ) : (
-        <FileUpload
-          selectedFile={selectedFile}
-          onFileChange={onFileChange}
-          disabled={isSubmitting || isSubmitted}
-          id={`file-input-${index}`}
-        />
-      )}
+        {error && <ErrorMessage message={error} className="mb-4" />}
 
-      {error && <ErrorMessage message={error} className="mt-2" />}
-
-      <div className="mt-4">
-        <Button
-          onClick={onSubmit}
-          disabled={isSubmitting || isSubmitted || !canSubmit}
-          loading={isSubmitting}
-          className={`w-full sm:w-auto ${
-            isSubmitted
-              ? "bg-green-100 text-green-600 cursor-default hover:bg-green-100"
-              : ""
-          }`}
-        >
-          {isSubmitted ? "Submitted" : "Submit Response"}
-        </Button>
+        {/* Submit Button */}
+        <div className="flex justify-end">
+          <Button
+            onClick={onSubmit}
+            disabled={isSubmitting || isSubmitted || !canSubmit}
+            loading={isSubmitting}
+            size="lg"
+            className={`px-8 py-3 font-semibold ${
+              isSubmitted
+                ? "!bg-green-500 !text-white !border-green-500 cursor-default hover:!bg-green-500 hover:!border-green-500"
+                : !canSubmit
+                ? "!bg-gray-300 !text-gray-500 !border-gray-300 cursor-not-allowed hover:!bg-gray-300 hover:!border-gray-300 hover:!text-gray-500"
+                : "shadow-lg hover:shadow-xl"
+            }`}
+          >
+            {isSubmitted ? (
+              <div className="flex items-center gap-2">
+                <FaCheckCircle className="w-4 h-4 mr-2" />
+                Submitted Successfully
+              </div>
+            ) : (
+              "Submit Response"
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );

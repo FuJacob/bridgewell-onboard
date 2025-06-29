@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     const clientName = formData.get("clientName") as string;
     const email = formData.get("email") as string;
     const organization = formData.get("organization") as string;
+    const description = formData.get("clientDescription") as string;
     const questionsRaw = formData.get("questions") as string;
     if (!clientName || !email || !organization || !questionsRaw) {
       return NextResponse.json(
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
           email: email,
           client_name: clientName,
           organization: organization,
+          description: description,
         },
       ])
       .select();

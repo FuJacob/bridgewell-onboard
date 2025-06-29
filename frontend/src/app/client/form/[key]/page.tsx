@@ -12,8 +12,8 @@ import {
   getClientFormData,
   getClientSubmissions,
   submitQuestionResponse,
-  type ClientData,
 } from "@/services/client";
+import { ClientData } from "@/types";
 import { redoQuestion } from "@/services/admin";
 
 import CompletionBar from "@/components/pages/CompletionBar";
@@ -68,7 +68,6 @@ export default function ClientFormPage() {
       console.error("Error checking completion status:", err);
     }
   }, [loginKey]);
-
   const checkSignedIn = useCallback(async () => {
     const supabase = await createClient();
     const {
@@ -81,8 +80,25 @@ export default function ClientFormPage() {
       console.log("ADMIN IS SIGNED INTO FORM PAGE", signedIn);
     } else {
       console.log("ADMIN IS NOT SIGNED INTO FORM PAGE", signedIn);
+      try {
+        console.log("UPDATING LAST ACTIVE TIME", loginKey);
+        const response = await fetch("/api/client/update-last-active-at", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ loginKey }),
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Error updating last active time:", errorData);
+        } else {
+          console.log("RESPONSE", await response.json());
+          console.log("Updated last active time via API");
+        }
+      } catch (error) {
+        console.error("Error updating last active time:", error);
+      }
     }
-  }, [signedIn]);
+  }, [signedIn, loginKey]);
 
   // Fetch client data and form questions
   useEffect(() => {
@@ -357,14 +373,60 @@ export default function ClientFormPage() {
 
         {clientData ? (
           <div>
-            <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-6 md:mb-8">
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-2">
-                Welcome, {clientData.clientName}
-              </h1>
-              <p className="text-sm sm:text-base text-gray-600 mb-4">
-                Please complete all questions below. Your progress is saved
-                automatically.
-              </p>
+            <div className="bg-primary rounded-xl shadow-lg p-6 sm:p-8 mb-6 md:mb-8 text-white">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
+                    Welcome,{" "}
+                    <span className="text-secondary">
+                      {clientData.clientName}
+                    </span>
+                  </h1>
+                  <p className="text-lg sm:text-xl font-medium text-blue-100">
+                    {clientData.organization}
+                  </p>
+                </div>
+                <div className="mt-4 sm:mt-0 sm:text-right">
+                  <div className="bg-white bg-opacity-20 rounded-lg p-3 backdrop-blur-sm">
+                    <p className="text-sm font-medium text-blue-100 mb-1">
+You last accessed this form on
+                    </p>
+                    <p className="text-lg font-bold">
+                      {new Date(clientData.last_active_at).toLocaleDateString(
+                        "en-US",
+                        {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        }
+                      )}
+                    </p>
+                    <p className="text-sm text-blue-200">
+                      {new Date(clientData.last_active_at).toLocaleTimeString(
+                        "en-US",
+                        {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        }
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-white border-opacity-30 pt-4">
+                <p className="text-base sm:text-lg text-blue-100 leading-relaxed">
+                  Please complete{" "}
+                  <span className="font-bold text-white">all questions</span>{" "}
+                  below. If you need any help, feel free to reach out to your{" "}
+                  <span className="font-bold text-secondary">
+                    Bridgewell Financial Advisor
+                  </span>
+                  .
+                </p>
+              </div>
             </div>
 
             {/* Questions list */}

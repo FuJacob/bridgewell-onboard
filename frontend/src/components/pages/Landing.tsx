@@ -164,10 +164,10 @@ const Landing = () => {
         />
 
         {/* Process Steps */}
-        <section aria-labelledby="process-heading">
+        <section aria-labelledby="process-heading" className="w-full">
           <h2
             id="process-heading"
-            className="sm:text-lg md:text-xl lg:text-2xl font-semibold text-primary bg-gray-100 text-white bg-primary p-4 rounded-3xl text-center mb-4"
+            className="sm:text-lg md:text-lg lg:text-xl font-semibold bg-white text-primary p-4 rounded-3xl text-center mb-4"
           >
             How Our New Client Onboarding Portal Works
           </h2>

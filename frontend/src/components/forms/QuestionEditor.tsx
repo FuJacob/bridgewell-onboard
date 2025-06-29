@@ -1,106 +1,155 @@
 import React from "react";
 import { Question } from "@/types";
+import {
+  FaArrowUp,
+  FaArrowDown,
+  FaTimes,
+  FaGripVertical,
+} from "react-icons/fa";
+import Textarea from "../ui/Textarea";
 
 interface QuestionEditorProps {
   question: Question;
   index: number;
   totalQuestions: number;
-  onUpdate: (index: number, field: keyof Question, value: string) => void;
-  onRemove: (index: number) => void;
-  onMoveUp: (index: number) => void;
-  onMoveDown: (index: number) => void;
-  onTemplateUpload: (index: number, file: File) => void;
+  onUpdateQuestion: (index: number, value: string) => void;
+  onUpdateDescription: (index: number, value: string) => void;
+  onUpdateResponseType: (index: number, value: string) => void;
+  onUpdateDueDate: (index: number, value: string) => void;
+  onUpdateLink: (index: number, value: string) => void;
+  onRemoveQuestion: (index: number) => void;
+  onMoveQuestionUp: (index: number) => void;
+  onMoveQuestionDown: (index: number) => void;
+  onTemplateUpload: (index: number, files: FileList) => void;
 }
 
 export default function QuestionEditor({
   question,
   index,
   totalQuestions,
-  onUpdate,
-  onRemove,
-  onMoveUp,
-  onMoveDown,
+  onUpdateQuestion,
+  onUpdateDescription,
+  onUpdateResponseType,
+  onUpdateDueDate,
+  onUpdateLink,
+  onRemoveQuestion,
+  onMoveQuestionUp,
+  onMoveQuestionDown,
   onTemplateUpload,
 }: QuestionEditorProps) {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      onTemplateUpload(index, file);
+    if (e.target.files) {
+      onTemplateUpload(index, e.target.files);
     }
   };
 
   return (
-    <div className="mb-4 sm:mb-6 p-4 sm:p-6 border-2 border-gray-200 rounded-xl bg-gray-50">
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-0 mb-4">
-        <span className="bg-primary text-white text-xs sm:text-sm py-1 px-2 sm:px-3 rounded-full">
-          Question {index + 1}
-        </span>
-        <div className="flex items-center space-x-2">
+    <div className="group bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+      {/* Header */}
+      <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <FaGripVertical className="text-gray-400 w-4 h-4" />
+            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+              <span className="text-white font-bold text-sm">{index + 1}</span>
+            </div>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Question {index + 1}
+          </h3>
+        </div>
+
+        <div className="flex items-center gap-1">
           <button
-            onClick={() => onMoveUp(index)}
+            onClick={() => onMoveQuestionUp(index)}
             disabled={index === 0}
-            className={`p-1 sm:p-2 rounded text-sm sm:text-base ${
-              index === 0 ? "text-gray-400" : "text-primary hover:bg-gray-200"
+            className={`p-2 rounded-lg transition-colors ${
+              index === 0
+                ? "text-gray-300 cursor-not-allowed"
+                : "text-gray-500 hover:text-primary hover:bg-gray-100"
             }`}
+            title="Move up"
           >
-            ↑
+            <FaArrowUp className="w-4 h-4" />
           </button>
           <button
-            onClick={() => onMoveDown(index)}
+            onClick={() => onMoveQuestionDown(index)}
             disabled={index === totalQuestions - 1}
-            className={`p-1 sm:p-2 rounded text-sm sm:text-base ${
+            className={`p-2 rounded-lg transition-colors ${
               index === totalQuestions - 1
-                ? "text-gray-400"
-                : "text-primary hover:bg-gray-200"
+                ? "text-gray-300 cursor-not-allowed"
+                : "text-gray-500 hover:text-primary hover:bg-gray-100"
             }`}
+            title="Move down"
           >
-            ↓
+            <FaArrowDown className="w-4 h-4" />
           </button>
           <button
-            onClick={() => onRemove(index)}
-            className="bg-red-500 text-white p-1 sm:p-2 rounded-lg hover:bg-red-600 text-sm sm:text-base"
+            onClick={() => onRemoveQuestion(index)}
+            className="p-2 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors ml-1"
+            title="Remove question"
           >
-            ×
+            <FaTimes className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      <div className="space-y-3 sm:space-y-4">
+      {/* Content */}
+      <div className="p-6 space-y-6">
+        {/* Question Text */}
         <div>
-          <label className="block text-xs sm:text-sm font-medium mb-1">
-            Question
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Question Text
           </label>
           <input
             type="text"
             value={question.question}
-            onChange={(e) => onUpdate(index, "question", e.target.value)}
-            placeholder="Enter your question"
-            className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
+            onChange={(e) => onUpdateQuestion(index, e.target.value)}
+            placeholder="What would you like to ask?"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-base"
           />
         </div>
 
-        <div>
-          <label className="block text-xs sm:text-sm font-medium mb-1">
-            Description (optional)
-          </label>
-          <input
-            type="text"
-            value={question.description}
-            onChange={(e) => onUpdate(index, "description", e.target.value)}
-            placeholder="Add a short description or hint for this question"
-            className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+        {/* Description and Link Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs sm:text-sm font-medium mb-1">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Description{" "}
+              <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <Textarea
+              value={question.description}
+              onChange={(e) => onUpdateDescription(index, e.target.value)}
+              placeholder="Add helpful context or instructions"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-base"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Reference Link{" "}
+              <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="url"
+              value={question.link || ""}
+              onChange={(e) => onUpdateLink(index, e.target.value)}
+              placeholder="https://example.com/reference"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-base"
+            />
+          </div>
+        </div>
+
+        {/* Response Type and Due Date Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
               Response Type
             </label>
             <select
               value={question.response_type}
-              onChange={(e) => onUpdate(index, "response_type", e.target.value)}
-              className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl bg-white text-sm sm:text-base"
+              onChange={(e) => onUpdateResponseType(index, e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-base bg-white"
             >
               <option value="text">Text Response</option>
               <option value="file">File Upload</option>
@@ -108,35 +157,41 @@ export default function QuestionEditor({
           </div>
 
           <div>
-            <label className="block text-xs sm:text-sm font-medium mb-1">
-              Due Date (optional)
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Due Date{" "}
+              <span className="text-gray-400 font-normal">(optional)</span>
             </label>
             <input
               type="date"
               value={question.due_date}
-              onChange={(e) => onUpdate(index, "due_date", e.target.value)}
-              className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
+              onChange={(e) => onUpdateDueDate(index, e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-base"
             />
           </div>
         </div>
 
+        {/* Template Upload for File Questions */}
         {question.response_type === "file" && (
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Template Document (optional)
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <label className="block text-sm font-semibold text-blue-800 mb-2">
+              📎 Template Document{" "}
+              <span className="text-blue-600 font-normal">(optional)</span>
             </label>
             <input
               type="file"
               multiple
               accept=".pdf,.doc,.docx,.jpg,.png,.xls,.xlsx,.xlsm"
               onChange={handleFileUpload}
-              className="block w-full p-2 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl"
+              className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm bg-white"
             />
             {question.templates &&
               question.templates[0] &&
               question.templates[0].fileName && (
-                <div className="text-xs text-gray-600 mt-1">
-                  Uploaded: {question.templates[0].fileName}
+                <div className="mt-2 text-sm text-blue-700 bg-blue-100 px-3 py-2 rounded-lg">
+                  📄 Uploaded:{" "}
+                  <span className="font-medium">
+                    {question.templates[0].fileName}
+                  </span>
                 </div>
               )}
           </div>

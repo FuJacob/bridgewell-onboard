@@ -10,7 +10,7 @@ export async function DELETE(request: Request) {
   try {
     const { loginKey, clientName } = await request.json();
     const accessToken = await getAccessToken();
-
+    console.log("Access token:", accessToken);
     // Delete from Supabase first
     const supabase = await createClient();
     const { data: deletedForms, error } = await supabase

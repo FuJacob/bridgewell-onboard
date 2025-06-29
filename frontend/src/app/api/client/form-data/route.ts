@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
       organization: clientData.organization,
       loginKey: clientData.login_key,
       questions: questionsData,
+      last_active_at: clientData.last_active_at,
     });
   } catch {
     return NextResponse.json(

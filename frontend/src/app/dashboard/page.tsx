@@ -37,7 +37,8 @@ export default function Dashboard() {
   const [showFormModal, setShowFormModal] = useState(false);
   const [clientName, setClientName] = useState("");
   const [organization, setOrganization] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail  ] = useState("");
+  const [description, setDescription] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([
     {
@@ -527,7 +528,7 @@ export default function Dashboard() {
             Client Forms
           </h2>
           {filteredForms.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8 p-8">
               {filteredForms.map((form) => (
                 <FormCard key={form.id} form={form} onDelete={deleteClient} />
               ))}
@@ -560,6 +561,8 @@ export default function Dashboard() {
         clientName={clientName}
         organization={organization}
         email={email}
+        onUpdateLink={() => {}}
+        description={description}
         questions={questions}
         formError={formError}
         isGenerating={isGenerating}
@@ -567,6 +570,7 @@ export default function Dashboard() {
         onClientNameChange={setClientName}
         onOrganizationChange={setOrganization}
         onEmailChange={setEmail}
+        ondescriptionChange={setDescription}
         onAddQuestion={addQuestion}
         onUpdateQuestion={updateQuestion}
         onUpdateDescription={updateDescription}
