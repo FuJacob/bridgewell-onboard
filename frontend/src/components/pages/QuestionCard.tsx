@@ -9,6 +9,7 @@ import {
   FaDownload,
   FaUserShield,
   FaRedo,
+  FaExternalLinkAlt,
 } from "react-icons/fa";
 
 interface QuestionCardProps {
@@ -55,13 +56,11 @@ export default function QuestionCard({
       <div className="p-6 pb-4 border-b border-gray-100">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
           <div className="flex-1">
-            <div className="flex items-start gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-3">
               <div
-                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-                  isSubmitted ? "bg-green-500" : "bg-primary"
-                }`}
+                className={`flex-shrink-0 p-4 rounded-full flex items-center justify-center font-black text-5xl text-primary`}
               >
-                {isSubmitted ? <FaCheckCircle /> : index + 1}
+                {index + 1}
               </div>
               <div className="flex-1">
                 <h2 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
@@ -81,12 +80,19 @@ export default function QuestionCard({
                       >
                         {question.link.replace(/^https?:\/\//, "")}
                       </a>
+                      <FaExternalLinkAlt className="w-4 h-4 text-blue-600" />
                     </div>
                   </div>
                 )}
                 {question.description && (
                   <p className="text-gray-600 leading-relaxed">
-                    {question.description}
+                    {question.description ? (
+                      question.description
+                    ) : (
+                      <span className="text-gray-400 italic">
+                        No description provided.
+                      </span>
+                    )}
                   </p>
                 )}
               </div>
@@ -109,7 +115,7 @@ export default function QuestionCard({
                 className="w-full flex items-center justify-center gap-2"
               >
                 <FaRedo className="w-3 h-3" />
-                Reset Question
+                Reset client responses
               </Button>
             </div>
           )}

@@ -1,5 +1,6 @@
 import React from "react";
 import { Template } from "@/types";
+import { FaPlus, FaTimes } from "react-icons/fa";
 
 interface TemplateSelectionModalProps {
   isOpen: boolean;
@@ -24,36 +25,39 @@ export default function TemplateSelectionModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl p-8 max-w-2xl w-full text-center">
-        <h2 className="text-2xl font-bold mb-6 text-primary">
-          Select Template
-        </h2>
-        <p className="text-gray-600 mb-6">
-          Choose a template to start with or create a blank form
-        </p>
+      <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-primary">Choose Template</h2>
+          <button
+            onClick={onClose}
+            className="p-1 text-gray-500 hover:text-gray-700"
+          >
+            <FaTimes className="w-5 h-5" />
+          </button>
+        </div>
 
+        {/* Content */}
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-            <span className="ml-3">Loading templates...</span>
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mr-3"></div>
+            <span>Loading templates...</span>
           </div>
         ) : (
-          <div className="space-y-4 max-h-96 overflow-y-auto">
+          <div className="space-y-3 max-h-96 overflow-y-auto">
             {/* Blank Template Option */}
             <button
               onClick={onSelectBlank}
-              className="w-full p-4 border-2 border-gray-200 hover:border-primary rounded-xl text-left transition-colors"
+              className="w-full p-4 bg-primary text-white rounded-xl hover:bg-primary-dark transition-colors text-left"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FaPlus className="w-5 h-5" />
                 <div>
-                  <h3 className="font-semibold text-lg text-primary">
-                    Blank Form
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    Start with an empty form and add your own questions
+                  <h3 className="font-semibold">Create Blank Form</h3>
+                  <p className="text-sm text-blue-100">
+                    Start with an empty form
                   </p>
                 </div>
-                <span className="text-gray-400">→</span>
               </div>
             </button>
 
@@ -75,40 +79,44 @@ export default function TemplateSelectionModal({
               return (
                 <div
                   key={template.id}
-                  className="w-full p-4 border-2 border-gray-200 hover:border-primary rounded-xl text-left transition-colors relative cursor-pointer"
+                  className="w-full p-4 border border-gray-200 rounded-xl hover:border-primary transition-colors cursor-pointer group"
                   onClick={() => onSelectTemplate(template)}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-semibold text-lg text-primary">
+                      <h3 className="font-semibold text-gray-900 group-hover:text-primary">
                         {template.name}
                       </h3>
-                      <p className="text-gray-600 text-sm">
-                        {questionCount} questions • Created{" "}
+                      <p className="text-sm text-gray-600">
+                        {questionCount} questions •{" "}
                         {new Date(template.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-400">→</span>
-                      <button
-                        onClick={(e) => onDeleteTemplate(template, e)}
-                        className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
-                        title="Delete template"
-                      >
-                        ×
-                      </button>
-                    </div>
+                    <button
+                      onClick={(e) => onDeleteTemplate(template, e)}
+                      className="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <FaTimes className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               );
             })}
+
+            {/* Empty State */}
+            {templates.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <p>No saved templates</p>
+              </div>
+            )}
           </div>
         )}
 
-        <div className="mt-6">
+        {/* Footer */}
+        <div className="mt-6 flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-3 rounded-xl font-bold border-2 border-gray-300 hover:bg-gray-50 transition"
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>

@@ -389,7 +389,9 @@ export default function ClientFormPage() {
                 <div className="mt-4 sm:mt-0 sm:text-right">
                   <div className="bg-white bg-opacity-20 rounded-lg p-3 backdrop-blur-sm">
                     <p className="text-sm font-medium text-blue-100 mb-1">
-You last accessed this form on
+                      {signedIn
+                        ? "The client last accessed this form on"
+                        : "You last accessed this form on"}
                     </p>
                     <p className="text-lg font-bold">
                       {new Date(clientData.last_active_at).toLocaleDateString(
