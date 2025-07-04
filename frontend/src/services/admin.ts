@@ -38,6 +38,7 @@ export async function createForm(
   clientName: string,
   email: string,
   organization: string,
+  clientDescription: string,
   questions: Question[],
   templateFiles?: { [key: string]: File }
 ): Promise<CreateFormResponse> {
@@ -45,6 +46,7 @@ export async function createForm(
   formData.append("clientName", clientName);
   formData.append("email", email);
   formData.append("organization", organization);
+  formData.append("clientDescription", clientDescription); // Placeholder for description, can be added later
 
   // Add template files to FormData
   if (templateFiles) {

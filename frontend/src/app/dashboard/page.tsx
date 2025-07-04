@@ -38,7 +38,7 @@ export default function Dashboard() {
   const [clientName, setClientName] = useState("");
   const [organization, setOrganization] = useState("");
   const [email, setEmail] = useState("");
-  const [description, setDescription] = useState("");
+  const [clientDescription, setClientDescription] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([
     {
@@ -310,6 +310,7 @@ export default function Dashboard() {
         clientName,
         email,
         organization,
+        clientDescription,
         processedQuestions,
         templateFiles
       );
@@ -579,7 +580,7 @@ export default function Dashboard() {
         organization={organization}
         email={email}
         onUpdateLink={updateLink}
-        description={description}
+        clientDescription={clientDescription}
         questions={questions}
         formError={formError}
         isGenerating={isGenerating}
@@ -587,7 +588,7 @@ export default function Dashboard() {
         onClientNameChange={setClientName}
         onOrganizationChange={setOrganization}
         onEmailChange={setEmail}
-        ondescriptionChange={setDescription}
+        onClientDescriptionChange={setClientDescription}
         onAddQuestion={addQuestion}
         onUpdateQuestion={updateQuestion}
         onUpdateDescription={updateDescription}

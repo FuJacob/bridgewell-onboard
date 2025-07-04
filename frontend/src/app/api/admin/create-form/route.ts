@@ -13,9 +13,22 @@ export async function POST(request: Request) {
     const clientName = formData.get("clientName") as string;
     const email = formData.get("email") as string;
     const organization = formData.get("organization") as string;
-    const description = formData.get("clientDescription") as string;
+    const clientDescription = formData.get("clientDescription") as string;
     const questionsRaw = formData.get("questions") as string;
-    if (!clientName || !email || !organization || !questionsRaw) {
+    console.log("Received form data:", {
+      clientName,
+      email,
+      organization,
+      clientDescription,
+      questionsRaw,
+    });
+    if (
+      !clientName ||
+      !email ||
+      !organization ||
+      !clientDescription ||
+      !questionsRaw
+    ) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -41,7 +54,7 @@ export async function POST(request: Request) {
           email: email,
           client_name: clientName,
           organization: organization,
-          description: description,
+          description: clientDescription,
         },
       ])
       .select();

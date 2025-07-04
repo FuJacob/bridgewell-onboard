@@ -7,7 +7,7 @@ interface FormModalProps {
   clientName: string;
   organization: string;
   email: string;
-  description: string;
+  clientDescription: string;
   questions: Question[];
   formError: string | null;
   isGenerating: boolean;
@@ -15,7 +15,7 @@ interface FormModalProps {
   onClientNameChange: (value: string) => void;
   onOrganizationChange: (value: string) => void;
   onEmailChange: (value: string) => void;
-  ondescriptionChange: (value: string) => void;
+  onClientDescriptionChange: (value: string) => void;
   onAddQuestion: () => void;
   onUpdateQuestion: (index: number, value: string) => void;
   onUpdateDescription: (index: number, value: string) => void;
@@ -36,14 +36,14 @@ export default function FormModal({
   organization,
   email,
   questions,
-  description,
+  clientDescription,
   formError,
   isGenerating,
   onClose,
   onClientNameChange,
   onOrganizationChange,
   onEmailChange,
-  ondescriptionChange,
+  onClientDescriptionChange,
   onAddQuestion,
   onUpdateQuestion,
   onUpdateDescription,
@@ -132,8 +132,8 @@ export default function FormModal({
                 </label>
                 <textarea
                   placeholder="John Smith is a client of Bridgewell Financial"
-                  value={description}
-                  onChange={(e) => ondescriptionChange(e.target.value)}
+                  value={clientDescription}
+                  onChange={(e) => onClientDescriptionChange(e.target.value)}
                   className="mt-1 block w-full h-[208px] p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
                 />
               </div>
