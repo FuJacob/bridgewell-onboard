@@ -13,6 +13,7 @@ interface FormCardProps {
   form: {
     id: string;
     created_at: string;
+    email: string;
     client_name: string;
     organization: string;
     login_key: string;
