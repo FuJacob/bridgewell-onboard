@@ -114,7 +114,9 @@ export default function ClientFormPage() {
 
         const clientData = await getClientFormData(loginKey);
         setClientData(clientData);
-        setQuestions(clientData.questions);
+        setQuestions(
+          clientData.questions.sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+        );
 
         // Initialize responses and status objects
         const initialResponses: { [index: number]: string | null } = {};

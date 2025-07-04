@@ -42,6 +42,7 @@ export default function Dashboard() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([
     {
+      id: 1,
       question: "Please upload your master application package",
       description: "Based on the downloadable template",
       response_type: "file",
@@ -50,6 +51,7 @@ export default function Dashboard() {
       link: "",
     },
     {
+      id: 2,
       question: "Please upload proof of employee enrollment",
       description: "Must be in PDF format",
       response_type: "file",
@@ -58,6 +60,7 @@ export default function Dashboard() {
       link: "",
     },
     {
+      id: 3,
       question: "Void Cheque",
       description: "For direct deposit",
       response_type: "file",
@@ -66,6 +69,7 @@ export default function Dashboard() {
       link: "",
     },
     {
+      id: 4,
       question: "Termination Letter",
       description: "",
       response_type: "file",
@@ -74,6 +78,7 @@ export default function Dashboard() {
       link: "",
     },
     {
+      id: 5,
       question: "Digital Signature",
       description: "Please type your intials",
       response_type: "text",

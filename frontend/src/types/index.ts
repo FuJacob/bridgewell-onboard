@@ -8,6 +8,7 @@ export interface QuestionTemplate {
 }
 
 export interface Question {
+  id?: number;
   question: string;
   description: string;
   response_type: string;
