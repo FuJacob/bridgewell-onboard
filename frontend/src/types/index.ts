@@ -29,6 +29,7 @@ export interface ClientData {
 export interface ClientFormData {
   id: string;
   client_name: string;
+  email: string;
   organization: string;
   description: string;
   questions: string;
