@@ -111,6 +111,7 @@ export default function Dashboard() {
     organization: string;
   } | null>(null);
   const [isDeletingForm, setIsDeletingForm] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   const filteredForms = forms.filter((form) =>
     form.organization.toLowerCase().includes(searchQuery.toLowerCase())
@@ -188,6 +189,10 @@ export default function Dashboard() {
 
     fetchData();
   }, [mounted]);
+
+  useEffect(() => {
+    if (error) setShowErrorModal(true);
+  }, [error]);
 
   const addQuestion = () => {
     setQuestions([
@@ -467,6 +472,26 @@ export default function Dashboard() {
 
   return (
     <>
+      {/* Error Modal */}
+      {error && showErrorModal && (
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full text-center shadow-xl border border-red-300">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-4 text-red-700">Error</h1>
+            <p className="text-gray-700 mb-6">{error}</p>
+            <button
+              onClick={() => setShowErrorModal(false)}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl font-medium transition-colors w-full"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
       <main className="min-h-screen flex flex-col items-center justify-start pt-16 sm:pt-24 md:pt-32 lg:pt-40">
         <Link href="/" className="flex ">
           <Image
@@ -487,12 +512,6 @@ export default function Dashboard() {
               Create and manage client onboarding forms quickly and securely.
             </p>
           </div>
-          {/* Error Message */}
-          {error && (
-            <p className="text-red-500 text-sm sm:text-base">
-              {error} - Showing available data
-            </p>
-          )}
           {/* Action Button */}
           <button
             onClick={handleCreateNewForm}

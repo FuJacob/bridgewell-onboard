@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Question } from "@/types";
 import QuestionEditor from "./QuestionEditor";
 
@@ -59,8 +59,34 @@ export default function FormModal({
 }: FormModalProps) {
   if (!isOpen) return null;
 
+  const [showErrorModal, setShowErrorModal] = useState(false);
+
+  useEffect(() => {
+    if (formError) setShowErrorModal(true);
+  }, [formError]);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+      {/* Error Modal */}
+      {formError && showErrorModal && (
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full text-center shadow-xl border border-red-300">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-4 text-red-700">Error</h1>
+            <p className="text-gray-700 mb-6">{formError}</p>
+            <button
+              onClick={() => setShowErrorModal(false)}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl font-medium transition-colors w-full"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
       <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full overflow-y-auto max-h-[95vh] sm:h-5/6">
         <div className="flex justify-between items-center mb-4 sm:mb-6">
           <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-primary">
@@ -73,12 +99,6 @@ export default function FormModal({
             ×
           </button>
         </div>
-
-        {formError && (
-          <div className="p-3 sm:p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded mb-4 sm:mb-6 text-sm sm:text-base">
-            <p>{formError}</p>
-          </div>
-        )}
 
         <div className="space-y-4 sm:space-y-6">
           <div className="flex flex-col sm:flex-row gap-y-4 sm:gap-x-6">
