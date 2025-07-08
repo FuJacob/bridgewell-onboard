@@ -304,7 +304,7 @@ export default function Dashboard() {
             templates: q.templates.map((template) => ({
               fileName: template.fileObject?.name || template.fileName,
               fileId: template.fileId || "",
-              uploadedAt: template.uploadedAt || new Date().toISOString(),
+              uploadedAt: template.uploadedAt || "", // Do not set new Date() here
             })),
           };
         }
@@ -380,7 +380,7 @@ export default function Dashboard() {
           templates: q.templates.map((template) => ({
             fileName: template.fileObject?.name || template.fileName,
             fileId: template.fileId || "",
-            uploadedAt: template.uploadedAt || new Date().toISOString(),
+            uploadedAt: template.uploadedAt || "", // Do not set new Date() here
           })),
         };
       }
@@ -619,10 +619,11 @@ export default function Dashboard() {
         onTemplateUpload={(index, files) => {
           if (!files || files.length === 0) return;
           const newQuestions = [...questions];
+          const now = new Date().toISOString();
           const templateFiles = Array.from(files).map((file) => ({
             fileName: file.name,
             fileId: "",
-            uploadedAt: new Date().toISOString(),
+            uploadedAt: now,
             fileObject: file,
           }));
           newQuestions[index].templates = templateFiles;
