@@ -626,7 +626,15 @@ export default function Dashboard() {
             uploadedAt: now,
             fileObject: file,
           }));
-          newQuestions[index].templates = templateFiles;
+          // Append to existing templates if present, otherwise set new
+          if (Array.isArray(newQuestions[index].templates) && newQuestions[index].templates.length > 0) {
+            newQuestions[index].templates = [
+              ...newQuestions[index].templates,
+              ...templateFiles,
+            ];
+          } else {
+            newQuestions[index].templates = templateFiles;
+          }
           setQuestions(newQuestions);
         }}
         onSubmit={handleFormSubmit}

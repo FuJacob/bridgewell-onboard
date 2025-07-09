@@ -184,16 +184,18 @@ export default function QuestionEditor({
               onChange={handleFileUpload}
               className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm bg-white"
             />
-            {question.templates &&
-              question.templates[0] &&
-              question.templates[0].fileName && (
-                <div className="mt-2 text-sm text-blue-700 bg-blue-100 px-3 py-2 rounded-lg">
-                  📄 Uploaded:{" "}
-                  <span className="font-medium">
-                    {question.templates[0].fileName}
-                  </span>
-                </div>
-              )}
+            {question.templates && question.templates.length > 0 && (
+              <div className="mt-2 text-sm text-blue-700 bg-blue-100 px-3 py-2 rounded-lg">
+                📄 Uploaded:{" "}
+                <span className="font-medium">
+                  {question.templates.map((t, i) => (
+                    <span key={t.fileName + i} className="block">
+                      {t.fileName}
+                    </span>
+                  ))}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>
