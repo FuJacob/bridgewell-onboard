@@ -1,6 +1,6 @@
 import React from "react";
 import { Template } from "@/types";
-import { FaPlus, FaTimes } from "react-icons/fa";
+import { FaPlus, FaTimes, FaEdit } from "react-icons/fa";
 
 interface TemplateSelectionModalProps {
   isOpen: boolean;
@@ -9,6 +9,7 @@ interface TemplateSelectionModalProps {
   onClose: () => void;
   onSelectBlank: () => void;
   onSelectTemplate: (template: Template) => void;
+  onEditTemplate: (template: Template) => void;
   onDeleteTemplate: (template: Template, e: React.MouseEvent) => void;
 }
 
@@ -19,6 +20,7 @@ export default function TemplateSelectionModal({
   onClose,
   onSelectBlank,
   onSelectTemplate,
+  onEditTemplate,
   onDeleteTemplate,
 }: TemplateSelectionModalProps) {
   if (!isOpen) return null;
@@ -92,12 +94,25 @@ export default function TemplateSelectionModal({
                         {new Date(template.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <button
-                      onClick={(e) => onDeleteTemplate(template, e)}
-                      className="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <FaTimes className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditTemplate(template);
+                        }}
+                        className="p-1 text-gray-400 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Edit template"
+                      >
+                        <FaEdit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => onDeleteTemplate(template, e)}
+                        className="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Delete template"
+                      >
+                        <FaTimes className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

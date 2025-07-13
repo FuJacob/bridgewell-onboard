@@ -21,6 +21,8 @@ export interface ClientData {
   id: string;
   clientName: string;
   organization: string;
+  email: string;
+  description: string;
   questions: Question[];
   loginKey: string;
   last_active_at: string;

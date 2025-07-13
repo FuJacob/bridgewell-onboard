@@ -15,11 +15,12 @@ import {
 } from "@/services/client";
 import { ClientData } from "@/types";
 import { redoQuestion } from "@/services/admin";
+import { updateForm } from "@/services/admin";
 
 import CompletionBar from "@/components/pages/CompletionBar";
 import QuestionCard from "@/components/pages/QuestionCard";
 import ErrorMessage from "@/components/shared/ErrorMessage";
-import { FaSignInAlt } from "react-icons/fa";
+import { FaSignInAlt, FaEdit } from "react-icons/fa";
 
 export default function ClientFormPage() {
   const [signedIn, setSignedIn] = useState(false);
@@ -48,6 +49,11 @@ export default function ClientFormPage() {
   const [submittedFiles, setSubmittedFiles] = useState<{
     [index: number]: { name: string; type: string; fileId?: string };
   }>({});
+
+  // Admin edit state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [isUpdatingForm, setIsUpdatingForm] = useState(false);
+  const [editFormError, setEditFormError] = useState<string | null>(null);
 
   // Check if questions are already completed
   const checkCompletionStatus = useCallback(async () => {
@@ -318,6 +324,82 @@ export default function ClientFormPage() {
     router.push("/");
   };
 
+  // Admin edit handlers
+  const handleEditForm = () => {
+    setShowEditModal(true);
+  };
+
+  const handleUpdateForm = async (
+    clientName: string,
+    email: string,
+    organization: string,
+    clientDescription: string,
+    updatedQuestions: Question[]
+  ) => {
+    if (!clientData) return;
+
+    setIsUpdatingForm(true);
+    setEditFormError(null);
+
+    try {
+      // Collect template files
+      const templateFiles: { [key: string]: File } = {};
+      const processedQuestions = updatedQuestions.map((q, idx) => {
+        if (
+          q.response_type === "file" &&
+          q.templates &&
+          q.templates.length > 0
+        ) {
+          q.templates.forEach((template, templateIdx) => {
+            if (template.fileObject instanceof File) {
+              const fileKey = `templateFile_${idx}_${templateIdx}`;
+              templateFiles[fileKey] = template.fileObject;
+            }
+          });
+
+          return {
+            ...q,
+            templates: q.templates.map((template) => ({
+              fileName: template.fileObject?.name || template.fileName,
+              fileId: template.fileId || "",
+              uploadedAt: template.uploadedAt || "",
+            })),
+          };
+        }
+        return { ...q, templates: q.templates ? [...q.templates] : null };
+      });
+
+      // Update the form using the new updateForm API
+      const data = await updateForm(
+        loginKey,
+        processedQuestions,
+        templateFiles
+      );
+
+      if (data.success) {
+        // Refresh the page to show the updated form
+        window.location.reload();
+      } else {
+        setEditFormError(
+          data.error || "An error occurred while updating the form."
+        );
+      }
+    } catch (err) {
+      console.error("Error updating form:", err);
+      setEditFormError(
+        err instanceof Error ? err.message : "Failed to update form"
+      );
+    } finally {
+      setIsUpdatingForm(false);
+    }
+  };
+
+  const resetEditForm = () => {
+    setShowEditModal(false);
+    setEditFormError(null);
+    setIsUpdatingForm(false);
+  };
+
   if (loading) {
     return <LoadingSpinner message="Loading your form..." />;
   }
@@ -358,13 +440,25 @@ export default function ClientFormPage() {
             </div>
           </Link>
 
-          <button
-            onClick={handleLogout}
-            className="flex justify-center font-semibold items-center gap-2 md:gap-4 bg-primary rounded-full text-white px-3 md:px-4 py-1.5 md:py-2.5 text-sm"
-          >
-            <FaSignInAlt />
-            <span className="hidden sm:inline">Exit form</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {signedIn && (
+              <button
+                onClick={handleEditForm}
+                className="flex justify-center font-semibold items-center gap-2 bg-secondary rounded-full text-white px-3 md:px-4 py-1.5 md:py-2.5 text-sm hover:bg-secondary-DARK transition"
+                title="Edit form (Admin only)"
+              >
+                <FaEdit />
+                <span className="hidden sm:inline">Edit Form</span>
+              </button>
+            )}
+            <button
+              onClick={handleLogout}
+              className="flex justify-center font-semibold items-center gap-2 md:gap-4 bg-primary rounded-full text-white px-3 md:px-4 py-1.5 md:py-2.5 text-sm"
+            >
+              <FaSignInAlt />
+              <span className="hidden sm:inline">Exit form</span>
+            </button>
+          </div>
         </div>
 
         {/* Completion bar */}
@@ -463,6 +557,287 @@ export default function ClientFormPage() {
           </div>
         ) : null}
       </div>
+
+      {/* Admin Edit Form Modal */}
+      {clientData && showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full overflow-y-auto max-h-[95vh] sm:h-5/6">
+            <div className="flex justify-between items-center mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-primary">
+                Edit Form - {clientData.clientName}
+              </h2>
+              <button
+                onClick={resetEditForm}
+                className="text-gray-500 hover:text-gray-700 text-xl sm:text-2xl p-1"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Client Info (Read-only) */}
+            <div className="bg-gray-50 rounded-xl p-4 mb-6">
+              <h3 className="text-lg font-semibold text-gray-700 mb-3">
+                Client Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Client Name
+                  </label>
+                  <p className="text-gray-900 font-medium">
+                    {clientData.clientName}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Organization
+                  </label>
+                  <p className="text-gray-900 font-medium">
+                    {clientData.organization}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Email
+                  </label>
+                  <p className="text-gray-900 font-medium">
+                    {clientData.email}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Description
+                  </label>
+                  <p className="text-gray-900">{clientData.description}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Questions Section */}
+            <div className="border-t border-gray-200 pt-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mb-4">
+                <h3 className="text-lg sm:text-xl font-semibold text-primary">
+                  Questions
+                </h3>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-gray-600">Edit questions below</p>
+                  <button
+                    onClick={() => {
+                      const newQuestion: Question = {
+                        question: "",
+                        description: "",
+                        response_type: "text",
+                        due_date: new Date().toISOString().split("T")[0],
+                      };
+                      setQuestions([...questions, newQuestion]);
+                    }}
+                    className="bg-secondary text-white px-3 py-2 rounded-lg font-medium text-sm hover:bg-secondary-DARK transition"
+                  >
+                    + Add Question
+                  </button>
+                </div>
+              </div>
+
+              {/* Warning about clearing submissions */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-5 w-5 text-yellow-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-yellow-800">
+                      Important Notice
+                    </h3>
+                    <div className="mt-2 text-sm text-yellow-700">
+                      <p>
+                        When you update questions, any existing client
+                        submissions for modified questions will be cleared to
+                        maintain consistency. Clients will need to resubmit
+                        their responses for those questions.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {editFormError && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                  <p className="text-red-700">{editFormError}</p>
+                </div>
+              )}
+
+              <div className="space-y-6">
+                {questions.map((question, index) => (
+                  <div
+                    key={index}
+                    className="border border-gray-200 rounded-xl p-4"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <h4 className="font-semibold text-gray-900">
+                        Question {index + 1}
+                      </h4>
+                      <button
+                        onClick={() => {
+                          const newQuestions = questions.filter(
+                            (_, i) => i !== index
+                          );
+                          setQuestions(newQuestions);
+                        }}
+                        className="text-red-600 hover:text-red-800 text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Question Text
+                        </label>
+                        <input
+                          type="text"
+                          value={question.question}
+                          onChange={(e) => {
+                            const newQuestions = [...questions];
+                            newQuestions[index] = {
+                              ...question,
+                              question: e.target.value,
+                            };
+                            setQuestions(newQuestions);
+                          }}
+                          className="block w-full p-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Description
+                        </label>
+                        <textarea
+                          value={question.description}
+                          onChange={(e) => {
+                            const newQuestions = [...questions];
+                            newQuestions[index] = {
+                              ...question,
+                              description: e.target.value,
+                            };
+                            setQuestions(newQuestions);
+                          }}
+                          className="block w-full p-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
+                          rows={2}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Response Type
+                          </label>
+                          <select
+                            value={question.response_type}
+                            onChange={(e) => {
+                              const newQuestions = [...questions];
+                              newQuestions[index] = {
+                                ...question,
+                                response_type: e.target.value,
+                              };
+                              setQuestions(newQuestions);
+                            }}
+                            className="block w-full p-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
+                          >
+                            <option value="text">Text</option>
+                            <option value="file">File Upload</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Due Date
+                          </label>
+                          <input
+                            type="date"
+                            value={question.due_date}
+                            onChange={(e) => {
+                              const newQuestions = [...questions];
+                              newQuestions[index] = {
+                                ...question,
+                                due_date: e.target.value,
+                              };
+                              setQuestions(newQuestions);
+                            }}
+                            className="block w-full p-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Link (Optional)
+                          </label>
+                          <input
+                            type="url"
+                            value={question.link || ""}
+                            onChange={(e) => {
+                              const newQuestions = [...questions];
+                              newQuestions[index] = {
+                                ...question,
+                                link: e.target.value,
+                              };
+                              setQuestions(newQuestions);
+                            }}
+                            className="block w-full p-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
+                            placeholder="https://..."
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 flex justify-end gap-4">
+                <button
+                  onClick={resetEditForm}
+                  className="px-6 py-3 rounded-xl font-bold border-2 border-gray-300 hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() =>
+                    handleUpdateForm(
+                      clientData.clientName,
+                      clientData.email,
+                      clientData.organization,
+                      clientData.description,
+                      questions
+                    )
+                  }
+                  disabled={isUpdatingForm}
+                  className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-DARK transition flex items-center gap-2"
+                >
+                  {isUpdatingForm ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Updating...
+                    </>
+                  ) : (
+                    "Update Form"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

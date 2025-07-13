@@ -15,6 +15,7 @@ import {
   saveTemplate,
   getTemplates,
   deleteTemplate as deleteTemplateService,
+  updateTemplate,
 } from "@/services/templates";
 import FormCard from "@/components/pages/FormCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
@@ -25,7 +26,8 @@ import {
   LoadingOverlay,
 } from "@/components/shared";
 import TemplateSelectionModal from "@/components/forms/TemplateSelectionModal";
-import { FormModal } from "@/components/forms";
+import EditTemplateModal from "@/components/forms/EditTemplateModal";
+import FormModal from "@/components/forms/FormModal";
 import { FaPlus, FaClipboardList, FaSearch } from "react-icons/fa";
 
 export default function Dashboard() {
@@ -112,6 +114,11 @@ export default function Dashboard() {
   } | null>(null);
   const [isDeletingForm, setIsDeletingForm] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+
+  // Edit template state
+  const [showEditTemplateModal, setShowEditTemplateModal] = useState(false);
+  const [templateToEdit, setTemplateToEdit] = useState<Template | null>(null);
+  const [isUpdatingTemplate, setIsUpdatingTemplate] = useState(false);
 
   const filteredForms = forms.filter((form) =>
     form.organization.toLowerCase().includes(searchQuery.toLowerCase())
@@ -285,17 +292,41 @@ export default function Dashboard() {
     try {
       // Collect template files
       const templateFiles: { [key: string]: File } = {};
+      console.log("=== DEBUG: Processing questions for form submission ===");
       const processedQuestions = questions.map((q, idx) => {
+        console.log(`Question ${idx + 1}:`, {
+          question: q.question,
+          response_type: q.response_type,
+          templates: q.templates,
+        });
+
         if (
           q.response_type === "file" &&
           q.templates &&
           q.templates.length > 0
         ) {
+          console.log(
+            `Found ${q.templates.length} templates for question ${idx + 1}`
+          );
           // Add all template files to FormData
           q.templates.forEach((template, templateIdx) => {
+            console.log(`Template ${templateIdx}:`, {
+              fileName: template.fileName,
+              fileId: template.fileId,
+              hasFileObject: !!template.fileObject,
+              fileObjectType: template.fileObject
+                ? typeof template.fileObject
+                : "none",
+            });
+
             if (template.fileObject instanceof File) {
-              templateFiles[`templateFile_${idx}_${templateIdx}`] =
-                template.fileObject;
+              const fileKey = `templateFile_${idx}_${templateIdx}`;
+              templateFiles[fileKey] = template.fileObject;
+              console.log(`Added file to templateFiles with key: ${fileKey}`);
+            } else {
+              console.log(
+                `Template ${templateIdx} has no fileObject, skipping`
+              );
             }
           });
 
@@ -310,6 +341,13 @@ export default function Dashboard() {
         }
         return { ...q, templates: q.templates ? [...q.templates] : null };
       });
+
+      console.log("=== DEBUG: Template files collected ===");
+      console.log("templateFiles keys:", Object.keys(templateFiles));
+      Object.entries(templateFiles).forEach(([key, file]) => {
+        console.log(`${key}: ${file.name} (${file.size} bytes, ${file.type})`);
+      });
+      console.log("=== END DEBUG ===");
 
       const data = await createForm(
         clientName,
@@ -333,6 +371,7 @@ export default function Dashboard() {
         setFormError(data.error || "An error occurred.");
       }
     } catch (err) {
+      console.error("Form submission error:", err);
       setFormError(
         err instanceof Error ? err.message : "Failed to save form in Supabase"
       );
@@ -371,26 +410,69 @@ export default function Dashboard() {
 
     setIsSavingTemplate(true);
 
-    // Process questions the same way as create-form API does
-    const processedQuestions = questions.map((q) => {
-      if (q.response_type === "file" && q.templates && q.templates.length > 0) {
-        // Remove fileObject but keep other template properties
-        return {
-          ...q,
-          templates: q.templates.map((template) => ({
-            fileName: template.fileObject?.name || template.fileName,
-            fileId: template.fileId || "",
-            uploadedAt: template.uploadedAt || "", // Do not set new Date() here
-          })),
-        };
-      }
-      return { ...q, templates: q.templates ? [...q.templates] : null };
-    });
-
-    console.log("processedQuestions to save:", processedQuestions);
-
     try {
-      await saveTemplate(templateName, processedQuestions);
+      // Collect template files
+      const templateFiles: { [key: string]: File } = {};
+      console.log("=== DEBUG: Collecting template files for saving ===");
+
+      const processedQuestions = questions.map((q, idx) => {
+        console.log(`Question ${idx + 1}:`, {
+          question: q.question,
+          response_type: q.response_type,
+          templates: q.templates,
+        });
+
+        if (
+          q.response_type === "file" &&
+          q.templates &&
+          q.templates.length > 0
+        ) {
+          console.log(
+            `Found ${q.templates.length} templates for question ${idx + 1}`
+          );
+
+          // Add template files to FormData
+          q.templates.forEach((template, templateIdx) => {
+            console.log(`Template ${templateIdx}:`, {
+              fileName: template.fileName,
+              fileId: template.fileId,
+              hasFileObject: !!template.fileObject,
+              fileObjectType: template.fileObject
+                ? typeof template.fileObject
+                : "none",
+            });
+
+            if (template.fileObject instanceof File) {
+              const fileKey = `templateFile_${idx}_${templateIdx}`;
+              templateFiles[fileKey] = template.fileObject;
+              console.log(`Added file to templateFiles with key: ${fileKey}`);
+            } else {
+              console.log(
+                `Template ${templateIdx} has no fileObject, skipping`
+              );
+            }
+          });
+
+          return {
+            ...q,
+            templates: q.templates.map((template) => ({
+              fileName: template.fileObject?.name || template.fileName,
+              fileId: template.fileId || "",
+              uploadedAt: template.uploadedAt || "",
+            })),
+          };
+        }
+        return { ...q, templates: q.templates ? [...q.templates] : null };
+      });
+
+      console.log("=== DEBUG: Template files collected for saving ===");
+      console.log("templateFiles keys:", Object.keys(templateFiles));
+      Object.entries(templateFiles).forEach(([key, file]) => {
+        console.log(`${key}: ${file.name} (${file.size} bytes, ${file.type})`);
+      });
+      console.log("=== END DEBUG ===");
+
+      await saveTemplate(templateName, processedQuestions, templateFiles);
       setTemplateStatus("Template saved successfully!");
       setTemplateName("");
       setShowTemplateModal(false);
@@ -418,18 +500,64 @@ export default function Dashboard() {
 
   const loadTemplate = (template: Template) => {
     try {
+      console.log("=== DEBUG: Loading template ===");
+      console.log("Template:", template);
+      console.log("Template questions:", template.questions);
+
       if (!template.questions || typeof template.questions !== "string") {
         console.error("Invalid template questions format");
         return;
       }
       const templateQuestions = JSON.parse(template.questions);
+      console.log("Parsed template questions:", templateQuestions);
+
       if (!Array.isArray(templateQuestions)) {
         console.error("Template questions is not an array");
         return;
       }
+
+      // Log each question to see the template structure
+      templateQuestions.forEach((q, idx) => {
+        console.log(`Question ${idx + 1}:`, {
+          question: q.question,
+          response_type: q.response_type,
+          templates: q.templates,
+        });
+
+        // Check if this is a file question with templates
+        if (
+          q.response_type === "file" &&
+          q.templates &&
+          q.templates.length > 0
+        ) {
+          console.log(
+            `Question ${idx + 1} has ${q.templates.length} templates:`
+          );
+          q.templates.forEach(
+            (
+              template: {
+                fileName: string;
+                fileId: string;
+                uploadedAt?: string;
+                fileObject?: File;
+              },
+              templateIdx: number
+            ) => {
+              console.log(`  Template ${templateIdx}:`, {
+                fileName: template.fileName,
+                fileId: template.fileId,
+                uploadedAt: template.uploadedAt,
+                hasFileObject: !!template.fileObject,
+              });
+            }
+          );
+        }
+      });
+
       setQuestions(templateQuestions);
       setShowTemplateSelectionModal(false);
       setShowFormModal(true);
+      console.log("=== END DEBUG ===");
     } catch (_err) {
       console.error("Error parsing template questions:", _err);
     }
@@ -438,6 +566,99 @@ export default function Dashboard() {
   const handleCreateNewForm = () => {
     setShowTemplateSelectionModal(true);
     fetchTemplates();
+  };
+
+  const handleEditTemplate = (template: Template) => {
+    setTemplateToEdit(template);
+    setShowEditTemplateModal(true);
+  };
+
+  const handleUpdateTemplate = async (
+    templateId: string,
+    templateName: string,
+    updatedQuestions: Question[]
+  ) => {
+    setIsUpdatingTemplate(true);
+
+    try {
+      // Collect template files
+      const templateFiles: { [key: string]: File } = {};
+      console.log("=== DEBUG: Collecting template files for updating ===");
+
+      const processedQuestions = updatedQuestions.map((q, idx) => {
+        console.log(`Question ${idx + 1}:`, {
+          question: q.question,
+          response_type: q.response_type,
+          templates: q.templates,
+        });
+
+        if (
+          q.response_type === "file" &&
+          q.templates &&
+          q.templates.length > 0
+        ) {
+          console.log(
+            `Found ${q.templates.length} templates for question ${idx + 1}`
+          );
+
+          // Add template files to FormData
+          q.templates.forEach((template, templateIdx) => {
+            console.log(`Template ${templateIdx}:`, {
+              fileName: template.fileName,
+              fileId: template.fileId,
+              hasFileObject: !!template.fileObject,
+              fileObjectType: template.fileObject
+                ? typeof template.fileObject
+                : "none",
+            });
+
+            if (template.fileObject instanceof File) {
+              const fileKey = `templateFile_${idx}_${templateIdx}`;
+              templateFiles[fileKey] = template.fileObject;
+              console.log(`Added file to templateFiles with key: ${fileKey}`);
+            } else {
+              console.log(
+                `Template ${templateIdx} has no fileObject, skipping`
+              );
+            }
+          });
+
+          return {
+            ...q,
+            templates: q.templates.map((template) => ({
+              fileName: template.fileObject?.name || template.fileName,
+              fileId: template.fileId || "",
+              uploadedAt: template.uploadedAt || "",
+            })),
+          };
+        }
+        return { ...q, templates: q.templates ? [...q.templates] : null };
+      });
+
+      console.log("=== DEBUG: Template files collected for updating ===");
+      console.log("templateFiles keys:", Object.keys(templateFiles));
+      Object.entries(templateFiles).forEach(([key, file]) => {
+        console.log(`${key}: ${file.name} (${file.size} bytes, ${file.type})`);
+      });
+      console.log("=== END DEBUG ===");
+
+      await updateTemplate(
+        templateId,
+        templateName,
+        processedQuestions,
+        templateFiles
+      );
+
+      // Refresh templates
+      await fetchTemplates();
+
+      setShowEditTemplateModal(false);
+      setTemplateToEdit(null);
+    } catch (err) {
+      console.error("Error updating template:", err);
+    } finally {
+      setIsUpdatingTemplate(false);
+    }
   };
 
   const handleDeleteTemplate = (template: Template, e: React.MouseEvent) => {
@@ -477,11 +698,23 @@ export default function Dashboard() {
         <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full text-center shadow-xl border border-red-300">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-8 h-8 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold mb-4 text-red-700">Error</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-4 text-red-700">
+              Error
+            </h1>
             <p className="text-gray-700 mb-6">{error}</p>
             <button
               onClick={() => setShowErrorModal(false)}
@@ -589,7 +822,20 @@ export default function Dashboard() {
           setShowFormModal(true);
         }}
         onSelectTemplate={loadTemplate}
+        onEditTemplate={handleEditTemplate}
         onDeleteTemplate={handleDeleteTemplate}
+      />
+
+      {/* Edit Template Modal */}
+      <EditTemplateModal
+        isOpen={showEditTemplateModal}
+        template={templateToEdit}
+        onClose={() => {
+          setShowEditTemplateModal(false);
+          setTemplateToEdit(null);
+        }}
+        onSave={handleUpdateTemplate}
+        isSaving={isUpdatingTemplate}
       />
 
       {/* Form Modal */}
@@ -627,7 +873,10 @@ export default function Dashboard() {
             fileObject: file,
           }));
           // Append to existing templates if present, otherwise set new
-          if (Array.isArray(newQuestions[index].templates) && newQuestions[index].templates.length > 0) {
+          if (
+            Array.isArray(newQuestions[index].templates) &&
+            newQuestions[index].templates.length > 0
+          ) {
             newQuestions[index].templates = [
               ...newQuestions[index].templates,
               ...templateFiles,

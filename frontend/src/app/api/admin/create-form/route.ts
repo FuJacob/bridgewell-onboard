@@ -4,6 +4,7 @@ import {
   createClientFolder,
   createQuestionFolders,
   uploadFileToClientFolder,
+  copyFileToClientFolder,
 } from "@/app/utils/microsoft/graph";
 
 export async function POST(request: Request) {
@@ -22,6 +23,20 @@ export async function POST(request: Request) {
       clientDescription,
       questionsRaw,
     });
+
+    // Debug: Log all FormData entries
+    console.log("=== DEBUG: All FormData entries ===");
+    for (const [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        console.log(
+          `${key}: File(${value.name}, ${value.size} bytes, ${value.type})`
+        );
+      } else {
+        console.log(`${key}: ${value}`);
+      }
+    }
+    console.log("=== END DEBUG ===");
+
     if (
       !clientName ||
       !email ||
@@ -35,6 +50,7 @@ export async function POST(request: Request) {
       );
     }
     const questions = JSON.parse(questionsRaw);
+    console.log("Parsed questions:", JSON.stringify(questions, null, 2));
 
     // 3. Store the form data in Supabase
     if (
@@ -67,6 +83,7 @@ export async function POST(request: Request) {
       );
     }
     const loginKey = clientData[0].login_key;
+    console.log("Generated loginKey:", loginKey);
 
     // Add login_key to each question to link them to the client
     const questionsWithLoginKey = questions.map((question: object) => ({
@@ -89,17 +106,26 @@ export async function POST(request: Request) {
 
     console.log("Form data stored successfully in Supabase");
     // 1. Create OneDrive folders
+    console.log("Creating OneDrive folders...");
     await createClientFolder(loginKey, clientName);
     await createQuestionFolders(loginKey, clientName, questions);
 
     // 2. Upload template files and update question metadata
+    console.log("Starting template file uploads...");
     for (let i = 0; i < questions.length; i++) {
       const question = questions[i];
+      console.log(`Processing question ${i + 1}:`, question.question);
+      console.log(`Question response_type:`, question.response_type);
+      console.log(`Question templates:`, question.templates);
+
       if (
         question.response_type === "file" &&
         question.templates &&
         question.templates.length > 0
       ) {
+        console.log(
+          `Found ${question.templates.length} templates for question ${i + 1}`
+        );
         const sanitizedQuestion = question.question
           .replace(/[^a-zA-Z0-9]/g, "_")
           .substring(0, 50);
@@ -110,27 +136,88 @@ export async function POST(request: Request) {
           templateIdx < question.templates.length;
           templateIdx++
         ) {
-          const file = formData.get(
-            `templateFile_${i}_${templateIdx}`
-          ) as File | null;
+          const fileKey = `templateFile_${i}_${templateIdx}`;
+          const file = formData.get(fileKey) as File | null;
+          console.log(`Looking for file with key: ${fileKey}`);
+          console.log(
+            `File found:`,
+            file ? `Yes (${file.name}, ${file.size} bytes)` : "No"
+          );
+
           if (file) {
-            const buffer = await file.arrayBuffer();
-            const fileName = file.name;
-            const fileId = await uploadFileToClientFolder(
-              loginKey,
-              clientName,
-              `${sanitizedQuestion}/template/${fileName}`,
-              new Blob([buffer], { type: file.type })
-            );
-            question.templates[templateIdx] = {
-              fileName,
-              fileId,
-              uploadedAt: new Date().toISOString(),
-            };
+            try {
+              console.log(`Uploading file: ${file.name}`);
+              const buffer = await file.arrayBuffer();
+              const fileName = file.name;
+              const fileId = await uploadFileToClientFolder(
+                loginKey,
+                clientName,
+                `${sanitizedQuestion}/template/${fileName}`,
+                new Blob([buffer], { type: file.type })
+              );
+              console.log(`File uploaded successfully with ID: ${fileId}`);
+              question.templates[templateIdx] = {
+                fileName,
+                fileId,
+                uploadedAt: new Date().toISOString(),
+              };
+            } catch (uploadError) {
+              console.error(`Error uploading file ${file.name}:`, uploadError);
+              // Continue with other files even if one fails
+              question.templates[templateIdx] = {
+                fileName: file.name,
+                fileId: "",
+                uploadedAt: new Date().toISOString(),
+              };
+            }
+          } else {
+            // No file found in FormData - check if this template already has a fileId
+            const template = question.templates[templateIdx];
+            if (template.fileId && template.fileId.trim() !== "") {
+              console.log(
+                `Template ${templateIdx} already has fileId: ${template.fileId}, copying file...`
+              );
+              try {
+                // Copy the file from the original location to the new client folder
+                const newFileId = await copyFileToClientFolder(
+                  template.fileId,
+                  loginKey,
+                  clientName,
+                  `${sanitizedQuestion}/template/${template.fileName}`
+                );
+                console.log(
+                  `File copied successfully with new ID: ${newFileId}`
+                );
+                question.templates[templateIdx] = {
+                  fileName: template.fileName,
+                  fileId: newFileId,
+                  uploadedAt: new Date().toISOString(),
+                };
+              } catch (copyError) {
+                console.error(
+                  `Error copying file ${template.fileName}:`,
+                  copyError
+                );
+                // Keep the original fileId as fallback
+                question.templates[templateIdx] = {
+                  fileName: template.fileName,
+                  fileId: template.fileId,
+                  uploadedAt: template.uploadedAt || new Date().toISOString(),
+                };
+              }
+            } else {
+              console.log(
+                `No file found for key ${fileKey} and no existing fileId, skipping`
+              );
+            }
           }
         }
 
         // Update the question in the database with the new template fileIds
+        console.log(
+          `Updating question in database with templates:`,
+          question.templates
+        );
         const { error: updateError } = await supabase
           .from("questions")
           .update({ templates: question.templates })
@@ -139,10 +226,17 @@ export async function POST(request: Request) {
 
         if (updateError) {
           console.error("Error updating question templates:", updateError);
+        } else {
+          console.log("Question templates updated successfully in database");
         }
+      } else {
+        console.log(
+          `Question ${i + 1} is not a file question or has no templates`
+        );
       }
     }
 
+    console.log("Form creation completed successfully");
     return NextResponse.json({
       message: "Form created successfully",
       loginKey,

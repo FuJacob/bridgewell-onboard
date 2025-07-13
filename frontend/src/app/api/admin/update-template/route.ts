@@ -18,9 +18,9 @@ interface TemplateQuestion {
   link?: string;
 }
 
-export async function POST(request: Request) {
+export async function PUT(request: Request) {
   try {
-    console.log("save-template API called");
+    console.log("update-template API called");
 
     // Check if this is FormData (with files) or JSON
     const contentType = request.headers.get("content-type") || "";
@@ -28,13 +28,15 @@ export async function POST(request: Request) {
     if (contentType.includes("multipart/form-data")) {
       // Handle FormData with files
       const formData = await request.formData();
+      const templateId = formData.get("templateId") as string;
       const templateName = formData.get("templateName") as string;
       const questionsRaw = formData.get("questions") as string;
 
+      console.log("Received FormData - templateId:", templateId);
       console.log("Received FormData - templateName:", templateName);
       console.log("Questions raw:", questionsRaw);
 
-      if (!templateName || !questionsRaw) {
+      if (!templateId || !templateName || !questionsRaw) {
         return NextResponse.json(
           { error: "Missing required fields" },
           { status: 400 }
@@ -128,16 +130,15 @@ export async function POST(request: Request) {
         }
       }
 
-      // Save to database
+      // Update in database
       const supabase = createServiceClient();
       const { data, error } = await supabase
         .from("templates")
-        .insert([
-          {
-            template_name: templateName,
-            questions: JSON.stringify(processedQuestions),
-          },
-        ])
+        .update({
+          template_name: templateName,
+          questions: JSON.stringify(processedQuestions),
+        })
+        .eq("id", templateId)
         .select();
 
       if (error) {
@@ -145,17 +146,19 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
-      console.log("Template saved successfully:", data);
+      console.log("Template updated successfully:", data);
       return NextResponse.json({ success: true, data });
     } else {
       // Handle JSON request (existing behavior)
       const body = await request.json();
       console.log("Request body:", body);
 
-      const { templateName, questions } = body;
-      if (!templateName || !Array.isArray(questions)) {
+      const { templateId, templateName, questions } = body;
+      if (!templateId || !templateName || !Array.isArray(questions)) {
         console.log(
-          "Invalid input - templateName:",
+          "Invalid input - templateId:",
+          templateId,
+          "templateName:",
           templateName,
           "questions:",
           questions
@@ -163,6 +166,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Invalid input" }, { status: 400 });
       }
 
+      console.log("Template ID:", templateId);
       console.log("Template name:", templateName);
       console.log("Questions array length:", questions.length);
       console.log("Questions to store:", questions);
@@ -170,12 +174,11 @@ export async function POST(request: Request) {
       const supabase = createServiceClient();
       const { data, error } = await supabase
         .from("templates")
-        .insert([
-          {
-            template_name: templateName,
-            questions: JSON.stringify(questions), // store as text
-          },
-        ])
+        .update({
+          template_name: templateName,
+          questions: JSON.stringify(questions), // store as text
+        })
+        .eq("id", templateId)
         .select();
 
       if (error) {
@@ -183,11 +186,11 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
-      console.log("Template saved successfully:", data);
+      console.log("Template updated successfully:", data);
       return NextResponse.json({ success: true, data });
     }
   } catch (err) {
-    console.error("Server error in save-template:", err);
+    console.error("Server error in update-template:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

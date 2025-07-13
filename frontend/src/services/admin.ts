@@ -31,46 +31,27 @@ export async function deleteClient(
 }
 
 /**
- * Create a new form for a client
+ * Create a new client form
  */
-
 export async function createForm(
   clientName: string,
   email: string,
   organization: string,
   clientDescription: string,
   questions: Question[],
-  templateFiles?: { [key: string]: File }
-): Promise<CreateFormResponse> {
+  templateFiles: { [key: string]: File } = {}
+): Promise<{ loginKey?: string; error?: string }> {
   const formData = new FormData();
   formData.append("clientName", clientName);
   formData.append("email", email);
   formData.append("organization", organization);
-  formData.append("clientDescription", clientDescription); // Placeholder for description, can be added later
+  formData.append("clientDescription", clientDescription);
+  formData.append("questions", JSON.stringify(questions));
 
   // Add template files to FormData
-  if (templateFiles) {
-    Object.entries(templateFiles).forEach(([key, file]) => {
-      formData.append(key, file);
-    });
-  }
-
-  // Process questions and handle template files
-  const processedQuestions = questions.map((q) => {
-    if (q.response_type === "file" && q.templates && q.templates.length > 0) {
-      return {
-        ...q,
-        templates: q.templates.map((template) => ({
-          fileName: template.fileObject?.name || template.fileName,
-          fileId: template.fileId || "",
-          uploadedAt: template.uploadedAt || new Date().toISOString(),
-        })),
-      };
-    }
-    return { ...q, templates: q.templates ? [...q.templates] : null };
+  Object.entries(templateFiles).forEach(([key, file]) => {
+    formData.append(key, file);
   });
-
-  formData.append("questions", JSON.stringify(processedQuestions));
 
   const response = await fetch("/api/admin/create-form", {
     method: "POST",
@@ -80,10 +61,41 @@ export async function createForm(
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error || "Failed to create form");
+    return { error: data.error || "Failed to create form" };
   }
 
-  return data;
+  return { loginKey: data.loginKey };
+}
+
+/**
+ * Update an existing client form
+ */
+export async function updateForm(
+  loginKey: string,
+  questions: Question[],
+  templateFiles: { [key: string]: File } = {}
+): Promise<{ success?: boolean; error?: string }> {
+  const formData = new FormData();
+  formData.append("loginKey", loginKey);
+  formData.append("questions", JSON.stringify(questions));
+
+  // Add template files to FormData
+  Object.entries(templateFiles).forEach(([key, file]) => {
+    formData.append(key, file);
+  });
+
+  const response = await fetch("/api/admin/update-form", {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    return { error: data.error || "Failed to update form" };
+  }
+
+  return { success: true };
 }
 
 /**

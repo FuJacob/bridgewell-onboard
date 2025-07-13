@@ -217,11 +217,11 @@ export async function createQuestionFolders(
   }
 }
 
-export async function uploadFileToClientFolder(
+export async function copyFileToClientFolder(
+  sourceFileId: string,
   loginKey: string,
   clientName: string,
-  filePath: string,
-  fileContent: Blob
+  destinationPath: string
 ): Promise<string> {
   try {
     // Get access token
@@ -237,67 +237,66 @@ export async function uploadFileToClientFolder(
       .replace(/[^a-zA-Z0-9]/g, "_")
       .substring(0, 50);
     const clientFolderName = `${sanitizedClientName}_${loginKey}`;
-    console.log("Client folder name for upload:", clientFolderName);
+    console.log("Client folder name for copy:", clientFolderName);
     console.log("Using loginKey:", loginKey);
 
     // Ensure the path includes CLIENTS as the root folder
-    const fullPath = `CLIENTS/${clientFolderName}/${filePath}`;
-    console.log("Uploading file to path:", fullPath);
-
-    // Check file size
-    const fileSizeInMB = fileContent.size / (1024 * 1024);
-    if (fileSizeInMB > 25) {
-      // 25MB limit
-      throw new Error(
-        "File size exceeds the maximum allowed (25MB). Please upload a smaller file."
-      );
-    }
+    const fullDestinationPath = `CLIENTS/${clientFolderName}/${destinationPath}`;
+    console.log("Copying file to path:", fullDestinationPath);
 
     try {
+      // Use Microsoft Graph copy API
       const response = await fetch(
-        `${SITE_URL}/drive/root:/${fullPath}:/content`,
+        `${SITE_URL}/drive/items/${sourceFileId}/copy`,
         {
-          method: "PUT",
+          method: "POST",
           headers: {
             Authorization: `Bearer ${accessToken}`,
-            "Content-Type": fileContent.type,
+            "Content-Type": "application/json",
           },
-          body: fileContent,
+          body: JSON.stringify({
+            parentReference: {
+              driveId: "root",
+              path: `/CLIENTS/${clientFolderName}/${destinationPath
+                .split("/")
+                .slice(0, -1)
+                .join("/")}`,
+            },
+            name: destinationPath.split("/").pop(), // Get just the filename
+          }),
         }
       );
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
           throw new Error(
-            "Permission denied while uploading file. Please contact support."
+            "Permission denied while copying file. Please contact support."
           );
         } else if (response.status === 404) {
           throw new Error(
-            "Destination folder not found. Please try again or contact support."
+            "Source file or destination folder not found. Please try again or contact support."
           );
-        } else if (response.status === 413) {
-          throw new Error("File is too large. Please upload a smaller file.");
         } else if (response.status >= 500) {
           throw new Error("Server error. Please try again later.");
         }
 
         const error = await response.json();
-        console.error("Error uploading file:", error);
+        console.error("Error copying file:", error);
         throw new Error(
-          `Upload failed: ${
+          `Copy failed: ${
             error.message || error.error?.message || "Unknown error"
           }`
         );
       }
 
       const data = await response.json();
-      console.log("File uploaded successfully with ID:", data.id);
+      console.log("File copied successfully with ID:", data.id);
       return data.id;
     } catch (fetchError: unknown) {
       // Handle fetch-specific errors
       if (fetchError instanceof Error) {
         if (fetchError.name === "AbortError") {
-          throw new Error("Upload was aborted. Please try again.");
+          throw new Error("Copy was aborted. Please try again.");
         } else if (
           fetchError.name === "TypeError" &&
           fetchError.message.includes("NetworkError")
@@ -309,16 +308,109 @@ export async function uploadFileToClientFolder(
           throw fetchError; // Re-throw other errors
         }
       } else {
-        throw new Error("Failed to upload file due to an unexpected error");
+        throw new Error("Failed to copy file due to an unexpected error");
       }
     }
   } catch (error) {
-    console.error("Error in uploadFileToClientFolder:", error);
+    console.error("Error in copyFileToClientFolder:", error);
     if (error instanceof Error) {
       throw error; // Re-throw the error with its message intact
     } else {
-      throw new Error("Failed to upload file due to an unexpected error");
+      throw new Error("Failed to copy file due to an unexpected error");
     }
+  }
+}
+
+export async function uploadFileToClientFolder(
+  loginKey: string,
+  clientName: string,
+  filePath: string,
+  fileContent: Blob
+): Promise<string> {
+  try {
+    console.log("Getting access token for file upload...");
+    const accessToken = await getAccessToken();
+    console.log("Access token received successfully");
+
+    const sanitizedClientName = clientName
+      .replace(/[^a-zA-Z0-9]/g, "_")
+      .substring(0, 50);
+    const clientFolderName = `${sanitizedClientName}_${loginKey}`;
+    console.log("Uploading file to client folder:", clientFolderName);
+    console.log("File path:", filePath);
+
+    const response = await fetch(
+      `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}/${filePath}:/content`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": fileContent.type,
+        },
+        body: fileContent,
+      }
+    );
+
+    console.log("Upload response status:", response.status);
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("OneDrive API error uploading file:", error);
+      throw new Error(
+        `Failed to upload file: ${error.message || "Unknown error"}`
+      );
+    }
+
+    const data = await response.json();
+    console.log("File uploaded successfully with ID:", data.id);
+    return data.id;
+  } catch (error) {
+    console.error("Error in uploadFileToClientFolder:", error);
+    throw error;
+  }
+}
+
+export async function deleteFileFromOneDrive(
+  loginKey: string,
+  clientName: string,
+  filePath: string
+): Promise<void> {
+  try {
+    console.log("Getting access token for file deletion...");
+    const accessToken = await getAccessToken();
+    console.log("Access token received successfully");
+
+    const sanitizedClientName = clientName
+      .replace(/[^a-zA-Z0-9]/g, "_")
+      .substring(0, 50);
+    const clientFolderName = `${sanitizedClientName}_${loginKey}`;
+    console.log("Deleting file from client folder:", clientFolderName);
+    console.log("File path:", filePath);
+
+    const response = await fetch(
+      `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}/${filePath}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    console.log("Delete response status:", response.status);
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("OneDrive API error deleting file:", error);
+      throw new Error(
+        `Failed to delete file: ${error.message || "Unknown error"}`
+      );
+    }
+
+    console.log("File deleted successfully");
+  } catch (error) {
+    console.error("Error in deleteFileFromOneDrive:", error);
+    throw error;
   }
 }
 
