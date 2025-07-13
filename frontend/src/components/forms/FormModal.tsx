@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Question } from "@/types";
+import { FormQuestion } from "@/types";
 import QuestionEditor from "./QuestionEditor";
 
 interface FormModalProps {
@@ -8,7 +8,7 @@ interface FormModalProps {
   organization: string;
   email: string;
   clientDescription: string;
-  questions: Question[];
+  questions: FormQuestion[];
   formError: string | null;
   isGenerating: boolean;
   onClose: () => void;

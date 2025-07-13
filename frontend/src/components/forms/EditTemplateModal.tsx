@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Template, Question } from "@/types";
-import { FaTimes, FaEdit, FaSave } from "react-icons/fa";
+import { Template, FormQuestion } from "@/types";
+import { FaSave } from "react-icons/fa";
 import QuestionEditor from "./QuestionEditor";
 
 interface EditTemplateModalProps {
@@ -10,7 +10,7 @@ interface EditTemplateModalProps {
   onSave: (
     templateId: string,
     templateName: string,
-    questions: Question[]
+    questions: FormQuestion[]
   ) => void;
   isSaving: boolean;
 }
@@ -23,14 +23,14 @@ export default function EditTemplateModal({
   isSaving,
 }: EditTemplateModalProps) {
   const [templateName, setTemplateName] = useState("");
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<FormQuestion[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (template && isOpen) {
-      setTemplateName(template.name);
+      setTemplateName(template.template_name || "");
       try {
-        const templateQuestions = JSON.parse(template.questions);
+        const templateQuestions = JSON.parse(template.questions || "[]");
         setQuestions(Array.isArray(templateQuestions) ? templateQuestions : []);
       } catch (err) {
         console.error("Error parsing template questions:", err);
@@ -62,7 +62,7 @@ export default function EditTemplateModal({
     }
 
     setError(null);
-    onSave(template.id, templateName, questions);
+    onSave(String(template.id), templateName, questions);
   };
 
   const addQuestion = () => {
@@ -163,7 +163,7 @@ export default function EditTemplateModal({
       <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full overflow-y-auto max-h-[95vh] sm:h-5/6">
         <div className="flex justify-between items-center mb-4 sm:mb-6">
           <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-primary">
-            Edit Template: {template.name}
+            Edit Template: {template.template_name}
           </h2>
           <button
             onClick={onClose}

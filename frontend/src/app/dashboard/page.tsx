@@ -6,7 +6,12 @@ import { createClient } from "@/app/utils/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
 import { getAllForms } from "../login/actions";
-import { type ClientFormData, type Template, type Question } from "@/types";
+import {
+  type ClientFormData,
+  type Template,
+  type FormQuestion,
+  convertFormQuestionToQuestion,
+} from "@/types";
 import {
   deleteClient as deleteClientService,
   createForm,
@@ -42,7 +47,7 @@ export default function Dashboard() {
   const [email, setEmail] = useState("");
   const [clientDescription, setClientDescription] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [questions, setQuestions] = useState<Question[]>([
+  const [questions, setQuestions] = useState<FormQuestion[]>([
     {
       id: 1,
       question: "Please upload your master application package",
@@ -121,7 +126,7 @@ export default function Dashboard() {
   const [isUpdatingTemplate, setIsUpdatingTemplate] = useState(false);
 
   const filteredForms = forms.filter((form) =>
-    form.organization.toLowerCase().includes(searchQuery.toLowerCase())
+    form.organization?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   async function deleteClient(
@@ -349,12 +354,17 @@ export default function Dashboard() {
       });
       console.log("=== END DEBUG ===");
 
+      // Convert FormQuestions to database Questions
+      const dbQuestions = processedQuestions.map((q) =>
+        convertFormQuestionToQuestion(q, "")
+      );
+
       const data = await createForm(
         clientName,
         email,
         organization,
         clientDescription,
-        processedQuestions,
+        dbQuestions,
         templateFiles
       );
 
@@ -472,7 +482,12 @@ export default function Dashboard() {
       });
       console.log("=== END DEBUG ===");
 
-      await saveTemplate(templateName, processedQuestions, templateFiles);
+      // Convert FormQuestions to database Questions
+      const dbQuestions = processedQuestions.map((q) =>
+        convertFormQuestionToQuestion(q, "")
+      );
+
+      await saveTemplate(templateName, dbQuestions, templateFiles);
       setTemplateStatus("Template saved successfully!");
       setTemplateName("");
       setShowTemplateModal(false);
@@ -576,7 +591,7 @@ export default function Dashboard() {
   const handleUpdateTemplate = async (
     templateId: string,
     templateName: string,
-    updatedQuestions: Question[]
+    updatedQuestions: FormQuestion[]
   ) => {
     setIsUpdatingTemplate(true);
 
@@ -642,10 +657,15 @@ export default function Dashboard() {
       });
       console.log("=== END DEBUG ===");
 
+      // Convert FormQuestions to database Questions
+      const dbQuestions = processedQuestions.map((q) =>
+        convertFormQuestionToQuestion(q, "")
+      );
+
       await updateTemplate(
         templateId,
         templateName,
-        processedQuestions,
+        dbQuestions,
         templateFiles
       );
 
@@ -671,7 +691,7 @@ export default function Dashboard() {
     if (!templateToDelete) return;
 
     try {
-      await deleteTemplateService(templateToDelete.id);
+      await deleteTemplateService(String(templateToDelete.id));
       // Remove the template from the local state
       setTemplates(templates.filter((t) => t.id !== templateToDelete.id));
       setShowDeleteConfirmation(false);
@@ -800,7 +820,7 @@ export default function Dashboard() {
           {filteredForms.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8 p-8">
               {filteredForms.map((form) => (
-                <FormCard key={form.id} form={form} onDelete={deleteClient} />
+                <FormCard key={form.login_key} form={form} onDelete={deleteClient} />
               ))}
             </div>
           ) : (

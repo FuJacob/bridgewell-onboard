@@ -1,5 +1,5 @@
 import React from "react";
-import { Question } from "@/types";
+import { FormQuestion } from "@/types";
 import {
   FaArrowUp,
   FaArrowDown,
@@ -9,7 +9,7 @@ import {
 import Textarea from "../ui/Textarea";
 
 interface QuestionEditorProps {
-  question: Question;
+  question: FormQuestion;
   index: number;
   totalQuestions: number;
   onUpdateQuestion: (index: number, value: string) => void;
@@ -103,7 +103,7 @@ export default function QuestionEditor({
           </label>
           <input
             type="text"
-            value={question.question}
+            value={question.question || ''}
             onChange={(e) => onUpdateQuestion(index, e.target.value)}
             placeholder="What would you like to ask?"
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-base"
@@ -118,7 +118,7 @@ export default function QuestionEditor({
               <span className="text-gray-400 font-normal">(optional)</span>
             </label>
             <Textarea
-              value={question.description}
+              value={question.description || ''}
               onChange={(e) => onUpdateDescription(index, e.target.value)}
               placeholder="Add helpful context or instructions"
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-base"
@@ -147,7 +147,7 @@ export default function QuestionEditor({
               Response Type
             </label>
             <select
-              value={question.response_type}
+              value={question.response_type || ''}
               onChange={(e) => onUpdateResponseType(index, e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-base bg-white"
             >
@@ -163,7 +163,7 @@ export default function QuestionEditor({
             </label>
             <input
               type="date"
-              value={question.due_date}
+              value={question.due_date || ''}
               onChange={(e) => onUpdateDueDate(index, e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-base"
             />

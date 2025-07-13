@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { ClientInsert, QuestionInsert } from "@/types";
 import {
   createClientFolder,
   createQuestionFolders,
@@ -63,16 +64,16 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
+    const clientInsertData: ClientInsert = {
+      email: email,
+      client_name: clientName,
+      organization: organization,
+      description: clientDescription,
+    };
+
     const { data: clientData, error: clientError } = await supabase
       .from("clients")
-      .insert([
-        {
-          email: email,
-          client_name: clientName,
-          organization: organization,
-          description: clientDescription,
-        },
-      ])
+      .insert([clientInsertData])
       .select();
 
     if (clientError) {
@@ -86,10 +87,12 @@ export async function POST(request: Request) {
     console.log("Generated loginKey:", loginKey);
 
     // Add login_key to each question to link them to the client
-    const questionsWithLoginKey = questions.map((question: object) => ({
-      ...question,
-      login_key: loginKey,
-    }));
+    const questionsWithLoginKey: QuestionInsert[] = questions.map(
+      (question: QuestionInsert) => ({
+        ...question,
+        login_key: loginKey,
+      })
+    );
 
     const { error: questionsError } = await supabase
       .from("questions")

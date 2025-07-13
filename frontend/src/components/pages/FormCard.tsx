@@ -9,17 +9,10 @@ import {
   FaEnvelope,
 } from "react-icons/fa";
 
+import { Client } from "@/types";
+
 interface FormCardProps {
-  form: {
-    id: string;
-    created_at: string;
-    email: string;
-    client_name: string;
-    organization: string;
-    login_key: string;
-    questions: string;
-    description: string;
-  };
+  form: Client;
   onDelete: (
     loginKey: string,
     clientName: string,
@@ -37,7 +30,7 @@ export default function FormCard({ form, onDelete }: FormCardProps) {
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onDelete(form.login_key, form.client_name, form.organization);
+    onDelete(form.login_key, form.client_name || '', form.organization || '');
   };
 
   const handleFormClick = () => {
@@ -54,11 +47,11 @@ export default function FormCard({ form, onDelete }: FormCardProps) {
           <div className="flex flex-col items-start gap-2">
             <h2 className="font-semibold text-base sm:text-lg text-primary group-hover:text-white flex items-center gap-2">
               <FaUser />
-              {form.client_name}
+              {form.client_name || 'Unknown Client'}
             </h2>
             <h3 className="text-gray-600 group-hover:text-white text-sm sm:text-sm flex items-center gap-2">
               <FaBuilding />
-              {form.organization}
+              {form.organization || 'Unknown Organization'}
             </h3>
           </div>
           <div className="flex flex-col items-end mt-2 gap-2">
@@ -68,7 +61,7 @@ export default function FormCard({ form, onDelete }: FormCardProps) {
             </p>
             <p className="flex gap-2 items-center text-xs sm:text-sm text-gray-500 group-hover:text-white text-right">
               <FaEnvelope />
-              {form.email}
+              {form.email || 'No email'}
             </p>
           </div>
         </div>

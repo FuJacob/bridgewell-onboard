@@ -1,16 +1,14 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/app/utils/supabase/server";
 import { uploadFileToClientFolder } from "@/app/utils/microsoft/graph";
+import { TemplateInsert, QuestionTemplate } from "@/types";
 
 interface TemplateQuestion {
   question: string;
   description: string;
   response_type: string;
   due_date: string;
-  templates?: Array<{
-    fileName: string;
-    fileId: string;
-    uploadedAt?: string;
+  templates?: Array<QuestionTemplate & {
     _needsUpload?: boolean;
     _file?: File;
     _fileKey?: string;
@@ -96,7 +94,7 @@ export async function POST(request: Request) {
             const template = question.templates[templateIdx];
             if (template._needsUpload && template._file) {
               try {
-                const sanitizedQuestion = question.question
+                const sanitizedQuestion = (question.question || '')
                   .replace(/[^a-zA-Z0-9]/g, "_")
                   .substring(0, 50);
 
@@ -130,14 +128,14 @@ export async function POST(request: Request) {
 
       // Save to database
       const supabase = createServiceClient();
+      const templateInsertData: TemplateInsert = {
+        template_name: templateName,
+        questions: JSON.stringify(processedQuestions),
+      };
+      
       const { data, error } = await supabase
         .from("templates")
-        .insert([
-          {
-            template_name: templateName,
-            questions: JSON.stringify(processedQuestions),
-          },
-        ])
+        .insert([templateInsertData])
         .select();
 
       if (error) {
@@ -168,14 +166,14 @@ export async function POST(request: Request) {
       console.log("Questions to store:", questions);
 
       const supabase = createServiceClient();
+      const templateInsertData: TemplateInsert = {
+        template_name: templateName,
+        questions: JSON.stringify(questions), // store as text
+      };
+      
       const { data, error } = await supabase
         .from("templates")
-        .insert([
-          {
-            template_name: templateName,
-            questions: JSON.stringify(questions), // store as text
-          },
-        ])
+        .insert([templateInsertData])
         .select();
 
       if (error) {

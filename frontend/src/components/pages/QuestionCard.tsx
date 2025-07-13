@@ -1,5 +1,5 @@
 import React from "react";
-import { Question } from "@/types";
+import { AppQuestion } from "@/types";
 import Textarea from "../ui/Textarea";
 import FileUpload from "../ui/FileUpload";
 import Button from "../ui/Button";
@@ -13,7 +13,7 @@ import {
 } from "react-icons/fa";
 
 interface QuestionCardProps {
-  question: Question;
+  question: AppQuestion;
   index: number;
   isSubmitted: boolean;
   isSubmitting: boolean;
@@ -149,7 +149,7 @@ export default function QuestionCard({
                       .filter((t) => t.fileId && t.fileId.trim() !== "")
                       .map((t) => t.fileId)
                       .join(",")
-                  )}&question=${encodeURIComponent(question.question)}`}
+                  )}&question=${encodeURIComponent(question.question || '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md"

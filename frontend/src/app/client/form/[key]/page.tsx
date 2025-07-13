@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { createClient } from "@/app/utils/supabase/client";
-import { Question } from "@/types";
+import { AppQuestion, Question, QuestionTemplate } from "@/types";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import {
   getClientFormData,
@@ -22,6 +22,27 @@ import QuestionCard from "@/components/pages/QuestionCard";
 import ErrorMessage from "@/components/shared/ErrorMessage";
 import { FaSignInAlt, FaEdit } from "react-icons/fa";
 
+// Helper function to convert database questions to app questions
+const convertToAppQuestions = (dbQuestions: Question[]): AppQuestion[] => {
+  return dbQuestions.map((q) => ({
+    ...q,
+    templates:
+      q.templates && typeof q.templates === "string"
+        ? (JSON.parse(q.templates) as QuestionTemplate[])
+        : Array.isArray(q.templates)
+        ? (q.templates as unknown as QuestionTemplate[])
+        : null,
+  }));
+};
+
+// Helper function to convert app questions back to database format
+const convertToDbQuestions = (appQuestions: AppQuestion[]): Question[] => {
+  return appQuestions.map((q) => ({
+    ...q,
+    templates: q.templates ? JSON.stringify(q.templates) : null,
+  })) as Question[];
+};
+
 export default function ClientFormPage() {
   const [signedIn, setSignedIn] = useState(false);
   const params = useParams();
@@ -30,7 +51,7 @@ export default function ClientFormPage() {
   const loginKey = params.key as string;
 
   const [clientData, setClientData] = useState<ClientData | null>(null);
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<AppQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [responses, setResponses] = useState<{
@@ -120,8 +141,9 @@ export default function ClientFormPage() {
 
         const clientData = await getClientFormData(loginKey);
         setClientData(clientData);
+        const convertedQuestions = convertToAppQuestions(clientData.questions);
         setQuestions(
-          clientData.questions.sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+          convertedQuestions.sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
         );
 
         // Initialize responses and status objects
@@ -130,7 +152,7 @@ export default function ClientFormPage() {
         const initialSubmitted: { [index: number]: boolean } = {};
         const initialErrors: { [index: number]: string | null } = {};
 
-        clientData.questions.forEach((_question: Question, index: number) => {
+        convertedQuestions.forEach((_question: AppQuestion, index: number) => {
           initialResponses[index] = "";
           initialSubmitting[index] = false;
           initialSubmitted[index] = false;
@@ -203,7 +225,7 @@ export default function ClientFormPage() {
     }
   };
 
-  const handleSubmitQuestion = async (index: number, question: Question) => {
+  const handleSubmitQuestion = async (index: number, question: AppQuestion) => {
     if (submittingQuestions[index]) return;
 
     // Clear any previous errors for this question
@@ -238,7 +260,7 @@ export default function ClientFormPage() {
         responseData = await submitQuestionResponse(
           loginKey,
           index,
-          question.question,
+          question.question || "",
           question.response_type,
           responses[index] as string
         );
@@ -247,7 +269,7 @@ export default function ClientFormPage() {
         responseData = await submitQuestionResponse(
           loginKey,
           index,
-          question.question,
+          question.question || "",
           question.response_type,
           undefined,
           files[index] as File
@@ -334,7 +356,7 @@ export default function ClientFormPage() {
     email: string,
     organization: string,
     clientDescription: string,
-    updatedQuestions: Question[]
+    updatedQuestions: AppQuestion[]
   ) => {
     if (!clientData) return;
 
@@ -348,6 +370,7 @@ export default function ClientFormPage() {
         if (
           q.response_type === "file" &&
           q.templates &&
+          Array.isArray(q.templates) &&
           q.templates.length > 0
         ) {
           q.templates.forEach((template, templateIdx) => {
@@ -366,15 +389,16 @@ export default function ClientFormPage() {
             })),
           };
         }
-        return { ...q, templates: q.templates ? [...q.templates] : null };
+        return {
+          ...q,
+          templates:
+            q.templates && Array.isArray(q.templates) ? [...q.templates] : null,
+        };
       });
 
       // Update the form using the new updateForm API
-      const data = await updateForm(
-        loginKey,
-        processedQuestions,
-        templateFiles
-      );
+      const dbQuestions = convertToDbQuestions(processedQuestions);
+      const data = await updateForm(loginKey, dbQuestions, templateFiles);
 
       if (data.success) {
         // Refresh the page to show the updated form
@@ -547,7 +571,7 @@ export default function ClientFormPage() {
                     deleteClientUploads(
                       loginKey,
                       clientData.clientName,
-                      question.question,
+                      question.question || "",
                       index
                     )
                   }
@@ -623,11 +647,16 @@ export default function ClientFormPage() {
                   <p className="text-sm text-gray-600">Edit questions below</p>
                   <button
                     onClick={() => {
-                      const newQuestion: Question = {
+                      const newQuestion: AppQuestion = {
                         question: "",
                         description: "",
                         response_type: "text",
                         due_date: new Date().toISOString().split("T")[0],
+                        templates: null,
+                        link: "",
+                        created_at: new Date().toISOString(),
+                        id: Date.now(), // temporary ID
+                        login_key: loginKey,
                       };
                       setQuestions([...questions, newQuestion]);
                     }}
@@ -706,7 +735,7 @@ export default function ClientFormPage() {
                         </label>
                         <input
                           type="text"
-                          value={question.question}
+                          value={question.question || ""}
                           onChange={(e) => {
                             const newQuestions = [...questions];
                             newQuestions[index] = {
@@ -724,7 +753,7 @@ export default function ClientFormPage() {
                           Description
                         </label>
                         <textarea
-                          value={question.description}
+                          value={question.description || ""}
                           onChange={(e) => {
                             const newQuestions = [...questions];
                             newQuestions[index] = {
@@ -744,7 +773,7 @@ export default function ClientFormPage() {
                             Response Type
                           </label>
                           <select
-                            value={question.response_type}
+                            value={question.response_type || ""}
                             onChange={(e) => {
                               const newQuestions = [...questions];
                               newQuestions[index] = {
@@ -766,7 +795,7 @@ export default function ClientFormPage() {
                           </label>
                           <input
                             type="date"
-                            value={question.due_date}
+                            value={question.due_date || ""}
                             onChange={(e) => {
                               const newQuestions = [...questions];
                               newQuestions[index] = {

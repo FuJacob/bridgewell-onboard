@@ -87,7 +87,7 @@ export default function TemplateSelectionModal({
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-semibold text-gray-900 group-hover:text-primary">
-                        {template.name}
+                        {template.template_name}
                       </h3>
                       <p className="text-sm text-gray-600">
                         {questionCount} questions •{" "}

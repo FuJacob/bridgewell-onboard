@@ -1,5 +1,20 @@
 // Shared types used across multiple components/pages
+import { Tables, TablesInsert, TablesUpdate } from '../../database.types';
 
+// Database types - direct exports from source of truth
+export type Client = Tables<'clients'>;
+export type ClientInsert = TablesInsert<'clients'>;
+export type ClientUpdate = TablesUpdate<'clients'>;
+
+export type Question = Tables<'questions'>;
+export type QuestionInsert = TablesInsert<'questions'>;
+export type QuestionUpdate = TablesUpdate<'questions'>;
+
+export type Template = Tables<'templates'>;
+export type TemplateInsert = TablesInsert<'templates'>;
+export type TemplateUpdate = TablesUpdate<'templates'>;
+
+// Application-specific types
 export interface QuestionTemplate {
   fileName: string;
   fileId: string;
@@ -7,17 +22,45 @@ export interface QuestionTemplate {
   fileObject?: File;
 }
 
-export interface Question {
-  id?: number;
+// Extended question type for application use (with structured templates)
+export interface AppQuestion extends Omit<Question, 'templates'> {
+  templates?: QuestionTemplate[] | null;
+}
+
+// Extended template type for application use
+export interface AppTemplate extends Omit<Template, 'questions'> {
+  questions: AppQuestion[];
+}
+
+// Form-specific types that match application usage
+export interface FormQuestion {
   question: string;
   description: string;
   response_type: string;
   due_date: string;
   templates?: QuestionTemplate[] | null;
   link?: string;
+  // Optional database fields for compatibility
+  id?: number;
+  created_at?: string;
+  login_key?: string;
 }
 
-export interface ClientData {
+// Helper function to convert FormQuestion to Question for database operations
+export const convertFormQuestionToQuestion = (formQ: FormQuestion, loginKey: string): Question => ({
+  created_at: formQ.created_at || new Date().toISOString(),
+  description: formQ.description,
+  due_date: formQ.due_date,
+  id: formQ.id || 0,
+  link: formQ.link || null,
+  login_key: loginKey,
+  question: formQ.question,
+  response_type: formQ.response_type,
+  templates: formQ.templates ? JSON.stringify(formQ.templates) : null,
+});
+
+// Extended types for application use
+export interface ClientData extends Omit<Client, 'login_key' | 'client_name' | 'last_active_at'> {
   id: string;
   clientName: string;
   organization: string;
@@ -28,23 +71,8 @@ export interface ClientData {
   last_active_at: string;
 }
 
-export interface ClientFormData {
-  id: string;
-  client_name: string;
-  email: string;
-  organization: string;
-  description: string;
-  questions: string;
-  login_key: string;
-  created_at: string;
-}
-
-export interface Template {
-  id: string;
-  created_at: string;
-  name: string;
-  questions: string;
-}
+// For backward compatibility, keep ClientFormData as alias
+export type ClientFormData = Client;
 
 export interface FormSubmission {
   id: string;

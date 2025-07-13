@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import {
-  createQuestionFolders,
-  uploadFileToClientFolder,
-  copyFileToClientFolder,
-} from "@/app/utils/microsoft/graph";
+import { Question } from "@/types";
+import { createQuestionFolders } from "@/app/utils/microsoft/graph";
 
 export async function POST(request: Request) {
   try {
@@ -91,7 +88,7 @@ export async function POST(request: Request) {
       existingQuestionsMap.set(index, q);
     });
 
-    questions.forEach((newQuestion, index) => {
+    questions.forEach((newQuestion: Question, index: number) => {
       const existingQuestion = existingQuestionsMap.get(index);
       if (
         !existingQuestion ||
