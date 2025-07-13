@@ -1,18 +1,18 @@
 // Shared types used across multiple components/pages
-import { Tables, TablesInsert, TablesUpdate } from '../../database.types';
+import { Tables, TablesInsert, TablesUpdate } from "../../database.types";
 
 // Database types - direct exports from source of truth
-export type Client = Tables<'clients'>;
-export type ClientInsert = TablesInsert<'clients'>;
-export type ClientUpdate = TablesUpdate<'clients'>;
+export type Client = Tables<"clients">;
+export type ClientInsert = TablesInsert<"clients">;
+export type ClientUpdate = TablesUpdate<"clients">;
 
-export type Question = Tables<'questions'>;
-export type QuestionInsert = TablesInsert<'questions'>;
-export type QuestionUpdate = TablesUpdate<'questions'>;
+export type Question = Tables<"questions">;
+export type QuestionInsert = TablesInsert<"questions">;
+export type QuestionUpdate = TablesUpdate<"questions">;
 
-export type Template = Tables<'templates'>;
-export type TemplateInsert = TablesInsert<'templates'>;
-export type TemplateUpdate = TablesUpdate<'templates'>;
+export type Template = Tables<"templates">;
+export type TemplateInsert = TablesInsert<"templates">;
+export type TemplateUpdate = TablesUpdate<"templates">;
 
 // Application-specific types
 export interface QuestionTemplate {
@@ -23,12 +23,12 @@ export interface QuestionTemplate {
 }
 
 // Extended question type for application use (with structured templates)
-export interface AppQuestion extends Omit<Question, 'templates'> {
+export interface AppQuestion extends Omit<Question, "templates"> {
   templates?: QuestionTemplate[] | null;
 }
 
 // Extended template type for application use
-export interface AppTemplate extends Omit<Template, 'questions'> {
+export interface AppTemplate extends Omit<Template, "questions"> {
   questions: AppQuestion[];
 }
 
@@ -47,7 +47,10 @@ export interface FormQuestion {
 }
 
 // Helper function to convert FormQuestion to Question for database operations
-export const convertFormQuestionToQuestion = (formQ: FormQuestion, loginKey: string): Question => ({
+export const convertFormQuestionToQuestion = (
+  formQ: FormQuestion,
+  loginKey: string
+): Question => ({
   created_at: formQ.created_at || new Date().toISOString(),
   description: formQ.description,
   due_date: formQ.due_date,
@@ -60,7 +63,8 @@ export const convertFormQuestionToQuestion = (formQ: FormQuestion, loginKey: str
 });
 
 // Extended types for application use
-export interface ClientData extends Omit<Client, 'login_key' | 'client_name' | 'last_active_at'> {
+export interface ClientData
+  extends Omit<Client, "login_key" | "client_name" | "last_active_at"> {
   id: string;
   clientName: string;
   organization: string;

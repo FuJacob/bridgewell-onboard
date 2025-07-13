@@ -65,6 +65,7 @@ export default function TemplateSelectionModal({
 
             {/* Saved Templates */}
             {templates.map((template) => {
+              console.log(template);
               let questionCount = 0;
               try {
                 if (
