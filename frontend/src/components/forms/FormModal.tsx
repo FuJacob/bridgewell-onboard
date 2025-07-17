@@ -11,6 +11,7 @@ interface FormModalProps {
   questions: FormQuestion[];
   formError: string | null;
   isGenerating: boolean;
+  uploadProgress?: string | null;
   onClose: () => void;
   onClientNameChange: (value: string) => void;
   onOrganizationChange: (value: string) => void;
@@ -40,6 +41,7 @@ export default function FormModal({
   clientDescription,
   formError,
   isGenerating,
+  uploadProgress,
   onClose,
   onClientNameChange,
   onOrganizationChange,
@@ -239,7 +241,7 @@ export default function FormModal({
                 {isGenerating ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Generating...
+                    {uploadProgress || "Generating..."}
                   </>
                 ) : (
                   "Generate Form"

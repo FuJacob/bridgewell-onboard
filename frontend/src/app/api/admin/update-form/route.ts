@@ -37,6 +37,19 @@ export async function POST(request: Request) {
 
     const questions = JSON.parse(questionsRaw);
     console.log("Parsed questions:", JSON.stringify(questions, null, 2));
+    
+    // Parse templates from JSON strings back to arrays
+    questions.forEach((question: any, index: number) => {
+      if (question.templates && typeof question.templates === 'string') {
+        try {
+          question.templates = JSON.parse(question.templates);
+          console.log(`Question ${index + 1}: Parsed ${question.templates.length} templates from JSON string`);
+        } catch (parseError) {
+          console.error(`Error parsing templates for question ${index + 1}:`, parseError);
+          question.templates = null;
+        }
+      }
+    });
 
     // 3. Update the form data in Supabase
     if (

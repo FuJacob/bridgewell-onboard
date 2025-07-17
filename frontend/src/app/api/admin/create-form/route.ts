@@ -8,6 +8,15 @@ import {
   copyFileToClientFolder,
 } from "@/app/utils/microsoft/graph";
 
+// Configure route segment for large file uploads
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '50mb',
+    },
+  },
+};
+
 export async function POST(request: Request) {
   try {
     // Accept FormData
@@ -52,6 +61,19 @@ export async function POST(request: Request) {
     }
     const questions = JSON.parse(questionsRaw);
     console.log("Parsed questions:", JSON.stringify(questions, null, 2));
+    
+    // Parse templates from JSON strings back to arrays
+    questions.forEach((question: any, index: number) => {
+      if (question.templates && typeof question.templates === 'string') {
+        try {
+          question.templates = JSON.parse(question.templates);
+          console.log(`Question ${index + 1}: Parsed ${question.templates.length} templates from JSON string`);
+        } catch (parseError) {
+          console.error(`Error parsing templates for question ${index + 1}:`, parseError);
+          question.templates = null;
+        }
+      }
+    });
 
     // 3. Store the form data in Supabase
     if (
@@ -115,6 +137,34 @@ export async function POST(request: Request) {
 
     // 2. Upload template files and update question metadata
     console.log("Starting template file uploads...");
+    let totalFilesUploaded = 0;
+    let totalFilesSkipped = 0;
+    const uploadResults = [];
+    
+    // Pre-validate all file keys exist in FormData
+    console.log("=== Pre-validation: Checking all expected files ===");
+    const expectedFiles = [];
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+      if (question.response_type === "file" && question.templates && question.templates.length > 0) {
+        for (let templateIdx = 0; templateIdx < question.templates.length; templateIdx++) {
+          const fileKey = `templateFile_${i}_${templateIdx}`;
+          const hasFile = formData.has(fileKey);
+          expectedFiles.push({
+            questionIndex: i,
+            templateIndex: templateIdx,
+            fileKey,
+            hasFile,
+            templateData: question.templates[templateIdx]
+          });
+          console.log(`Expected file: ${fileKey} - Present: ${hasFile} - Template: ${JSON.stringify(question.templates[templateIdx])}`);
+        }
+      }
+    }
+    console.log(`Total expected files: ${expectedFiles.length}`);
+    console.log(`Files present in FormData: ${expectedFiles.filter(f => f.hasFile).length}`);
+    console.log("=== End pre-validation ===");
+    
     for (let i = 0; i < questions.length; i++) {
       const question = questions[i];
       console.log(`Processing question ${i + 1}:`, question.question);
@@ -129,14 +179,19 @@ export async function POST(request: Request) {
         console.log(
           `Found ${question.templates.length} templates for question ${i + 1}`
         );
+        console.log(`Templates for question ${i + 1}:`, question.templates);
+        
         const sanitizedQuestion = question.question
           .replace(/[^a-zA-Z0-9]/g, "_")
           .substring(0, 50);
 
         // Create a mutable copy of templates to avoid read-only property errors
         const mutableTemplates = [...question.templates];
+        
+        console.log(`Processing ${mutableTemplates.length} templates for question ${i + 1}`);
 
-        // Upload each template file
+        // Upload each template file with comprehensive validation
+        console.log(`Starting upload for ${mutableTemplates.length} templates in question ${i + 1}`);
         for (
           let templateIdx = 0;
           templateIdx < mutableTemplates.length;
@@ -144,29 +199,42 @@ export async function POST(request: Request) {
         ) {
           const fileKey = `templateFile_${i}_${templateIdx}`;
           const file = formData.get(fileKey) as File | null;
-          console.log(`Looking for file with key: ${fileKey}`);
-          console.log(
-            `File found:`,
-            file ? `Yes (${file.name}, ${file.size} bytes)` : "No"
-          );
+          const template = mutableTemplates[templateIdx];
+          
+          console.log(`Processing template ${templateIdx}:`, {
+            fileKey,
+            hasFile: !!file,
+            templateData: template,
+            fileInfo: file ? `${file.name} (${file.size} bytes)` : "No file"
+          });
 
           if (file) {
             try {
-              console.log(`Uploading file: ${file.name}`);
+              console.log(`Uploading file: ${file.name} (${file.size} bytes)`);
               const buffer = await file.arrayBuffer();
               const fileName = file.name;
-              const fileId = await uploadFileToClientFolder(
+              
+              // Add timeout for individual file uploads (30 seconds)
+              const uploadPromise = uploadFileToClientFolder(
                 loginKey,
                 clientName,
                 `${sanitizedQuestion}/template/${fileName}`,
                 new Blob([buffer], { type: file.type })
               );
+              
+              const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('File upload timeout after 30 seconds')), 30000);
+              });
+              
+              const fileId = await Promise.race([uploadPromise, timeoutPromise]);
               console.log(`File uploaded successfully with ID: ${fileId}`);
               mutableTemplates[templateIdx] = {
                 fileName,
                 fileId,
                 uploadedAt: new Date().toISOString(),
               };
+              totalFilesUploaded++;
+              uploadResults.push({ file: fileName, status: 'success', fileId });
             } catch (uploadError) {
               console.error(`Error uploading file ${file.name}:`, uploadError);
               // Continue with other files even if one fails
@@ -175,6 +243,12 @@ export async function POST(request: Request) {
                 fileId: "",
                 uploadedAt: new Date().toISOString(),
               };
+              totalFilesSkipped++;
+              uploadResults.push({ 
+                file: file.name, 
+                status: 'failed', 
+                error: uploadError instanceof Error ? uploadError.message : 'Unknown error' 
+              });
             }
           } else {
             // No file found in FormData - check if this template already has a fileId
@@ -213,20 +287,62 @@ export async function POST(request: Request) {
               }
             } else {
               console.log(
-                `No file found for key ${fileKey} and no existing fileId, skipping`
+                `No file found for key ${fileKey} and no existing fileId`
               );
+              // Check if template has valid data, if not mark for removal
+              const template = mutableTemplates[templateIdx];
+              if (!template || !template.fileName || template.fileName.trim() === "") {
+                console.log(`Template ${templateIdx} has no valid data, marking for removal`);
+                mutableTemplates[templateIdx] = null; // Mark for removal
+              } else {
+                console.log(`Template ${templateIdx} has existing data: ${template.fileName}`);
+              }
+              totalFilesSkipped++;
+              uploadResults.push({ file: fileKey, status: 'not_found' });
             }
           }
         }
 
+        // Filter out any invalid templates (null, or those without fileName or fileId)
+        const validTemplates = mutableTemplates.filter((template) => {
+          if (template === null || template === undefined) {
+            console.log(`Filtering out null/undefined template`);
+            return false;
+          }
+          
+          const isValid = template.fileName && 
+                         template.fileName.trim() !== "" &&
+                         template.fileId && 
+                         template.fileId.trim() !== "";
+          if (!isValid) {
+            console.log(`Filtering out invalid template:`, {
+              fileName: template.fileName,
+              fileId: template.fileId,
+              hasFileName: !!template.fileName,
+              hasFileId: !!template.fileId
+            });
+          }
+          return isValid;
+        });
+
+        console.log(`Original templates count: ${mutableTemplates.length}, Valid templates count: ${validTemplates.length}`);
+        
+        // Log detailed comparison
+        console.log("=== Template processing summary ===");
+        mutableTemplates.forEach((template, idx) => {
+          const isValid = validTemplates.find(vt => vt.fileName === template?.fileName && vt.fileId === template?.fileId);
+          console.log(`Template ${idx}: ${template ? `${template.fileName} (fileId: ${template.fileId})` : 'null'} -> ${isValid ? 'KEPT' : 'FILTERED OUT'}`);
+        });
+        console.log("=== End template processing summary ===");
+        
         // Update the question in the database with the new template fileIds
         console.log(
-          `Updating question in database with templates:`,
-          mutableTemplates
+          `Updating question ${i + 1} in database with ${validTemplates.length} valid templates:`,
+          validTemplates
         );
         const { error: updateError } = await supabase
           .from("questions")
-          .update({ templates: mutableTemplates })
+          .update({ templates: validTemplates })
           .eq("login_key", loginKey)
           .eq("question", question.question);
 
@@ -242,10 +358,18 @@ export async function POST(request: Request) {
       }
     }
 
+    console.log(`Upload summary: ${totalFilesUploaded} files uploaded, ${totalFilesSkipped} files skipped/failed`);
+    console.log('Upload results:', uploadResults);
     console.log("Form creation completed successfully");
+    
     return NextResponse.json({
       message: "Form created successfully",
       loginKey,
+      uploadSummary: {
+        totalUploaded: totalFilesUploaded,
+        totalSkipped: totalFilesSkipped,
+        details: uploadResults
+      }
     });
   } catch (error) {
     console.error("Error in create-form:", error);

@@ -47,7 +47,22 @@ export async function saveTemplate(
       body: formData,
     });
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      // Handle cases where response is not JSON (like 413 Request Entity Too Large)
+      const text = await response.text();
+      console.error("Non-JSON response received:", text);
+      
+      if (response.status === 413) {
+        throw new Error("Template files are too large. Please reduce the total file size and try again.");
+      } else if (response.status === 408) {
+        throw new Error("Request timeout. Please try again with fewer files.");
+      } else {
+        throw new Error(`Server error (${response.status}): ${text || "Unknown error"}`);
+      }
+    }
 
     if (!response.ok) {
       throw new Error(data.error || "Failed to save template");
@@ -63,7 +78,22 @@ export async function saveTemplate(
       body: JSON.stringify({ templateName, questions }),
     });
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      // Handle cases where response is not JSON
+      const text = await response.text();
+      console.error("Non-JSON response received:", text);
+      
+      if (response.status === 413) {
+        throw new Error("Template data is too large. Please reduce the template size and try again.");
+      } else if (response.status === 408) {
+        throw new Error("Request timeout. Please try again.");
+      } else {
+        throw new Error(`Server error (${response.status}): ${text || "Unknown error"}`);
+      }
+    }
 
     if (!response.ok) {
       throw new Error(data.error || "Failed to save template");
@@ -141,7 +171,22 @@ export async function updateTemplate(
       body: formData,
     });
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      // Handle cases where response is not JSON (like 413 Request Entity Too Large)
+      const text = await response.text();
+      console.error("Non-JSON response received:", text);
+      
+      if (response.status === 413) {
+        throw new Error("Template files are too large. Please reduce the total file size and try again.");
+      } else if (response.status === 408) {
+        throw new Error("Request timeout. Please try again with fewer files.");
+      } else {
+        throw new Error(`Server error (${response.status}): ${text || "Unknown error"}`);
+      }
+    }
 
     if (!response.ok) {
       throw new Error(data.error || "Failed to update template");
@@ -157,7 +202,22 @@ export async function updateTemplate(
       body: JSON.stringify({ templateId, templateName, questions }),
     });
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      // Handle cases where response is not JSON
+      const text = await response.text();
+      console.error("Non-JSON response received:", text);
+      
+      if (response.status === 413) {
+        throw new Error("Template data is too large. Please reduce the template size and try again.");
+      } else if (response.status === 408) {
+        throw new Error("Request timeout. Please try again.");
+      } else {
+        throw new Error(`Server error (${response.status}): ${text || "Unknown error"}`);
+      }
+    }
 
     if (!response.ok) {
       throw new Error(data.error || "Failed to update template");

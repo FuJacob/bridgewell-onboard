@@ -49,6 +49,7 @@ export default function Dashboard() {
   const [clientDescription, setClientDescription] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [questions, setQuestions] = useState<FormQuestion[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
 
   const [loginKey, setLoginKey] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -277,6 +278,7 @@ export default function Dashboard() {
 
     setIsGenerating(true);
     setFormError(null);
+    setUploadProgress("Preparing files for upload...");
 
     try {
       // Collect template files
@@ -311,21 +313,35 @@ export default function Dashboard() {
             if (template.fileObject instanceof File) {
               const fileKey = `templateFile_${idx}_${templateIdx}`;
               templateFiles[fileKey] = template.fileObject;
-              console.log(`Added file to templateFiles with key: ${fileKey}`);
+              console.log(`✅ Added file to templateFiles with key: ${fileKey} -> ${template.fileObject.name}`);
             } else {
               console.log(
-                `Template ${templateIdx} has no fileObject, skipping`
+                `❌ Template ${templateIdx} has no fileObject, skipping - fileName: ${template.fileName}, fileId: ${template.fileId}`
               );
             }
           });
 
-          return {
-            ...q,
-            templates: q.templates.map((template) => ({
+          // Ensure all templates maintain their position in the array
+          const processedTemplates = q.templates.map((template, templateIdx) => {
+            const processed = {
               fileName: template.fileObject?.name || template.fileName,
               fileId: template.fileId || "",
-              uploadedAt: template.uploadedAt || "", // Do not set new Date() here
-            })),
+              uploadedAt: template.uploadedAt || "",
+            };
+            console.log(`Template ${templateIdx} processed:`, {
+              original: {
+                fileName: template.fileName,
+                fileId: template.fileId,
+                hasFileObject: !!template.fileObject
+              },
+              processed: processed
+            });
+            return processed;
+          });
+          
+          return {
+            ...q,
+            templates: processedTemplates,
           };
         }
         return { ...q, templates: q.templates ? [...q.templates] : null };
@@ -333,16 +349,57 @@ export default function Dashboard() {
 
       console.log("=== DEBUG: Template files collected ===");
       console.log("templateFiles keys:", Object.keys(templateFiles));
+      console.log("Expected file count by question:");
+      processedQuestions.forEach((q, idx) => {
+        if (q.response_type === "file" && q.templates) {
+          console.log(`Question ${idx + 1}: ${q.templates.length} templates`);
+          q.templates.forEach((template, templateIdx) => {
+            const expectedKey = `templateFile_${idx}_${templateIdx}`;
+            const hasFile = templateFiles.hasOwnProperty(expectedKey);
+            console.log(`  Template ${templateIdx}: ${template.fileName} - Key: ${expectedKey} - In FormData: ${hasFile}`);
+          });
+        }
+      });
+      
+      let totalSize = 0;
       Object.entries(templateFiles).forEach(([key, file]) => {
+        totalSize += file.size;
         console.log(`${key}: ${file.name} (${file.size} bytes, ${file.type})`);
       });
+      console.log(`Total file size: ${totalSize} bytes (${(totalSize / 1024 / 1024).toFixed(2)} MB)`);
       console.log("=== END DEBUG ===");
+
+      // Check for large file uploads
+      const maxFileSize = 10 * 1024 * 1024; // 10MB per file
+      const maxTotalSize = 50 * 1024 * 1024; // 50MB total
+      
+      for (const [key, file] of Object.entries(templateFiles)) {
+        if (file.size > maxFileSize) {
+          setFormError(`File "${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(2)} MB). Maximum file size is 10MB.`);
+          setUploadProgress(null);
+          return;
+        }
+      }
+      
+      if (totalSize > maxTotalSize) {
+        setFormError(`Total file size is too large (${(totalSize / 1024 / 1024).toFixed(2)} MB). Maximum total size is 50MB.`);
+        setUploadProgress(null);
+        return;
+      }
+
+      const fileCount = Object.keys(templateFiles).length;
+      if (fileCount > 0) {
+        setUploadProgress(`Uploading ${fileCount} files...`);
+      } else {
+        setUploadProgress("Creating form...");
+      }
 
       // Convert FormQuestions to database Questions
       const dbQuestions = processedQuestions.map((q) =>
         convertFormQuestionToQuestion(q, "")
       );
 
+      setUploadProgress("Creating form in database...");
       const data = await createForm(
         clientName,
         email,
@@ -353,6 +410,8 @@ export default function Dashboard() {
       );
 
       if (data.loginKey) {
+        console.log("Form created successfully with login key:", data.loginKey);
+        setUploadProgress("Form created successfully!");
         setLoginKey(data.loginKey);
         // Refresh the forms list
         const supabase = createClient();
@@ -362,13 +421,16 @@ export default function Dashboard() {
           .order("created_at", { ascending: false });
         setForms(formsData || []);
       } else {
+        console.error("Form creation failed:", data.error);
         setFormError(data.error || "An error occurred.");
+        setUploadProgress(null);
       }
     } catch (err) {
       console.error("Form submission error:", err);
       setFormError(
         err instanceof Error ? err.message : "Failed to save form in Supabase"
       );
+      setUploadProgress(null);
     } finally {
       setIsGenerating(false);
     }
@@ -381,6 +443,7 @@ export default function Dashboard() {
     setQuestions([]);
     setLoginKey(null);
     setFormError(null);
+    setUploadProgress(null);
     setShowFormModal(false);
     setShowTemplateSelectionModal(false);
     setShowDeleteConfirmation(false);
@@ -855,6 +918,7 @@ export default function Dashboard() {
         questions={questions}
         formError={formError}
         isGenerating={isGenerating}
+        uploadProgress={uploadProgress}
         onClose={resetForm}
         onClientNameChange={setClientName}
         onOrganizationChange={setOrganization}

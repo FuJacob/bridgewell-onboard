@@ -3,6 +3,15 @@ import { createServiceClient } from "@/app/utils/supabase/server";
 import { uploadFileToClientFolder } from "@/app/utils/microsoft/graph";
 import { TemplateInsert, QuestionTemplate } from "@/types";
 
+// Configure route segment for large file uploads
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '50mb',
+    },
+  },
+};
+
 interface TemplateQuestion {
   question: string;
   description: string;
@@ -41,6 +50,19 @@ export async function POST(request: Request) {
 
       const questions = JSON.parse(questionsRaw) as TemplateQuestion[];
       console.log("Parsed questions:", questions);
+      
+      // Parse templates from JSON strings back to arrays if needed
+      questions.forEach((question: any, index: number) => {
+        if (question.templates && typeof question.templates === 'string') {
+          try {
+            question.templates = JSON.parse(question.templates);
+            console.log(`Question ${index + 1}: Parsed ${question.templates.length} templates from JSON string`);
+          } catch (parseError) {
+            console.error(`Error parsing templates for question ${index + 1}:`, parseError);
+            question.templates = null;
+          }
+        }
+      });
 
       // Process questions and upload template files
       const processedQuestions = questions.map(
