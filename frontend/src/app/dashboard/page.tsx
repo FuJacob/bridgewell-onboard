@@ -241,8 +241,24 @@ export default function Dashboard() {
   };
 
   const handleFormSubmit = async () => {
-    if (!clientName || !organization || !email) {
-      setFormError("Please fill in all required fields");
+    // Check each required field individually
+    if (!clientName?.trim()) {
+      setFormError("Client name is required");
+      return;
+    }
+    
+    if (!organization?.trim()) {
+      setFormError("Organization is required");
+      return;
+    }
+    
+    if (!email?.trim()) {
+      setFormError("Email is required");
+      return;
+    }
+    
+    if (!clientDescription?.trim()) {
+      setFormError("Client description is required");
       return;
     }
 
