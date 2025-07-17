@@ -10,6 +10,7 @@ import {
   type ClientFormData,
   type Template,
   type FormQuestion,
+  type Question,
   convertFormQuestionToQuestion,
 } from "@/types";
 import {
@@ -47,53 +48,7 @@ export default function Dashboard() {
   const [email, setEmail] = useState("");
   const [clientDescription, setClientDescription] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [questions, setQuestions] = useState<FormQuestion[]>([
-    {
-      id: 1,
-      question: "Please upload your master application package",
-      description: "Based on the downloadable template",
-      response_type: "file",
-      due_date: "",
-      templates: null,
-      link: "",
-    },
-    {
-      id: 2,
-      question: "Please upload proof of employee enrollment",
-      description: "Must be in PDF format",
-      response_type: "file",
-      due_date: "",
-      templates: null,
-      link: "",
-    },
-    {
-      id: 3,
-      question: "Void Cheque",
-      description: "For direct deposit",
-      response_type: "file",
-      due_date: "",
-      templates: null,
-      link: "",
-    },
-    {
-      id: 4,
-      question: "Termination Letter",
-      description: "",
-      response_type: "file",
-      due_date: "",
-      templates: null,
-      link: "",
-    },
-    {
-      id: 5,
-      question: "Digital Signature",
-      description: "Please type your intials",
-      response_type: "text",
-      due_date: "",
-      templates: null,
-      link: "",
-    },
-  ]);
+  const [questions, setQuestions] = useState<FormQuestion[]>([]);
 
   const [loginKey, setLoginKey] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -364,7 +319,7 @@ export default function Dashboard() {
         email,
         organization,
         clientDescription,
-        dbQuestions,
+        dbQuestions as Question[],
         templateFiles
       );
 
@@ -487,7 +442,7 @@ export default function Dashboard() {
         convertFormQuestionToQuestion(q, "")
       );
 
-      await saveTemplate(templateName, dbQuestions, templateFiles);
+      await saveTemplate(templateName, dbQuestions as Question[], templateFiles);
       setTemplateStatus("Template saved successfully!");
       setTemplateName("");
       setShowTemplateModal(false);
@@ -569,7 +524,9 @@ export default function Dashboard() {
         }
       });
 
-      setQuestions(templateQuestions);
+      // Strip IDs from template questions to prevent duplicate key errors
+      const questionsWithoutIds = templateQuestions.map(({ id, ...rest }) => rest);
+      setQuestions(questionsWithoutIds);
       setShowTemplateSelectionModal(false);
       setShowFormModal(true);
       console.log("=== END DEBUG ===");
@@ -665,7 +622,7 @@ export default function Dashboard() {
       await updateTemplate(
         templateId,
         templateName,
-        dbQuestions,
+        dbQuestions as Question[],
         templateFiles
       );
 

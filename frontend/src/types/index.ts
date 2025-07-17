@@ -50,11 +50,11 @@ export interface FormQuestion {
 export const convertFormQuestionToQuestion = (
   formQ: FormQuestion,
   loginKey: string
-): Question => ({
+): QuestionInsert => ({
   created_at: formQ.created_at || new Date().toISOString(),
   description: formQ.description,
   due_date: formQ.due_date,
-  id: formQ.id || 0,
+  ...(formQ.id !== undefined ? { id: formQ.id } : {}),
   link: formQ.link || null,
   login_key: loginKey,
   question: formQ.question,
