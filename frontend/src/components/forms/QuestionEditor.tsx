@@ -21,6 +21,7 @@ interface QuestionEditorProps {
   onMoveQuestionUp: (index: number) => void;
   onMoveQuestionDown: (index: number) => void;
   onTemplateUpload: (index: number, files: FileList) => void;
+  onDeleteTemplate?: (questionIndex: number, templateIndex: number) => void;
 }
 
 export default function QuestionEditor({
@@ -36,6 +37,7 @@ export default function QuestionEditor({
   onMoveQuestionUp,
   onMoveQuestionDown,
   onTemplateUpload,
+  onDeleteTemplate,
 }: QuestionEditorProps) {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -185,15 +187,26 @@ export default function QuestionEditor({
               className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm bg-white"
             />
             {question.templates && question.templates.length > 0 && (
-              <div className="mt-2 text-sm text-blue-700 bg-blue-100 px-3 py-2 rounded-lg">
-                📄 Uploaded:{" "}
-                <span className="font-medium">
-                  {question.templates.map((t, i) => (
-                    <span key={t.fileName + i} className="block">
-                      {t.fileName}
-                    </span>
-                  ))}
-                </span>
+              <div className="mt-2 space-y-2">
+                {question.templates.map((template, templateIndex) => (
+                  <div key={template.fileName + templateIndex} className="flex items-center justify-between bg-blue-100 px-3 py-2 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <span className="text-blue-800">📄</span>
+                      <span className="text-sm font-medium text-blue-700">
+                        {template.fileName}
+                      </span>
+                    </div>
+                    {onDeleteTemplate && (
+                      <button
+                        onClick={() => onDeleteTemplate(index, templateIndex)}
+                        className="text-red-600 hover:text-red-800 hover:bg-red-100 p-1 rounded transition-colors"
+                        title="Delete template file"
+                      >
+                        <FaTimes className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>

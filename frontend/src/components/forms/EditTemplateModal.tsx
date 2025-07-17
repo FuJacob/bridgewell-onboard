@@ -156,6 +156,19 @@ export default function EditTemplateModal({
     setQuestions(newQuestions);
   };
 
+  const handleDeleteTemplate = (questionIndex: number, templateIndex: number) => {
+    const newQuestions = [...questions];
+    if (newQuestions[questionIndex].templates) {
+      newQuestions[questionIndex].templates = newQuestions[questionIndex].templates.filter(
+        (_, index) => index !== templateIndex
+      );
+      if (newQuestions[questionIndex].templates.length === 0) {
+        newQuestions[questionIndex].templates = null;
+      }
+    }
+    setQuestions(newQuestions);
+  };
+
   if (!isOpen || !template) return null;
 
   return (
@@ -234,6 +247,7 @@ export default function EditTemplateModal({
                   onMoveQuestionUp={moveQuestionUp}
                   onMoveQuestionDown={moveQuestionDown}
                   onTemplateUpload={handleTemplateUpload}
+                  onDeleteTemplate={handleDeleteTemplate}
                 />
               ))}
             </div>

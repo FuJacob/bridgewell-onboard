@@ -133,10 +133,13 @@ export async function POST(request: Request) {
           .replace(/[^a-zA-Z0-9]/g, "_")
           .substring(0, 50);
 
+        // Create a mutable copy of templates to avoid read-only property errors
+        const mutableTemplates = [...question.templates];
+
         // Upload each template file
         for (
           let templateIdx = 0;
-          templateIdx < question.templates.length;
+          templateIdx < mutableTemplates.length;
           templateIdx++
         ) {
           const fileKey = `templateFile_${i}_${templateIdx}`;
@@ -159,7 +162,7 @@ export async function POST(request: Request) {
                 new Blob([buffer], { type: file.type })
               );
               console.log(`File uploaded successfully with ID: ${fileId}`);
-              question.templates[templateIdx] = {
+              mutableTemplates[templateIdx] = {
                 fileName,
                 fileId,
                 uploadedAt: new Date().toISOString(),
@@ -167,7 +170,7 @@ export async function POST(request: Request) {
             } catch (uploadError) {
               console.error(`Error uploading file ${file.name}:`, uploadError);
               // Continue with other files even if one fails
-              question.templates[templateIdx] = {
+              mutableTemplates[templateIdx] = {
                 fileName: file.name,
                 fileId: "",
                 uploadedAt: new Date().toISOString(),
@@ -175,7 +178,7 @@ export async function POST(request: Request) {
             }
           } else {
             // No file found in FormData - check if this template already has a fileId
-            const template = question.templates[templateIdx];
+            const template = mutableTemplates[templateIdx];
             if (template.fileId && template.fileId.trim() !== "") {
               console.log(
                 `Template ${templateIdx} already has fileId: ${template.fileId}, copying file...`
@@ -191,7 +194,7 @@ export async function POST(request: Request) {
                 console.log(
                   `File copied successfully with new ID: ${newFileId}`
                 );
-                question.templates[templateIdx] = {
+                mutableTemplates[templateIdx] = {
                   fileName: template.fileName,
                   fileId: newFileId,
                   uploadedAt: new Date().toISOString(),
@@ -202,7 +205,7 @@ export async function POST(request: Request) {
                   copyError
                 );
                 // Keep the original fileId as fallback
-                question.templates[templateIdx] = {
+                mutableTemplates[templateIdx] = {
                   fileName: template.fileName,
                   fileId: template.fileId,
                   uploadedAt: template.uploadedAt || new Date().toISOString(),
@@ -219,11 +222,11 @@ export async function POST(request: Request) {
         // Update the question in the database with the new template fileIds
         console.log(
           `Updating question in database with templates:`,
-          question.templates
+          mutableTemplates
         );
         const { error: updateError } = await supabase
           .from("questions")
-          .update({ templates: question.templates })
+          .update({ templates: mutableTemplates })
           .eq("login_key", loginKey)
           .eq("question", question.question);
 

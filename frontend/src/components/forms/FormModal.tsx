@@ -26,6 +26,7 @@ interface FormModalProps {
   onMoveQuestionUp: (index: number) => void;
   onMoveQuestionDown: (index: number) => void;
   onTemplateUpload: (index: number, files: FileList) => void;
+  onDeleteTemplate?: (questionIndex: number, templateIndex: number) => void;
   onSubmit: () => void;
   onSaveAsTemplate: () => void;
 }
@@ -54,6 +55,7 @@ export default function FormModal({
   onMoveQuestionUp,
   onMoveQuestionDown,
   onTemplateUpload,
+  onDeleteTemplate,
   onSubmit,
   onSaveAsTemplate,
 }: FormModalProps) {
@@ -209,6 +211,7 @@ export default function FormModal({
                   onMoveQuestionUp={onMoveQuestionUp}
                   onMoveQuestionDown={onMoveQuestionDown}
                   onTemplateUpload={onTemplateUpload}
+                  onDeleteTemplate={onDeleteTemplate}
                 />
               ))}
             </div>

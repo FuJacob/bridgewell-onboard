@@ -209,6 +209,19 @@ export default function Dashboard() {
     setQuestions(newQuestions);
   };
 
+  const handleDeleteTemplateFile = (questionIndex: number, templateIndex: number) => {
+    const newQuestions = [...questions];
+    if (newQuestions[questionIndex].templates) {
+      newQuestions[questionIndex].templates = newQuestions[questionIndex].templates.filter(
+        (_, index) => index !== templateIndex
+      );
+      if (newQuestions[questionIndex].templates.length === 0) {
+        newQuestions[questionIndex].templates = null;
+      }
+    }
+    setQuestions(newQuestions);
+  };
+
   const moveQuestionUp = (index: number) => {
     if (index === 0) return;
     const newQuestions = [...questions];
@@ -870,6 +883,7 @@ export default function Dashboard() {
           setShowTemplateModal(true);
           console.log("Set showTemplateModal to true");
         }}
+        onDeleteTemplate={handleDeleteTemplateFile}
       />
 
       {/* Template Modal */}
