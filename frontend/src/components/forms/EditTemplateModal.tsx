@@ -55,7 +55,7 @@ export default function EditTemplateModal({
 
     // Check if all questions have content
     for (let i = 0; i < questions.length; i++) {
-      if (!questions[i].question.trim()) {
+      if (!questions[i].question?.trim()) {
         setError(`Question ${i + 1} is required`);
         return;
       }

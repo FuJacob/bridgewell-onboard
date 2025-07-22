@@ -95,7 +95,7 @@ export default function SubmissionPage() {
     );
   }
 
-  const responses = JSON.parse(submission.responses);
+  const responses = JSON.parse(submission.responses as string);
 
   return (
     <div className="min-h-screen p-4 sm:p-6 lg:p-8">
@@ -103,7 +103,7 @@ export default function SubmissionPage() {
         <PageHeader
           title="Form Submission"
           subtitle={`Submitted on ${new Date(
-            submission.submitted_at
+            submission.submitted_at as string
           ).toLocaleDateString()}`}
           showBackButton
           backButtonText="Back to Dashboard"

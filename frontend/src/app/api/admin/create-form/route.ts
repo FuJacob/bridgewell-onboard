@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/app/utils/supabase/server";
-import { ClientInsert, QuestionInsert } from "@/types";
+import { ClientInsert, QuestionInsert, TemplateQuestion } from "@/types";
 import {
   createClientFolder,
   createQuestionFolders,
@@ -63,11 +63,11 @@ export async function POST(request: Request) {
     console.log("Parsed questions:", JSON.stringify(questions, null, 2));
     
     // Parse templates from JSON strings back to arrays
-    questions.forEach((question: any, index: number) => {
+    questions.forEach((question: TemplateQuestion, index: number) => {
       if (question.templates && typeof question.templates === 'string') {
         try {
           question.templates = JSON.parse(question.templates);
-          console.log(`Question ${index + 1}: Parsed ${question.templates.length} templates from JSON string`);
+          console.log(`Question ${index + 1}: Parsed ${question.templates?.length || 0} templates from JSON string`);
         } catch (parseError) {
           console.error(`Error parsing templates for question ${index + 1}:`, parseError);
           question.templates = null;

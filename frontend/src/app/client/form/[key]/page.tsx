@@ -30,14 +30,16 @@ const convertToAppQuestions = (dbQuestions: Question[]): AppQuestion[] => {
       q.templates && typeof q.templates === "string"
         ? (() => {
             try {
-              const parsed = JSON.parse(q.templates as string);
-              return Array.isArray(parsed) ? parsed as QuestionTemplate[] : null;
+              const parsed = JSON.parse(q.templates as string) as unknown;
+              return Array.isArray(parsed)
+                ? (parsed as QuestionTemplate[])
+                : null;
             } catch {
               return null;
             }
           })()
         : Array.isArray(q.templates)
-        ? q.templates as QuestionTemplate[]
+        ? (q.templates as unknown as QuestionTemplate[])
         : null,
   }));
 };
@@ -127,7 +129,7 @@ export default function ClientFormPage() {
         console.error("Error updating last active time:", error);
       }
     }
-  }, [signedIn, loginKey]);
+  }, [loginKey]);
 
   // Fetch client data and form questions
   useEffect(() => {
@@ -501,7 +503,7 @@ export default function ClientFormPage() {
                   <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
                     Welcome,{" "}
                     <span className="text-secondary">
-                      {clientData.clientName}
+                      {clientData.client_name}
                     </span>
                   </h1>
                   <p className="text-lg sm:text-xl font-medium text-blue-100">
@@ -516,7 +518,7 @@ export default function ClientFormPage() {
                         : "You last accessed this form on"}
                     </p>
                     <p className="text-lg font-bold">
-                      {new Date(clientData.last_active_at).toLocaleDateString(
+                      {new Date(clientData.last_active_at || new Date()).toLocaleDateString(
                         "en-US",
                         {
                           weekday: "long",
@@ -527,7 +529,7 @@ export default function ClientFormPage() {
                       )}
                     </p>
                     <p className="text-sm text-blue-200">
-                      {new Date(clientData.last_active_at).toLocaleTimeString(
+                      {new Date(clientData.last_active_at || new Date()).toLocaleTimeString(
                         "en-US",
                         {
                           hour: "numeric",
@@ -572,7 +574,7 @@ export default function ClientFormPage() {
                   onRedoQuestion={() =>
                     deleteClientUploads(
                       loginKey,
-                      clientData.clientName,
+                      clientData.client_name || "",
                       question.question || "",
                       index
                     )
@@ -590,7 +592,7 @@ export default function ClientFormPage() {
           <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full overflow-y-auto max-h-[95vh] sm:h-5/6">
             <div className="flex justify-between items-center mb-4 sm:mb-6">
               <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-primary">
-                Edit Form - {clientData.clientName}
+                Edit Form - {clientData.client_name}
               </h2>
               <button
                 onClick={resetEditForm}
@@ -611,7 +613,7 @@ export default function ClientFormPage() {
                     Client Name
                   </label>
                   <p className="text-gray-900 font-medium">
-                    {clientData.clientName}
+                    {clientData.client_name}
                   </p>
                 </div>
                 <div>
@@ -845,10 +847,10 @@ export default function ClientFormPage() {
                 <button
                   onClick={() =>
                     handleUpdateForm(
-                      clientData.clientName,
-                      clientData.email,
-                      clientData.organization,
-                      clientData.description,
+                      clientData.client_name || "",
+                      clientData.email || "",
+                      clientData.organization || "",
+                      clientData.description || "",
                       questions
                     )
                   }

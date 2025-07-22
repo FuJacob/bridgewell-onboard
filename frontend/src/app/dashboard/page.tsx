@@ -11,6 +11,7 @@ import {
   type Template,
   type FormQuestion,
   type Question,
+  type QuestionTemplate,
   convertFormQuestionToQuestion,
 } from "@/types";
 import {
@@ -590,7 +591,7 @@ export default function Dashboard() {
       });
 
       // Strip IDs from template questions to prevent duplicate key errors
-      const questionsWithoutIds = templateQuestions.map(({ id, ...rest }) => rest);
+      const questionsWithoutIds = templateQuestions.map(({ id: _id, ...rest }) => rest);
       setQuestions(questionsWithoutIds);
       setShowTemplateSelectionModal(false);
       setShowFormModal(true);

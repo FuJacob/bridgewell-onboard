@@ -41,7 +41,7 @@ export default function LoginForm({
       if (result && result.status) {
         setError(result.status);
       }
-    } catch (error) {
+    } catch (_error) {
       // Redirect throws in Next.js server actions - this is expected for successful login
       // If we reach here with no error status set, it means login was successful
       console.log("Login action completed (likely successful redirect)");
