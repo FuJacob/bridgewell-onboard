@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/app/utils/supabase/server";
-import { Question, TemplateQuestion } from "@/types";
+import { TemplateQuestion } from "@/types";
 import { createQuestionFolders } from "@/app/utils/microsoft/graph";
 
 export async function POST(request: Request) {
@@ -37,15 +37,22 @@ export async function POST(request: Request) {
 
     const questions = JSON.parse(questionsRaw);
     console.log("Parsed questions:", JSON.stringify(questions, null, 2));
-    
+
     // Parse templates from JSON strings back to arrays
     questions.forEach((question: TemplateQuestion, index: number) => {
-      if (question.templates && typeof question.templates === 'string') {
+      if (question.templates && typeof question.templates === "string") {
         try {
           question.templates = JSON.parse(question.templates);
-          console.log(`Question ${index + 1}: Parsed ${question.templates?.length || 0} templates from JSON string`);
+          console.log(
+            `Question ${index + 1}: Parsed ${
+              question.templates?.length || 0
+            } templates from JSON string`
+          );
         } catch (parseError) {
-          console.error(`Error parsing templates for question ${index + 1}:`, parseError);
+          console.error(
+            `Error parsing templates for question ${index + 1}:`,
+            parseError
+          );
           question.templates = null;
         }
       }
@@ -83,38 +90,24 @@ export async function POST(request: Request) {
       );
     }
 
-    // Identify which questions have been modified
-    const modifiedQuestionIndices = [];
+    // Identify which questions have been deleted (need to clear client data)
+    const deletedQuestionIndices = [];
     const existingQuestionsMap = new Map();
 
     existingQuestions?.forEach((q, index) => {
       existingQuestionsMap.set(index, q);
     });
 
-    questions.forEach((newQuestion: Question, index: number) => {
-      const existingQuestion = existingQuestionsMap.get(index);
-      if (
-        !existingQuestion ||
-        existingQuestion.question !== newQuestion.question ||
-        existingQuestion.description !== newQuestion.description ||
-        existingQuestion.response_type !== newQuestion.response_type ||
-        existingQuestion.due_date !== newQuestion.due_date ||
-        existingQuestion.link !== newQuestion.link
-      ) {
-        modifiedQuestionIndices.push(index);
-      }
-    });
-
-    // Also mark questions that were removed as modified
+    // Mark questions that were removed as deleted (these need cleanup)
     for (let i = questions.length; i < (existingQuestions?.length || 0); i++) {
-      modifiedQuestionIndices.push(i);
+      deletedQuestionIndices.push(i);
     }
 
-    console.log("Modified question indices:", modifiedQuestionIndices);
+    console.log("Deleted question indices:", deletedQuestionIndices);
 
-    // Clear client submissions for modified questions
-    if (modifiedQuestionIndices.length > 0) {
-      console.log("Clearing client submissions for modified questions...");
+    // Clear client submissions for DELETED questions only
+    if (deletedQuestionIndices.length > 0) {
+      console.log("Clearing client submissions for deleted questions...");
 
       // Get all client submissions for this login key
       const { data: submissions, error: submissionsError } = await supabase
@@ -131,8 +124,8 @@ export async function POST(request: Request) {
             const responses = JSON.parse(submission.responses);
             const updatedResponses = { ...responses };
 
-            // Remove responses for modified questions
-            modifiedQuestionIndices.forEach((index) => {
+            // Remove responses for deleted questions
+            deletedQuestionIndices.forEach((index) => {
               delete updatedResponses[index.toString()];
             });
 
@@ -153,15 +146,15 @@ export async function POST(request: Request) {
         }
       }
 
-      // Clear OneDrive files for modified questions
-      console.log("Clearing OneDrive files for modified questions...");
+      // Clear OneDrive files for deleted questions
+      console.log("Clearing OneDrive files for deleted questions...");
       try {
         // Import the delete function from Microsoft Graph utilities
         const { deleteFileFromOneDrive } = await import(
           "@/app/utils/microsoft/graph"
         );
 
-        for (const questionIndex of modifiedQuestionIndices) {
+        for (const questionIndex of deletedQuestionIndices) {
           const existingQuestion = existingQuestionsMap.get(questionIndex);
           if (existingQuestion) {
             const sanitizedQuestion = existingQuestion.question
@@ -173,7 +166,7 @@ export async function POST(request: Request) {
               await deleteFileFromOneDrive(
                 loginKey,
                 clientName,
-                `${sanitizedQuestion}/`
+                sanitizedQuestion
               );
               console.log(
                 `Deleted OneDrive folder for question ${questionIndex}: ${sanitizedQuestion}`
@@ -184,6 +177,7 @@ export async function POST(request: Request) {
                 deleteError
               );
               // Continue with other deletions even if one fails
+              // This is not a critical error - form update can still succeed
             }
           }
         }
@@ -198,17 +192,18 @@ export async function POST(request: Request) {
       const question = questions[i];
       const existingQuestion = existingQuestionsMap.get(i);
 
-      // Prepare question data with login_key
-      const questionData = {
-        ...question,
-        login_key: loginKey,
-      };
-
       if (existingQuestion) {
-        // Update existing question
+        // Update existing question - exclude ID to avoid conflicts
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, ...questionDataWithoutId } = question;
+        const updateData = {
+          ...questionDataWithoutId,
+          login_key: loginKey,
+        };
+        
         const { error: updateError } = await supabase
           .from("questions")
-          .update(questionData)
+          .update(updateData)
           .eq("id", existingQuestion.id);
 
         if (updateError) {
@@ -221,10 +216,17 @@ export async function POST(request: Request) {
           );
         }
       } else {
-        // Insert new question
+        // Insert new question - exclude ID to let database generate it
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, ...questionDataWithoutId } = question;
+        const insertData = {
+          ...questionDataWithoutId,
+          login_key: loginKey,
+        };
+        
         const { error: insertError } = await supabase
           .from("questions")
-          .insert(questionData);
+          .insert(insertData);
 
         if (insertError) {
           console.error(`Error inserting question ${i}:`, insertError);

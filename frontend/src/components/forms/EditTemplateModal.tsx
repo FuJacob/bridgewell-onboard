@@ -10,7 +10,7 @@ interface EditTemplateModalProps {
   onSave: (
     templateId: string,
     templateName: string,
-    questions: FormQuestion[]
+    questions: FormQuestion[] 
   ) => void;
   isSaving: boolean;
 }

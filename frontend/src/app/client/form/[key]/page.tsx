@@ -693,10 +693,10 @@ export default function ClientFormPage() {
                     </h3>
                     <div className="mt-2 text-sm text-yellow-700">
                       <p>
-                        When you update questions, any existing client
-                        submissions for modified questions will be cleared to
-                        maintain consistency. Clients will need to resubmit
-                        their responses for those questions.
+                        You can safely edit question text, descriptions, due dates, and links - 
+                        existing client submissions will be preserved. However, if you 
+                        <strong> remove a question entirely</strong>, all client submissions 
+                        and files for that question will be permanently deleted.
                       </p>
                     </div>
                   </div>

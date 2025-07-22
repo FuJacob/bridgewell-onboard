@@ -400,10 +400,30 @@ export async function deleteFileFromOneDrive(
     console.log("Delete response status:", response.status);
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error("OneDrive API error deleting file:", error);
+      let error;
+      try {
+        error = await response.json();
+      } catch {
+        // If response is not JSON, get text instead
+        const text = await response.text();
+        error = { message: text, code: response.status };
+      }
+      console.error("OneDrive API error deleting file:", {
+        status: response.status,
+        statusText: response.statusText,
+        error,
+        filePath,
+        clientFolderName
+      });
+      
+      // Don't throw error for 404 (file not found) - it's already deleted
+      if (response.status === 404) {
+        console.log("File/folder already deleted or doesn't exist");
+        return;
+      }
+      
       throw new Error(
-        `Failed to delete file: ${error.message || "Unknown error"}`
+        `Failed to delete file (${response.status}): ${error.message || error.code || "Unknown error"}`
       );
     }
 
