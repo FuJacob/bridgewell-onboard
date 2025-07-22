@@ -32,18 +32,18 @@ export interface AppTemplate extends Omit<Template, "questions"> {
   questions: AppQuestion[];
 }
 
-// Form-specific types that match application usage
+// Form-specific types that match database schema
 export interface FormQuestion {
-  question: string;
-  description: string;
-  response_type: string;
-  due_date: string;
+  question: string | null;
+  description: string | null;
+  response_type: string | null;
+  due_date: string | null;
   templates?: QuestionTemplate[] | null;
-  link?: string;
+  link?: string | null;
   // Optional database fields for compatibility
   id?: number;
   created_at?: string;
-  login_key?: string;
+  login_key?: string | null;
 }
 
 // Helper function to convert FormQuestion to Question for database operations
@@ -61,17 +61,16 @@ export const convertFormQuestionToQuestion = (
   templates: formQ.templates ? JSON.stringify(formQ.templates) : null,
 });
 
-// Extended types for application use
-export interface ClientData
-  extends Omit<Client, "login_key" | "client_name" | "last_active_at"> {
-  id: string;
-  clientName: string;
-  organization: string;
-  email: string;
-  description: string;
+// Extended types for application use - aligned with database schema
+export interface ClientData {
+  login_key: string;
+  client_name: string | null;
+  organization: string | null;
+  email: string | null;
+  description: string | null;
   questions: Question[];
-  loginKey: string;
-  last_active_at: string;
+  created_at: string;
+  last_active_at: string | null;
 }
 
 // For backward compatibility, keep ClientFormData as alias

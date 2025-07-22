@@ -42,10 +42,10 @@ async function deleteClientUploadsToQuestion(
     );
 
     const listData = await listResponse.json();
-    console.log(
-      "ASDOSADKAOPSDKOPAKSPODKPOASKDPKAPDKPAKSPDAPSKDAPSDOPASDPPKSAKPD",
-      listData
-    );
+    // Debug log for file listing
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Files retrieved:", listData);
+    }
 
     for (const listItem of listData.value) {
       await fetch(`${SITE_URL}/drive/items/${listItem.id}`, {

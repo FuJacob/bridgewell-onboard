@@ -73,7 +73,7 @@ export async function createForm(
   const responseClone = response.clone();
   try {
     data = await response.json();
-  } catch (jsonError) {
+  } catch {
     // Handle cases where response is not JSON (like 413 Request Entity Too Large)
     const text = await responseClone.text();
     console.error("Non-JSON response received:", text);

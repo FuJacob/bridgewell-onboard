@@ -7,14 +7,12 @@ interface TokenResponse {
 }
 
 export async function getAccessToken(): Promise<string> {
-  console.log("Starting authentication process...");
-  console.log("Using Tenant ID:", process.env.TENANT_ID);
-  console.log("Using Client ID:", process.env.AZURE_CLIENT_ID);
+  if (process.env.NODE_ENV === 'development') {
+    console.log("Starting authentication process...");
+  }
 
   if (!process.env.AZURE_CLIENT_ID || !process.env.AZURE_CLIENT_SECRET) {
-    console.error("Missing environment variables:");
-    console.error("AZURE_CLIENT_ID:", !!process.env.AZURE_CLIENT_ID);
-    console.error("AZURE_CLIENT_SECRET:", !!process.env.AZURE_CLIENT_SECRET);
+    console.error("Missing required Azure AD environment variables");
     throw new Error("Missing Azure AD credentials in environment variables");
   }
 
@@ -46,10 +44,9 @@ export async function getAccessToken(): Promise<string> {
     }
 
     const data: TokenResponse = await response.json();
-    console.log("Successfully received token:");
-    console.log("- Token type:", data.token_type);
-    console.log("- Expires in:", data.expires_in, "seconds");
-    console.log("- Token length:", data.access_token.length);
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Successfully received Microsoft Graph token");
+    }
 
     return data.access_token;
   } catch (error) {

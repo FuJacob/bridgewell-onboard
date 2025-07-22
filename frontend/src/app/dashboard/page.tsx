@@ -145,10 +145,14 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         const data = await getAllForms();
-        console.log(await getAllForms());
         setForms(data as ClientFormData[]);
-      } catch {
-        setError("Failed to load dashboard data");
+        setError(null); // Clear any previous errors
+      } catch (err) {
+        console.error('Dashboard data fetch error:', err);
+        const errorMessage = err instanceof Error 
+          ? `Unable to load forms: ${err.message}. Please try refreshing the page.`
+          : 'Failed to load dashboard data. Please try refreshing the page.';
+        setError(errorMessage);
         setForms([]);
       } finally {
         setLoading(false);
@@ -180,34 +184,11 @@ export default function Dashboard() {
     setQuestions(questions.filter((_, i) => i !== index));
   };
 
-  const updateQuestion = (index: number, value: string) => {
-    const newQuestions = [...questions];
-    newQuestions[index].question = value;
-    setQuestions(newQuestions);
-  };
-
-  const updateDescription = (index: number, value: string) => {
-    const newQuestions = [...questions];
-    newQuestions[index].description = value;
-    setQuestions(newQuestions);
-  };
-
-  const updateResponseType = (index: number, value: string) => {
-    const newQuestions = [...questions];
-    newQuestions[index].response_type = value;
-    setQuestions(newQuestions);
-  };
-
-  const updateDueDate = (index: number, value: string) => {
-    const newQuestions = [...questions];
-    newQuestions[index].due_date = value;
-    setQuestions(newQuestions);
-  };
-
-  const updateLink = (index: number, value: string) => {
-    const newQuestions = [...questions];
-    newQuestions[index].link = value;
-    setQuestions(newQuestions);
+  // Simplified: single function to update any question field
+  const updateQuestion = (index: number, field: keyof FormQuestion, value: string | QuestionTemplate[] | null) => {
+    setQuestions(prev => prev.map((q, i) => 
+      i === index ? { ...q, [field]: value } : q
+    ));
   };
 
   const handleDeleteTemplateFile = (questionIndex: number, templateIndex: number) => {
@@ -241,40 +222,38 @@ export default function Dashboard() {
     setQuestions(newQuestions);
   };
 
-  const handleFormSubmit = async () => {
-    // Check each required field individually
-    if (!clientName?.trim()) {
-      setFormError("Client name is required");
-      return;
-    }
-    
-    if (!organization?.trim()) {
-      setFormError("Organization is required");
-      return;
-    }
-    
-    if (!email?.trim()) {
-      setFormError("Email is required");
-      return;
-    }
-    
-    if (!clientDescription?.trim()) {
-      setFormError("Client description is required");
-      return;
+  const validateForm = () => {
+    const requiredFields = [
+      { value: clientName, message: "Client name is required" },
+      { value: organization, message: "Organization is required" },
+      { value: email, message: "Email is required" },
+      { value: clientDescription, message: "Client description is required" },
+    ];
+
+    for (const field of requiredFields) {
+      if (!field.value?.trim()) {
+        setFormError(field.message);
+        return false;
+      }
     }
 
     if (questions.length === 0) {
       setFormError("Please add at least one question");
-      return;
+      return false;
     }
 
-    // Check if all questions have content
     for (let i = 0; i < questions.length; i++) {
-      if (!questions[i].question.trim()) {
+      if (!questions[i].question?.trim()) {
         setFormError(`Question ${i + 1} is required`);
-        return;
+        return false;
       }
     }
+
+    return true;
+  };
+
+  const handleFormSubmit = async () => {
+    if (!validateForm()) return;
 
     setIsGenerating(true);
     setFormError(null);
@@ -283,13 +262,7 @@ export default function Dashboard() {
     try {
       // Collect template files
       const templateFiles: { [key: string]: File } = {};
-      console.log("=== DEBUG: Processing questions for form submission ===");
       const processedQuestions = questions.map((q, idx) => {
-        console.log(`Question ${idx + 1}:`, {
-          question: q.question,
-          response_type: q.response_type,
-          templates: q.templates,
-        });
 
         if (
           q.response_type === "file" &&
@@ -913,7 +886,7 @@ export default function Dashboard() {
         clientName={clientName}
         organization={organization}
         email={email}
-        onUpdateLink={updateLink}
+        onUpdateLink={(i, value) => updateQuestion(i, 'link', value)}
         clientDescription={clientDescription}
         questions={questions}
         formError={formError}
@@ -925,10 +898,10 @@ export default function Dashboard() {
         onEmailChange={setEmail}
         onClientDescriptionChange={setClientDescription}
         onAddQuestion={addQuestion}
-        onUpdateQuestion={updateQuestion}
-        onUpdateDescription={updateDescription}
-        onUpdateResponseType={updateResponseType}
-        onUpdateDueDate={updateDueDate}
+        onUpdateQuestion={(i, value) => updateQuestion(i, 'question', value)}
+        onUpdateDescription={(i, value) => updateQuestion(i, 'description', value)}
+        onUpdateResponseType={(i, value) => updateQuestion(i, 'response_type', value)}
+        onUpdateDueDate={(i, value) => updateQuestion(i, 'due_date', value)}
         onRemoveQuestion={removeQuestion}
         onMoveQuestionUp={moveQuestionUp}
         onMoveQuestionDown={moveQuestionDown}

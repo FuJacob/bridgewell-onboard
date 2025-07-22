@@ -6,6 +6,7 @@ interface FileUploadProps {
   helperText?: string;
   selectedFile?: File | null;
   onFileChange: (file: File | null) => void;
+  onError?: (error: string | null) => void;
   accept?: string;
   disabled?: boolean;
   id?: string;
@@ -17,13 +18,45 @@ export default function FileUpload({
   helperText = "Allowed file types: PDF, DOC, DOCX, JPG, PNG",
   selectedFile,
   onFileChange,
+  onError,
   accept = ".pdf,.doc,.docx,.jpg,.jpeg,.png",
   disabled = false,
   id,
 }: FileUploadProps) {
+  const validateFile = (file: File): string | null => {
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/jpg',
+      'image/png'
+    ];
+
+    if (file.size > maxSize) {
+      return `File "${file.name}" is too large. Maximum size is 10MB.`;
+    }
+
+    if (!allowedTypes.includes(file.type)) {
+      return `File type "${file.type}" is not supported. Please upload PDF, DOC, DOCX, JPG, or PNG files.`;
+    }
+
+    return null;
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      onFileChange(e.target.files[0]);
+      const file = e.target.files[0];
+      const validationError = validateFile(file);
+      
+      if (validationError) {
+        onError?.(validationError);
+        onFileChange(null);
+      } else {
+        onError?.(null);
+        onFileChange(file);
+      }
     } else {
       onFileChange(null);
     }

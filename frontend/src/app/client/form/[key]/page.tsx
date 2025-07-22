@@ -103,12 +103,8 @@ export default function ClientFormPage() {
 
     const isAuthed = !!user?.aud;
     setSignedIn(isAuthed);
-    if (isAuthed) {
-      console.log("ADMIN IS SIGNED INTO FORM PAGE", signedIn);
-    } else {
-      console.log("ADMIN IS NOT SIGNED INTO FORM PAGE", signedIn);
+    if (!isAuthed) {
       try {
-        console.log("UPDATING LAST ACTIVE TIME", loginKey);
         const response = await fetch("/api/client/update-last-active-at", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
