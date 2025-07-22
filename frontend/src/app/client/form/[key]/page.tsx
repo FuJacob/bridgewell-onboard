@@ -118,7 +118,6 @@ export default function ClientFormPage() {
           const errorData = await response.json();
           console.error("Error updating last active time:", errorData);
         } else {
-          console.log("RESPONSE", await response.json());
           console.log("Updated last active time via API");
         }
       } catch (error) {

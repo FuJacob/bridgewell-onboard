@@ -54,7 +54,6 @@ export const convertFormQuestionToQuestion = (
   created_at: formQ.created_at || new Date().toISOString(),
   description: formQ.description,
   due_date: formQ.due_date,
-  ...(formQ.id !== undefined ? { id: formQ.id } : {}),
   link: formQ.link || null,
   login_key: loginKey,
   question: formQ.question,

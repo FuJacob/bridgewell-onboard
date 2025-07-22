@@ -48,11 +48,12 @@ export async function saveTemplate(
     });
 
     let data;
+    const responseClone = response.clone();
     try {
       data = await response.json();
     } catch (jsonError) {
       // Handle cases where response is not JSON (like 413 Request Entity Too Large)
-      const text = await response.text();
+      const text = await responseClone.text();
       console.error("Non-JSON response received:", text);
       
       if (response.status === 413) {
@@ -79,11 +80,12 @@ export async function saveTemplate(
     });
 
     let data;
+    const responseClone = response.clone();
     try {
       data = await response.json();
     } catch (jsonError) {
       // Handle cases where response is not JSON
-      const text = await response.text();
+      const text = await responseClone.text();
       console.error("Non-JSON response received:", text);
       
       if (response.status === 413) {
@@ -172,11 +174,12 @@ export async function updateTemplate(
     });
 
     let data;
+    const responseClone = response.clone();
     try {
       data = await response.json();
     } catch (jsonError) {
       // Handle cases where response is not JSON (like 413 Request Entity Too Large)
-      const text = await response.text();
+      const text = await responseClone.text();
       console.error("Non-JSON response received:", text);
       
       if (response.status === 413) {
@@ -203,11 +206,12 @@ export async function updateTemplate(
     });
 
     let data;
+    const responseClone = response.clone();
     try {
       data = await response.json();
     } catch (jsonError) {
       // Handle cases where response is not JSON
-      const text = await response.text();
+      const text = await responseClone.text();
       console.error("Non-JSON response received:", text);
       
       if (response.status === 413) {

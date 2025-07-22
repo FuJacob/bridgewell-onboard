@@ -24,18 +24,29 @@ export async function POST(request: Request) {
 
     // Upload files to OneDrive
     const uploadedFiles = [];
-    for (const file of files) {
-      const buffer = await file.arrayBuffer();
-      const fileId = await uploadFileToClientFolder(
-        loginKey,
-        clientData.client_name,
-        file.name,
-        new Blob([buffer])
-      );
-      uploadedFiles.push({
-        name: file.name,
-        id: fileId,
-      });
+    console.log(`Starting upload for ${files.length} files`);
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      console.log(`Uploading file ${i + 1}/${files.length}: ${file.name} (${file.size} bytes)`);
+      
+      try {
+        const buffer = await file.arrayBuffer();
+        const fileId = await uploadFileToClientFolder(
+          loginKey,
+          clientData.client_name,
+          file.name,
+          new Blob([buffer])
+        );
+        console.log(`Successfully uploaded file ${i + 1}: ${file.name} with ID: ${fileId}`);
+        uploadedFiles.push({
+          name: file.name,
+          id: fileId,
+        });
+      } catch (error) {
+        console.error(`Failed to upload file ${i + 1}: ${file.name}`, error);
+        // Continue with other files but log the failure
+      }
     }
 
     // Store submission in Supabase
