@@ -73,17 +73,10 @@ export interface ClientData {
   last_active_at: string | null;
 }
 
-// For backward compatibility, keep ClientFormData as alias
-export type ClientFormData = Client;
 
-export interface FormSubmission {
-  id: string;
-  client_id: string;
-  client_name: string;
-  login_key: string;
-  responses: string;
-  submitted_at: string;
-}
+// Note: submissions table not found in current database schema
+// Using Record<string, unknown> as fallback for submission data
+export type SubmissionRecord = Record<string, unknown>;
 
 export interface SubmissionData {
   client_id: string;
@@ -98,6 +91,20 @@ export interface ResponseData {
   fileUrl?: string;
   fileName?: string;
   textResponse?: string;
+}
+
+// Template-specific types for API routes
+export interface TemplateQuestion {
+  question: string;
+  description: string;
+  response_type: string;
+  due_date: string;
+  templates?: Array<QuestionTemplate & {
+    _needsUpload?: boolean;
+    _file?: File;
+    _fileKey?: string;
+  }> | null;
+  link?: string;
 }
 
 export interface LoadingSpinnerProps {

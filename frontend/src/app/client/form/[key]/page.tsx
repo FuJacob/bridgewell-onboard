@@ -28,9 +28,16 @@ const convertToAppQuestions = (dbQuestions: Question[]): AppQuestion[] => {
     ...q,
     templates:
       q.templates && typeof q.templates === "string"
-        ? (JSON.parse(q.templates) as QuestionTemplate[])
+        ? (() => {
+            try {
+              const parsed = JSON.parse(q.templates as string);
+              return Array.isArray(parsed) ? parsed as QuestionTemplate[] : null;
+            } catch {
+              return null;
+            }
+          })()
         : Array.isArray(q.templates)
-        ? (q.templates as unknown as QuestionTemplate[])
+        ? q.templates as QuestionTemplate[]
         : null,
   }));
 };
@@ -124,7 +131,7 @@ export default function ClientFormPage() {
 
   // Fetch client data and form questions
   useEffect(() => {
-    async function fetchClientData() {
+    async function fetchClientData(): Promise<void> {
       if (!loginKey) {
         router.push("/");
         return;

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServiceClient } from "@/app/utils/supabase/server";
 import { Question } from "@/types";
 import { createQuestionFolders } from "@/app/utils/microsoft/graph";
 
@@ -52,17 +52,7 @@ export async function POST(request: Request) {
     });
 
     // 3. Update the form data in Supabase
-    if (
-      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-      !process.env.SUPABASE_SERVICE_ROLE_KEY
-    ) {
-      throw new Error("Missing Supabase environment variables");
-    }
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    const supabase = createServiceClient();
 
     // First, get the existing client data to get the client name
     const { data: existingClient, error: clientFetchError } = await supabase

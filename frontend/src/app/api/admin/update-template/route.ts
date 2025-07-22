@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/app/utils/supabase/server";
 import { uploadFileToClientFolder } from "@/app/utils/microsoft/graph";
+import { TemplateQuestion } from "@/types";
 
 // Configure route segment for large file uploads
 export const config = {
@@ -11,21 +12,6 @@ export const config = {
   },
 };
 
-interface TemplateQuestion {
-  question: string;
-  description: string;
-  response_type: string;
-  due_date: string;
-  templates?: Array<{
-    fileName: string;
-    fileId: string;
-    uploadedAt?: string;
-    _needsUpload?: boolean;
-    _file?: File;
-    _fileKey?: string;
-  }> | null;
-  link?: string;
-}
 
 export async function PUT(request: Request) {
   try {
@@ -56,11 +42,12 @@ export async function PUT(request: Request) {
       console.log("Parsed questions:", questions);
       
       // Parse templates from JSON strings back to arrays if needed
-      questions.forEach((question: any, index: number) => {
+      questions.forEach((question: TemplateQuestion, index: number) => {
         if (question.templates && typeof question.templates === 'string') {
           try {
-            question.templates = JSON.parse(question.templates);
-            console.log(`Question ${index + 1}: Parsed ${question.templates.length} templates from JSON string`);
+            const parsed = JSON.parse(question.templates as string);
+            question.templates = Array.isArray(parsed) ? parsed : null;
+            console.log(`Question ${index + 1}: Parsed ${question.templates?.length || 0} templates from JSON string`);
           } catch (parseError) {
             console.error(`Error parsing templates for question ${index + 1}:`, parseError);
             question.templates = null;

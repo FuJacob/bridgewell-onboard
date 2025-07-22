@@ -66,6 +66,16 @@ export default function QuestionCard({
                 <h2 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
                   {question.question}
                 </h2>
+                {question.due_date && (
+                  <div className="mb-3 p-2 text-xs bg-red-50 border-l-4 border-red-400 text-red-700 rounded-r-lg w-fit">
+                    Due Date:{" "}
+                    {new Date(question.due_date).toLocaleString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    }) || "N/A"}
+                  </div>
+                )}
                 {question.link && (
                   <div className="mb-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
                     <div className="flex items-center gap-2">
@@ -149,7 +159,7 @@ export default function QuestionCard({
                       .filter((t) => t.fileId && t.fileId.trim() !== "")
                       .map((t) => t.fileId)
                       .join(",")
-                  )}&question=${encodeURIComponent(question.question || '')}`}
+                  )}&question=${encodeURIComponent(question.question || "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md"

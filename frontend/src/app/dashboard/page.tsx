@@ -7,7 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getAllForms } from "../login/actions";
 import {
-  type ClientFormData,
+  type Client,
   type Template,
   type FormQuestion,
   type Question,
@@ -39,7 +39,7 @@ import { FaPlus, FaClipboardList, FaSearch } from "react-icons/fa";
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [mounted, setMounted] = useState(false);
-  const [forms, setForms] = useState<ClientFormData[]>([]);
+  const [forms, setForms] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFormModal, setShowFormModal] = useState(false);
@@ -123,7 +123,7 @@ export default function Dashboard() {
     }
   };
 
-  async function checkSignedIn() {
+  async function checkSignedIn(): Promise<void> {
     const supabase = await createClient();
     const {
       data: { user },
@@ -145,7 +145,7 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         const data = await getAllForms();
-        setForms(data as ClientFormData[]);
+        setForms(data);
         setError(null); // Clear any previous errors
       } catch (err) {
         console.error('Dashboard data fetch error:', err);

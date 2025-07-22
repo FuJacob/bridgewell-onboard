@@ -47,13 +47,13 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      id: clientData.id,
-      clientName: clientData.client_name,
+      login_key: clientData.login_key,
+      client_name: clientData.client_name,
       organization: clientData.organization,
       email: clientData.email,
       description: clientData.description,
       questions: questionsData,
-      loginKey: clientData.login_key,
+      created_at: clientData.created_at,
       last_active_at: clientData.last_active_at,
     });
   } catch {

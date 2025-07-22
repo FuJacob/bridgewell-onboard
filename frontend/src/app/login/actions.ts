@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/app/utils/supabase/server";
+import { Client } from "@/types";
 
-export async function getAllForms() {
+export async function getAllForms(): Promise<Client[]> {
   const supabase = await createClient();
 
   try {
@@ -40,12 +41,12 @@ export async function login(formData: FormData): Promise<{ status: string }> {
   redirect("/");
 }
 
-export async function signOut() {
+export async function signOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
 }
 
-export async function signup(formData: FormData) {
+export async function signup(formData: FormData): Promise<void> {
   const supabase = await createClient();
 
   // type-casting here for convenience
