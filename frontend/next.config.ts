@@ -5,10 +5,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   // Configure body size limits for file uploads
-  experimental: {
-    // Increase body size limit for API routes
-    serverComponentsExternalPackages: [],
-  },
+  serverExternalPackages: [],
   // Set max body size for API routes (50MB)
   // This helps handle large file uploads
   async headers() {
