@@ -34,7 +34,7 @@ export async function POST(request: Request) {
         const buffer = await file.arrayBuffer();
         const fileId = await uploadFileToClientFolder(
           loginKey,
-          clientData.client_name,
+          clientData.client_name || 'unknown_client',
           file.name,
           new Blob([buffer])
         );
@@ -49,26 +49,11 @@ export async function POST(request: Request) {
       }
     }
 
-    // Store submission in Supabase
-    const { error: submissionError } = await supabase
-      .from("submissions")
-      .insert([
-        {
-          client_id: clientData.client_id,
-          client_name: clientData.client_name,
-          login_key: loginKey,
-          responses: responses,
-          files: uploadedFiles,
-        },
-      ]);
-
-    if (submissionError) {
-      console.error("Error storing submission:", submissionError);
-      return NextResponse.json(
-        { error: "Failed to store submission" },
-        { status: 500 }
-      );
-    }
+    // Note: Submissions are tracked via SharePoint file existence, not database records
+    console.log("Form submission tracked via uploaded files to SharePoint");
+    console.log(`Uploaded ${uploadedFiles.length} files for form submission`);
+    // In this system, form completion is determined by the presence of files
+    // in SharePoint folders, not by database submission records.
 
     return NextResponse.json({ message: "Form submitted successfully" });
   } catch (error) {

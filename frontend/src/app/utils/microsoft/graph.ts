@@ -1,22 +1,151 @@
 import { getAccessToken } from "@/app/utils/microsoft/auth";
+import type { SharePointError } from "@/types";
 
 const SHAREPOINT_SITE_ID =
   "bridgewellfinancial.sharepoint.com,80def30d-85bd-4e18-969a-6346931d152d,deb319e5-cef4-4818-9ec3-805bedea8819";
 export const SITE_URL = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}`;
 
+// Enhanced error handling for SharePoint operations
+export function handleSharePointError(error: any, operation: string): SharePointError {
+  if (!error) {
+    return { message: `Unknown error during ${operation}` };
+  }
+
+  // Handle fetch errors
+  if (error.name === 'TypeError' && error.message.includes('fetch')) {
+    return {
+      message: `Network error during ${operation}. Please check your internet connection.`,
+      statusCode: 0,
+      details: error.message
+    };
+  }
+
+  // Handle timeout errors
+  if (error.name === 'AbortError' || error.message.includes('timeout')) {
+    return {
+      message: `Operation timed out during ${operation}. Please try again.`,
+      statusCode: 408,
+      details: error.message
+    };
+  }
+
+  // Handle HTTP response errors
+  if (error.status || error.statusCode) {
+    const statusCode = error.status || error.statusCode;
+    let message = `${operation} failed`;
+    
+    switch (statusCode) {
+      case 401:
+        message = 'Authentication failed. Please contact support.';
+        break;
+      case 403:
+        message = 'Access denied. Insufficient permissions for this operation.';
+        break;
+      case 404:
+        message = 'Resource not found. The file or folder may have been moved or deleted.';
+        break;
+      case 409:
+        message = 'Conflict occurred. A file with this name may already exist.';
+        break;
+      case 429:
+        message = 'Too many requests. Please try again in a few minutes.';
+        break;
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        message = 'SharePoint service temporarily unavailable. Please try again later.';
+        break;
+      default:
+        message = `${operation} failed with status ${statusCode}`;
+    }
+
+    return {
+      message,
+      statusCode,
+      errorCode: error.code || error.error_code,
+      details: error.message || error.error_description
+    };
+  }
+
+  // Generic error fallback
+  if (error instanceof Error) {
+    return {
+      message: `${operation} failed: ${error.message}`,
+      details: error.stack
+    };
+  }
+
+  return { message: `Unexpected error during ${operation}`, details: String(error) };
+}
+
+// Retry wrapper for SharePoint operations
+export async function withSharePointRetry<T>(
+  operation: () => Promise<T>,
+  operationName: string,
+  maxRetries: number = 3,
+  baseDelayMs: number = 1000
+): Promise<T> {
+  let lastError: SharePointError;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = handleSharePointError(error, operationName);
+      
+      // Don't retry for certain error types
+      if (lastError.statusCode && [401, 403, 404].includes(lastError.statusCode)) {
+        throw new Error(lastError.message);
+      }
+
+      if (attempt === maxRetries) {
+        break;
+      }
+
+      // Exponential backoff with jitter
+      const delay = baseDelayMs * Math.pow(2, attempt - 1) + Math.random() * 1000;
+      console.log(`Attempt ${attempt} failed for ${operationName}, retrying in ${Math.round(delay)}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw new Error(lastError!.message);
+}
+
+// Sanitize names for SharePoint compatibility
+export function sanitizeSharePointName(name: string, maxLength: number = 50): string {
+  if (!name || typeof name !== 'string') {
+    throw new Error('Invalid name provided for sanitization');
+  }
+
+  return name
+    .trim()
+    .replace(/[<>:"/\\|?*]/g, '_') // Replace invalid SharePoint characters
+    .replace(/\s+/g, '_') // Replace spaces with underscores
+    .replace(/_{2,}/g, '_') // Remove consecutive underscores
+    .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
+    .substring(0, maxLength) || 'unnamed'; // Ensure we have a name
+}
+
 export async function createClientFolder(
   loginKey: string,
   clientName: string
 ): Promise<string> {
-  try {
+  // Validate inputs
+  if (!loginKey || typeof loginKey !== 'string') {
+    throw new Error('Invalid login key provided');
+  }
+  if (!clientName || typeof clientName !== 'string') {
+    throw new Error('Invalid client name provided');
+  }
+
+  return withSharePointRetry(async () => {
     console.log("Getting access token for OneDrive...");
     const accessToken = await getAccessToken();
-    console.log("Access token:", accessToken);
     console.log("Access token received successfully");
 
-    const sanitizedName = clientName
-      .replace(/[^a-zA-Z0-9]/g, "_")
-      .substring(0, 50);
+    const sanitizedName = sanitizeSharePointName(clientName);
     const folderName = `${sanitizedName}_${loginKey}`;
     console.log("Creating folder with name:", folderName);
 
@@ -40,42 +169,42 @@ export async function createClientFolder(
       );
 
       if (!clientsFolderResponse.ok) {
-        const error = await clientsFolderResponse.json();
-        console.log("CLIENTS folder not found, creating it...");
-        console.log("Error details:", error);
-
-        console.log("Making request to create CLIENTS folder...");
-        const createClientsFolderResponse = await fetch(
-          `${SITE_URL}/drive/root:/CLIENTS:/`,
-          {
-            method: "PUT",
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              name: "CLIENTS",
-              folder: {},
-              "@microsoft.graph.conflictBehavior": "rename",
-            }),
-          }
-        );
-
-        console.log(
-          "Create CLIENTS folder response status:",
-          createClientsFolderResponse.status
-        );
-
-        if (!createClientsFolderResponse.ok) {
-          const error = await createClientsFolderResponse.json();
-          console.error("Error creating CLIENTS folder:", error);
-          throw new Error(
-            `Failed to create CLIENTS folder: ${
-              error.message || "Unknown error"
-            }`
+        if (clientsFolderResponse.status === 404) {
+          console.log("CLIENTS folder not found, creating it...");
+          
+          const createClientsFolderResponse = await fetch(
+            `${SITE_URL}/drive/root:/CLIENTS:/`,
+            {
+              method: "PUT",
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                name: "CLIENTS",
+                folder: {},
+                "@microsoft.graph.conflictBehavior": "rename",
+              }),
+            }
           );
+
+          if (!createClientsFolderResponse.ok) {
+            const error = await createClientsFolderResponse.json().catch(() => ({}));
+            throw {
+              status: createClientsFolderResponse.status,
+              message: error.message || `HTTP ${createClientsFolderResponse.status}`,
+              error
+            };
+          }
+          console.log("CLIENTS folder created successfully");
+        } else {
+          const error = await clientsFolderResponse.json().catch(() => ({}));
+          throw {
+            status: clientsFolderResponse.status,
+            message: error.message || `HTTP ${clientsFolderResponse.status}`,
+            error
+          };
         }
-        console.log("CLIENTS folder created successfully");
       } else {
         console.log("CLIENTS folder already exists");
       }
@@ -109,20 +238,18 @@ export async function createClientFolder(
     console.log("Create client folder response status:", response.status);
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error("OneDrive API error creating client folder:", error);
-      throw new Error(
-        `Failed to create client folder: ${error.message || "Unknown error"}`
-      );
+      const error = await response.json().catch(() => ({}));
+      throw {
+        status: response.status,
+        message: error.message || `HTTP ${response.status}`,
+        error
+      };
     }
 
     const data = await response.json();
     console.log("Client folder created successfully with ID:", data.id);
     return data.id;
-  } catch (error) {
-    console.error("Error in createClientFolder:", error);
-    throw error;
-  }
+  }, "create client folder");
 }
 
 export async function createQuestionFolders(
@@ -130,14 +257,23 @@ export async function createQuestionFolders(
   clientName: string,
   questions: Array<{ question: string }>
 ): Promise<void> {
-  try {
+  // Validate inputs
+  if (!loginKey || typeof loginKey !== 'string') {
+    throw new Error('Invalid login key provided');
+  }
+  if (!clientName || typeof clientName !== 'string') {
+    throw new Error('Invalid client name provided');
+  }
+  if (!Array.isArray(questions) || questions.length === 0) {
+    throw new Error('Invalid questions array provided');
+  }
+
+  return withSharePointRetry(async () => {
     console.log("Getting access token for question folders...");
     const accessToken = await getAccessToken();
     console.log("Access token received successfully");
 
-    const sanitizedClientName = clientName
-      .replace(/[^a-zA-Z0-9]/g, "_")
-      .substring(0, 50);
+    const sanitizedClientName = sanitizeSharePointName(clientName);
     const clientFolderName = `${sanitizedClientName}_${loginKey}`;
     console.log(
       "Creating question folders in client folder:",
@@ -145,10 +281,13 @@ export async function createQuestionFolders(
     );
 
     for (const question of questions) {
-      const sanitizedQuestion = question.question
-        .replace(/[^a-zA-Z0-9]/g, "_")
-        .substring(0, 50);
-      const folderName = `${sanitizedQuestion}`;
+      if (!question.question || typeof question.question !== 'string') {
+        console.warn('Skipping invalid question:', question);
+        continue;
+      }
+
+      const sanitizedQuestion = sanitizeSharePointName(question.question);
+      const folderName = sanitizedQuestion;
       console.log("Creating folder for question:", folderName);
 
       // Create the main question folder
@@ -168,13 +307,12 @@ export async function createQuestionFolders(
         }
       );
       if (!questionFolderRes.ok) {
-        const error = await questionFolderRes.json();
-        console.error("OneDrive API error creating question folder:", error);
-        throw new Error(
-          `Failed to create question folder: ${
-            error.message || "Unknown error"
-          }`
-        );
+        const error = await questionFolderRes.json().catch(() => ({}));
+        throw {
+          status: questionFolderRes.status,
+          message: error.message || `Failed to create question folder: HTTP ${questionFolderRes.status}`,
+          error
+        };
       }
       // Create template and answer subfolders
       for (const subfolder of ["template", "answer"]) {
@@ -194,16 +332,12 @@ export async function createQuestionFolders(
           }
         );
         if (!subfolderRes.ok) {
-          const error = await subfolderRes.json();
-          console.error(
-            `OneDrive API error creating ${subfolder} subfolder:`,
+          const error = await subfolderRes.json().catch(() => ({}));
+          throw {
+            status: subfolderRes.status,
+            message: error.message || `Failed to create ${subfolder} subfolder: HTTP ${subfolderRes.status}`,
             error
-          );
-          throw new Error(
-            `Failed to create ${subfolder} subfolder: ${
-              error.message || "Unknown error"
-            }`
-          );
+          };
         }
       }
       console.log(
@@ -211,10 +345,7 @@ export async function createQuestionFolders(
         folderName
       );
     }
-  } catch (error) {
-    console.error("Error in createQuestionFolders:", error);
-    throw error;
-  }
+  }, "create question folders");
 }
 
 export async function copyFileToClientFolder(

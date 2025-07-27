@@ -47,16 +47,21 @@ export async function GET(request: NextRequest) {
     console.log("Questions:", questions);
 
     // Check OneDrive folder for completions
+    // Filter out questions with null question text and transform to expected format
+    const validQuestions = questions
+      .filter(q => q.question !== null)
+      .map(q => ({ question: q.question as string }));
+    
     const completionStatus = await checkQuestionCompletion(
       loginKey,
-      clientData.client_name,
-      questions
+      clientData.client_name || 'unknown_client',
+      validQuestions
     );
 
     // Convert the completion status object to a responses-like format
     // where the key is the question index and the value indicates it's completed
     const responses: Record<string, { completed: boolean }> = {};
-    questions.forEach((question: { question: string }, index: number) => {
+    validQuestions.forEach((question: { question: string }, index: number) => {
       if (completionStatus[question.question]) {
         responses[index] = { completed: true };
       }

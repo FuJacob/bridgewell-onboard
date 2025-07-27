@@ -1,5 +1,8 @@
 // Shared types used across multiple components/pages
-import { Tables, TablesInsert, TablesUpdate } from "../../database.types";
+import { Database, Tables, TablesInsert, TablesUpdate } from "../../database.types";
+
+// Re-export database types for convenience
+export type { Database, Tables, TablesInsert, TablesUpdate };
 
 // Database types - direct exports from source of truth
 export type Client = Tables<"clients">;
@@ -62,26 +65,14 @@ export const convertFormQuestionToQuestion = (
 });
 
 // Extended types for application use - aligned with database schema
-export interface ClientData {
-  login_key: string;
-  client_name: string | null;
-  organization: string | null;
-  email: string | null;
-  description: string | null;
+export interface ClientData extends Client {
   questions: Question[];
-  created_at: string;
-  last_active_at: string | null;
 }
 
-
-// Note: submissions table not found in current database schema
-// Using Record<string, unknown> as fallback for submission data
-export type SubmissionRecord = Record<string, unknown>;
-
+// Submission status tracking (based on OneDrive file existence)
 export interface SubmissionData {
-  client_id: string;
-  client_name: string;
   login_key: string;
+  client_name: string | null;
   responses: Record<string, { completed: boolean }>;
 }
 
@@ -116,3 +107,109 @@ export interface LoginFormData {
   email: string;
   password: string;
 }
+
+// Error handling types
+export interface DatabaseError {
+  message: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+}
+
+export interface SharePointError {
+  message: string;
+  statusCode?: number;
+  errorCode?: string;
+  details?: unknown;
+}
+
+export interface APIResponse<T = unknown> {
+  data?: T;
+  error?: string;
+  success: boolean;
+}
+
+// Validation helpers
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
+// Type guards for runtime validation
+export const isClient = (obj: unknown): obj is Client => {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'login_key' in obj &&
+    'created_at' in obj &&
+    typeof (obj as any).login_key === 'string' &&
+    typeof (obj as any).created_at === 'string'
+  );
+};
+
+export const isQuestion = (obj: unknown): obj is Question => {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'id' in obj &&
+    'created_at' in obj &&
+    typeof (obj as any).id === 'number' &&
+    typeof (obj as any).created_at === 'string'
+  );
+};
+
+export const isTemplate = (obj: unknown): obj is Template => {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'id' in obj &&
+    'created_at' in obj &&
+    typeof (obj as any).id === 'number' &&
+    typeof (obj as any).created_at === 'string'
+  );
+};
+
+// Input validation functions
+export const validateEmail = (email: string): ValidationResult => {
+  const errors: string[] = [];
+  if (!email || typeof email !== 'string') {
+    errors.push('Email is required');
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errors.push('Invalid email format');
+  }
+  return { isValid: errors.length === 0, errors };
+};
+
+export const validateLoginKey = (loginKey: string): ValidationResult => {
+  const errors: string[] = [];
+  if (!loginKey || typeof loginKey !== 'string') {
+    errors.push('Login key is required');
+  } else if (loginKey.length < 10) {
+    errors.push('Login key must be at least 10 characters');
+  }
+  return { isValid: errors.length === 0, errors };
+};
+
+export const validateClientName = (name: string): ValidationResult => {
+  const errors: string[] = [];
+  if (!name || typeof name !== 'string') {
+    errors.push('Client name is required');
+  } else if (name.trim().length < 2) {
+    errors.push('Client name must be at least 2 characters');
+  } else if (name.length > 100) {
+    errors.push('Client name must be less than 100 characters');
+  }
+  return { isValid: errors.length === 0, errors };
+};
+
+export const validateQuestionText = (question: string): ValidationResult => {
+  const errors: string[] = [];
+  if (!question || typeof question !== 'string') {
+    errors.push('Question text is required');
+  } else if (question.trim().length < 3) {
+    errors.push('Question text must be at least 3 characters');
+  } else if (question.length > 500) {
+    errors.push('Question text must be less than 500 characters');
+  }
+  return { isValid: errors.length === 0, errors };
+};

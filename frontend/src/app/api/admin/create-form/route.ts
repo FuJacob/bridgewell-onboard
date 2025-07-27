@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
-import { createServiceClient } from "@/app/utils/supabase/server";
-import { ClientInsert, QuestionInsert, TemplateQuestion } from "@/types";
+import { createServiceClient, handleDatabaseError, withRetry } from "@/app/utils/supabase/server";
+import { 
+  ClientInsert, 
+  QuestionInsert, 
+  TemplateQuestion,
+  validateEmail,
+  validateClientName,
+  validateQuestionText,
+  type APIResponse
+} from "@/types";
 import {
   createClientFolder,
   createQuestionFolders,
@@ -17,7 +25,7 @@ export const config = {
   },
 };
 
-export async function POST(request: Request) {
+export async function POST(request: Request): Promise<NextResponse<APIResponse<{ loginKey: string; uploadSummary: any }>>> {
   try {
     // Accept FormData
     const formData = await request.formData();
@@ -26,6 +34,7 @@ export async function POST(request: Request) {
     const organization = formData.get("organization") as string;
     const clientDescription = formData.get("clientDescription") as string;
     const questionsRaw = formData.get("questions") as string;
+    
     console.log("Received form data:", {
       clientName,
       email,
@@ -34,33 +43,74 @@ export async function POST(request: Request) {
       questionsRaw,
     });
 
-    // Debug: Log all FormData entries
-    console.log("=== DEBUG: All FormData entries ===");
-    for (const [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(
-          `${key}: File(${value.name}, ${value.size} bytes, ${value.type})`
-        );
-      } else {
-        console.log(`${key}: ${value}`);
-      }
-    }
-    console.log("=== END DEBUG ===");
-
-    if (
-      !clientName ||
-      !email ||
-      !organization ||
-      !clientDescription ||
-      !questionsRaw
-    ) {
+    // Validate required fields
+    if (!clientName || !email || !organization || !clientDescription || !questionsRaw) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required fields", success: false },
         { status: 400 }
       );
     }
-    const questions = JSON.parse(questionsRaw);
+
+    // Validate individual fields
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      return NextResponse.json(
+        { error: emailValidation.errors.join(", "), success: false },
+        { status: 400 }
+      );
+    }
+
+    const clientNameValidation = validateClientName(clientName);
+    if (!clientNameValidation.isValid) {
+      return NextResponse.json(
+        { error: clientNameValidation.errors.join(", "), success: false },
+        { status: 400 }
+      );
+    }
+    // Parse and validate questions
+    let questions: TemplateQuestion[];
+    try {
+      questions = JSON.parse(questionsRaw);
+      if (!Array.isArray(questions) || questions.length === 0) {
+        return NextResponse.json(
+          { error: "Questions must be a non-empty array", success: false },
+          { status: 400 }
+        );
+      }
+    } catch (parseError) {
+      return NextResponse.json(
+        { error: "Invalid questions format", success: false },
+        { status: 400 }
+      );
+    }
+
     console.log("Parsed questions:", JSON.stringify(questions, null, 2));
+    
+    // Validate each question
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+      if (!question.question) {
+        return NextResponse.json(
+          { error: `Question ${i + 1} is missing question text`, success: false },
+          { status: 400 }
+        );
+      }
+
+      const questionValidation = validateQuestionText(question.question);
+      if (!questionValidation.isValid) {
+        return NextResponse.json(
+          { error: `Question ${i + 1}: ${questionValidation.errors.join(", ")}`, success: false },
+          { status: 400 }
+        );
+      }
+
+      if (!question.response_type || !["text", "file"].includes(question.response_type)) {
+        return NextResponse.json(
+          { error: `Question ${i + 1} has invalid response type`, success: false },
+          { status: 400 }
+        );
+      }
+    }
     
     // Parse templates from JSON strings back to arrays
     questions.forEach((question: TemplateQuestion, index: number) => {
@@ -75,7 +125,7 @@ export async function POST(request: Request) {
       }
     });
 
-    // 3. Store the form data in Supabase
+    // Store the form data in Supabase with retry logic
     const supabase = createServiceClient();
     const clientInsertData: ClientInsert = {
       email: email,
@@ -84,41 +134,65 @@ export async function POST(request: Request) {
       description: clientDescription,
     };
 
-    const { data: clientData, error: clientError } = await supabase
-      .from("clients")
-      .insert([clientInsertData])
-      .select();
+    const result = await withRetry(async () => {
+      // Check for duplicate email
+      const { data: existingClient, error: duplicateCheckError } = await supabase
+        .from("clients")
+        .select("email")
+        .eq("email", email)
+        .maybeSingle();
 
-    if (clientError) {
-      console.error("Supabase error creating form:", clientError);
-      return NextResponse.json(
-        { error: `Database error: ${clientError.message}` },
-        { status: 500 }
-      );
-    }
-    const loginKey = clientData[0].login_key;
+      if (duplicateCheckError) {
+        const dbError = handleDatabaseError(duplicateCheckError);
+        throw new Error(`Error checking for duplicate email: ${dbError.message}`);
+      }
+
+      if (existingClient) {
+        throw new Error("A client with this email already exists");
+      }
+
+      // Insert client
+      const { data: clientData, error: clientError } = await supabase
+        .from("clients")
+        .insert([clientInsertData])
+        .select()
+        .single();
+
+      if (clientError) {
+        const dbError = handleDatabaseError(clientError);
+        throw new Error(`Database error creating client: ${dbError.message}`);
+      }
+
+      return clientData;
+    });
+
+    const loginKey = result.login_key;
     console.log("Generated loginKey:", loginKey);
 
     // Add login_key to each question to link them to the client
     const questionsWithLoginKey: QuestionInsert[] = questions.map(
-      (question: QuestionInsert) => ({
-        ...question,
+      (question) => ({
+        question: question.question,
+        description: question.description,
+        response_type: question.response_type,
+        due_date: question.due_date,
+        link: question.link,
         login_key: loginKey,
+        templates: question.templates ? JSON.stringify(question.templates) : null,
       })
     );
 
-    const { error: questionsError } = await supabase
-      .from("questions")
-      .insert(questionsWithLoginKey)
-      .select();
+    await withRetry(async () => {
+      const { error: questionsError } = await supabase
+        .from("questions")
+        .insert(questionsWithLoginKey)
+        .select();
 
-    if (questionsError) {
-      console.error("Supabase error creating form:", questionsError);
-      return NextResponse.json(
-        { error: `Database error: ${questionsError.message}` },
-        { status: 500 }
-      );
-    }
+      if (questionsError) {
+        const dbError = handleDatabaseError(questionsError);
+        throw new Error(`Database error creating questions: ${dbError.message}`);
+      }
+    });
 
     console.log("Form data stored successfully in Supabase");
     // 1. Create OneDrive folders
@@ -177,7 +251,7 @@ export async function POST(request: Request) {
           .substring(0, 50);
 
         // Create a mutable copy of templates to avoid read-only property errors
-        const mutableTemplates = [...question.templates];
+        const mutableTemplates: (typeof question.templates[0] | null)[] = [...question.templates];
         
         console.log(`Processing ${mutableTemplates.length} templates for question ${i + 1}`);
 
@@ -217,7 +291,7 @@ export async function POST(request: Request) {
                 setTimeout(() => reject(new Error('File upload timeout after 30 seconds')), 30000);
               });
               
-              const fileId = await Promise.race([uploadPromise, timeoutPromise]);
+              const fileId = await Promise.race([uploadPromise, timeoutPromise]) as string;
               console.log(`File uploaded successfully with ID: ${fileId}`);
               mutableTemplates[templateIdx] = {
                 fileName,
@@ -244,7 +318,7 @@ export async function POST(request: Request) {
           } else {
             // No file found in FormData - check if this template already has a fileId
             const template = mutableTemplates[templateIdx];
-            if (template.fileId && template.fileId.trim() !== "") {
+            if (template && template.fileId && template.fileId.trim() !== "") {
               console.log(
                 `Template ${templateIdx} already has fileId: ${template.fileId}, copying file...`
               );
@@ -321,7 +395,7 @@ export async function POST(request: Request) {
         // Log detailed comparison
         console.log("=== Template processing summary ===");
         mutableTemplates.forEach((template, idx) => {
-          const isValid = validTemplates.find(vt => vt.fileName === template?.fileName && vt.fileId === template?.fileId);
+          const isValid = validTemplates.find(vt => vt && vt.fileName === template?.fileName && vt.fileId === template?.fileId);
           console.log(`Template ${idx}: ${template ? `${template.fileName} (fileId: ${template.fileId})` : 'null'} -> ${isValid ? 'KEPT' : 'FILTERED OUT'}`);
         });
         console.log("=== End template processing summary ===");
@@ -333,7 +407,7 @@ export async function POST(request: Request) {
         );
         const { error: updateError } = await supabase
           .from("questions")
-          .update({ templates: validTemplates })
+          .update({ templates: JSON.stringify(validTemplates) })
           .eq("login_key", loginKey)
           .eq("question", question.question);
 
@@ -354,23 +428,34 @@ export async function POST(request: Request) {
     console.log("Form creation completed successfully");
     
     return NextResponse.json({
-      message: "Form created successfully",
-      loginKey,
-      uploadSummary: {
-        totalUploaded: totalFilesUploaded,
-        totalSkipped: totalFilesSkipped,
-        details: uploadResults
-      }
+      data: {
+        loginKey,
+        uploadSummary: {
+          totalUploaded: totalFilesUploaded,
+          totalSkipped: totalFilesSkipped,
+          details: uploadResults
+        }
+      },
+      success: true
     });
+
   } catch (error) {
     console.error("Error in create-form:", error);
+    
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    let statusCode = 500;
+    
+    if (errorMessage.includes("duplicate email")) {
+      statusCode = 409;
+    } else if (errorMessage.includes("Database error")) {
+      statusCode = 503;
+    } else if (errorMessage.includes("validation failed")) {
+      statusCode = 400;
+    }
+
     return NextResponse.json(
-      {
-        error: `Server error: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-      },
-      { status: 500 }
+      { error: errorMessage, success: false },
+      { status: statusCode }
     );
   }
 }

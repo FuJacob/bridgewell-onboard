@@ -109,42 +109,10 @@ export async function POST(request: Request) {
     if (deletedQuestionIndices.length > 0) {
       console.log("Clearing client submissions for deleted questions...");
 
-      // Get all client submissions for this login key
-      const { data: submissions, error: submissionsError } = await supabase
-        .from("submissions")
-        .select("responses")
-        .eq("login_key", loginKey);
-
-      if (submissionsError) {
-        console.error("Error fetching submissions:", submissionsError);
-      } else if (submissions && submissions.length > 0) {
-        // Update each submission to remove responses for modified questions
-        for (const submission of submissions) {
-          if (submission.responses) {
-            const responses = JSON.parse(submission.responses);
-            const updatedResponses = { ...responses };
-
-            // Remove responses for deleted questions
-            deletedQuestionIndices.forEach((index) => {
-              delete updatedResponses[index.toString()];
-            });
-
-            // Update the submission with cleaned responses
-            const { error: updateSubmissionError } = await supabase
-              .from("submissions")
-              .update({ responses: JSON.stringify(updatedResponses) })
-              .eq("login_key", loginKey)
-              .eq("responses", submission.responses);
-
-            if (updateSubmissionError) {
-              console.error(
-                "Error updating submission:",
-                updateSubmissionError
-              );
-            }
-          }
-        }
-      }
+      // Note: Submissions are tracked via SharePoint file existence, not database records
+      console.log("Skipping submission cleanup - submissions tracked via SharePoint files");
+      // In this system, when questions are deleted, the corresponding SharePoint files
+      // should be removed as part of the SharePoint cleanup process.
 
       // Clear OneDrive files for deleted questions
       console.log("Clearing OneDrive files for deleted questions...");
@@ -165,7 +133,7 @@ export async function POST(request: Request) {
             try {
               await deleteFileFromOneDrive(
                 loginKey,
-                clientName,
+                clientName || 'unknown_client',
                 sanitizedQuestion
               );
               console.log(
@@ -265,7 +233,7 @@ export async function POST(request: Request) {
 
     // Update OneDrive folders for new questions
     console.log("Updating OneDrive folders...");
-    await createQuestionFolders(loginKey, clientName, questions);
+    await createQuestionFolders(loginKey, clientName || 'unknown_client', questions);
 
     console.log("Form updated successfully");
 

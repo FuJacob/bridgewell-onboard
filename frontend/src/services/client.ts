@@ -1,15 +1,28 @@
 // Client-related API services
-import { ClientData, SubmissionData } from "@/types";
+import { ClientData, SubmissionData, APIResponse, validateLoginKey } from "@/types";
+
 /**
  * Validate a client login key
  */
 export async function validateClientKey(key: string): Promise<void> {
+  if (!key) {
+    throw new Error("Login key is required");
+  }
+
+  const validation = validateLoginKey(key);
+  if (!validation.isValid) {
+    throw new Error(validation.errors.join(", "));
+  }
+
   const response = await fetch(
     `/api/client/validate-key?key=${encodeURIComponent(key)}`
   );
 
   if (!response.ok) {
-    const data = await response.json();
+    const data: APIResponse = await response.json().catch(() => ({ 
+      error: "Network error", 
+      success: false 
+    }));
     throw new Error(data.error || "Invalid login key");
   }
 }
@@ -18,15 +31,33 @@ export async function validateClientKey(key: string): Promise<void> {
  * Fetch client form data by login key
  */
 export async function getClientFormData(loginKey: string): Promise<ClientData> {
+  if (!loginKey) {
+    throw new Error("Login key is required");
+  }
+
+  const validation = validateLoginKey(loginKey);
+  if (!validation.isValid) {
+    throw new Error(validation.errors.join(", "));
+  }
+
   const response = await fetch(
-  `/api/client/form-data?key=${encodeURIComponent(loginKey)}`
+    `/api/client/form-data?key=${encodeURIComponent(loginKey)}`
   );
 
   if (!response.ok) {
-    throw new Error("Invalid key or form not found");
+    const data: APIResponse = await response.json().catch(() => ({ 
+      error: "Network error", 
+      success: false 
+    }));
+    throw new Error(data.error || "Invalid key or form not found");
   }
 
-  return response.json();
+  const result: APIResponse<ClientData> = await response.json();
+  if (!result.success || !result.data) {
+    throw new Error(result.error || "Failed to fetch form data");
+  }
+
+  return result.data;
 }
 
 /**
@@ -57,7 +88,40 @@ export async function submitQuestionResponse(
   response_type: string,
   textResponse?: string,
   file?: File
-): Promise<{ fileId?: string }> {
+): Promise<{ fileId: string }> {
+  // Validate inputs
+  if (!loginKey) {
+    throw new Error("Login key is required");
+  }
+
+  const validation = validateLoginKey(loginKey);
+  if (!validation.isValid) {
+    throw new Error(validation.errors.join(", "));
+  }
+
+  if (!questionText || questionText.trim().length === 0) {
+    throw new Error("Question text is required");
+  }
+
+  if (!response_type || !["text", "file"].includes(response_type)) {
+    throw new Error("Invalid response type");
+  }
+
+  if (response_type === "text" && (!textResponse || textResponse.trim().length === 0)) {
+    throw new Error("Text response is required for text responses");
+  }
+
+  if (response_type === "file" && !file) {
+    throw new Error("File is required for file responses");
+  }
+
+  // Validate file if provided
+  if (file) {
+    if (file.size > 50 * 1024 * 1024) { // 50MB limit
+      throw new Error("File size must be less than 50MB");
+    }
+  }
+
   const formData = new FormData();
   formData.append("loginKey", loginKey);
   formData.append("questionIndex", questionIndex.toString());
@@ -75,11 +139,18 @@ export async function submitQuestionResponse(
     body: formData,
   });
 
-  const responseData = await response.json();
+  const result: APIResponse<{ fileId: string }> = await response.json().catch(() => ({
+    error: "Network error",
+    success: false
+  }));
 
-  if (!response.ok) {
-    throw new Error(responseData.error || "Failed to submit response");
+  if (!response.ok || !result.success) {
+    throw new Error(result.error || "Failed to submit response");
   }
 
-  return responseData;
+  if (!result.data?.fileId) {
+    throw new Error("Invalid response from server");
+  }
+
+  return result.data;
 }

@@ -147,7 +147,7 @@ export async function PUT(request: Request) {
           template_name: templateName,
           questions: JSON.stringify(processedQuestions),
         })
-        .eq("id", templateId)
+        .eq("id", parseInt(templateId, 10))
         .select();
 
       if (error) {
@@ -187,7 +187,7 @@ export async function PUT(request: Request) {
           template_name: templateName,
           questions: JSON.stringify(questions), // store as text
         })
-        .eq("id", templateId)
+        .eq("id", parseInt(templateId, 10))
         .select();
 
       if (error) {
