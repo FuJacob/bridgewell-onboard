@@ -1,9 +1,25 @@
 import { getAccessToken } from "@/app/utils/microsoft/auth";
 import type { SharePointError } from "@/types";
 
-const SHAREPOINT_SITE_ID =
-  "bridgewellfinancial.sharepoint.com,80def30d-85bd-4e18-969a-6346931d152d,deb319e5-cef4-4818-9ec3-805bedea8819";
-export const SITE_URL = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}`;
+// Environment validation for SharePoint - defer to runtime
+function getSharePointSiteId(): string {
+  if (!process.env.SHAREPOINT_SITE_ID) {
+    throw new Error('SHAREPOINT_SITE_ID environment variable is required');
+  }
+  return process.env.SHAREPOINT_SITE_ID;
+}
+
+function getSiteUrl(): string {
+  return `https://graph.microsoft.com/v1.0/sites/${getSharePointSiteId()}`;
+}
+
+// Export for external use
+export function getSiteURL(): string {
+  return getSiteUrl();
+}
+const REQUEST_TIMEOUT = 60000; // 60 seconds for file operations
+const MAX_FILE_SIZE = 250 * 1024 * 1024; // 250MB limit for large file uploads
+const SMALL_FILE_THRESHOLD = 4 * 1024 * 1024; // 4MB threshold for simple upload
 
 // Enhanced error handling for SharePoint operations
 export function handleSharePointError(error: any, operation: string): SharePointError {
@@ -113,20 +129,81 @@ export async function withSharePointRetry<T>(
   throw new Error(lastError!.message);
 }
 
-// Sanitize names for SharePoint compatibility
+// Enhanced sanitization for SharePoint compatibility
 export function sanitizeSharePointName(name: string, maxLength: number = 50): string {
   if (!name || typeof name !== 'string') {
     throw new Error('Invalid name provided for sanitization');
   }
 
-  return name
+  // SharePoint invalid characters: \ / : * ? " < > |
+  // Also handle other problematic characters
+  let sanitized = name
     .trim()
-    .replace(/[<>:"/\\|?*]/g, '_') // Replace invalid SharePoint characters
-    .replace(/\s+/g, '_') // Replace spaces with underscores
-    .replace(/_{2,}/g, '_') // Remove consecutive underscores
-    .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
-    .substring(0, maxLength) || 'unnamed'; // Ensure we have a name
+    .replace(/[\\/:*?"<>|]/g, '_') // Replace SharePoint invalid characters
+    .replace(/[\x00-\x1f\x80-\x9f]/g, '_') // Replace control characters
+    .replace(/\.+$/g, '') // Remove trailing dots
+    .replace(/\s+/g, '_') // Replace whitespace with underscores
+    .replace(/_{2,}/g, '_') // Collapse multiple underscores
+    .replace(/^_+|_+$/g, ''); // Remove leading/trailing underscores
+
+  // Handle reserved SharePoint names
+  const reservedNames = [
+    'CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5',
+    'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5',
+    'LPT6', 'LPT7', 'LPT8', 'LPT9'
+  ];
+  
+  if (reservedNames.includes(sanitized.toUpperCase())) {
+    sanitized = `${sanitized}_file`;
+  }
+
+  // Ensure we have a valid name
+  if (!sanitized || sanitized.length === 0) {
+    sanitized = 'unnamed';
+  }
+
+  // Truncate to max length but preserve file extension if present
+  if (sanitized.length > maxLength) {
+    const lastDotIndex = sanitized.lastIndexOf('.');
+    if (lastDotIndex > 0 && lastDotIndex > sanitized.length - 10) {
+      // Has extension, preserve it
+      const extension = sanitized.substring(lastDotIndex);
+      const nameWithoutExt = sanitized.substring(0, lastDotIndex);
+      const maxNameLength = maxLength - extension.length;
+      sanitized = nameWithoutExt.substring(0, maxNameLength) + extension;
+    } else {
+      // No extension or extension too long, just truncate
+      sanitized = sanitized.substring(0, maxLength);
+    }
+  }
+
+  return sanitized;
 }
+
+// Create fetch with timeout
+function createFetchWithTimeout(timeoutMs: number = REQUEST_TIMEOUT) {
+  return async (url: string, options: RequestInit = {}): Promise<Response> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error(`Request timed out after ${timeoutMs}ms`);
+      }
+      throw error;
+    }
+  };
+}
+
+const fetchWithTimeout = createFetchWithTimeout();
 
 export async function createClientFolder(
   loginKey: string,
@@ -151,10 +228,10 @@ export async function createClientFolder(
 
     // First, try to create the CLIENTS folder if it doesn't exist
     console.log("Checking if CLIENTS folder exists...");
-    console.log("Making request to:", `${SITE_URL}/drive/root:/CLIENTS:/`);
+    console.log("Making request to:", `${getSiteUrl()}/drive/root:/CLIENTS:/`);
     try {
-      const clientsFolderResponse = await fetch(
-        `${SITE_URL}/drive/root:/CLIENTS:/`,
+      const clientsFolderResponse = await fetchWithTimeout(
+        `${getSiteUrl()}/drive/root:/CLIENTS:/`,
         {
           method: "GET",
           headers: {
@@ -172,8 +249,8 @@ export async function createClientFolder(
         if (clientsFolderResponse.status === 404) {
           console.log("CLIENTS folder not found, creating it...");
           
-          const createClientsFolderResponse = await fetch(
-            `${SITE_URL}/drive/root:/CLIENTS:/`,
+          const createClientsFolderResponse = await fetchWithTimeout(
+            `${getSiteUrl()}/drive/root:/CLIENTS:/`,
             {
               method: "PUT",
               headers: {
@@ -217,10 +294,10 @@ export async function createClientFolder(
     console.log("Creating client folder inside CLIENTS...");
     console.log(
       "Making request to:",
-      `${SITE_URL}/drive/root:/CLIENTS/${folderName}:/`
+      `${getSiteUrl()}/drive/root:/CLIENTS/${folderName}:/`
     );
-    const response = await fetch(
-      `${SITE_URL}/drive/root:/CLIENTS/${folderName}:/`,
+    const response = await fetchWithTimeout(
+      `${getSiteUrl()}/drive/root:/CLIENTS/${folderName}:/`,
       {
         method: "PUT",
         headers: {
@@ -291,8 +368,8 @@ export async function createQuestionFolders(
       console.log("Creating folder for question:", folderName);
 
       // Create the main question folder
-      const questionFolderRes = await fetch(
-        `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}/${folderName}:/`,
+      const questionFolderRes = await fetchWithTimeout(
+        `${getSiteUrl()}/drive/root:/CLIENTS/${clientFolderName}/${folderName}:/`,
         {
           method: "PUT",
           headers: {
@@ -316,8 +393,8 @@ export async function createQuestionFolders(
       }
       // Create template and answer subfolders
       for (const subfolder of ["template", "answer"]) {
-        const subfolderRes = await fetch(
-          `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}/${folderName}/${subfolder}:/`,
+        const subfolderRes = await fetchWithTimeout(
+          `${getSiteUrl()}/drive/root:/CLIENTS/${clientFolderName}/${folderName}/${subfolder}:/`,
           {
             method: "PUT",
             headers: {
@@ -354,102 +431,71 @@ export async function copyFileToClientFolder(
   clientName: string,
   destinationPath: string
 ): Promise<string> {
-  try {
-    // Get access token
-    let accessToken;
-    try {
-      accessToken = await getAccessToken();
-    } catch (tokenError) {
-      console.error("Error getting access token:", tokenError);
-      throw new Error("Authentication failed. Please try again later.");
-    }
+  // Validate inputs
+  if (!sourceFileId || typeof sourceFileId !== 'string') {
+    throw new Error('Invalid source file ID provided');
+  }
+  if (!loginKey || typeof loginKey !== 'string') {
+    throw new Error('Invalid login key provided');
+  }
+  if (!clientName || typeof clientName !== 'string') {
+    throw new Error('Invalid client name provided');
+  }
+  if (!destinationPath || typeof destinationPath !== 'string') {
+    throw new Error('Invalid destination path provided');
+  }
 
-    const sanitizedClientName = clientName
-      .replace(/[^a-zA-Z0-9]/g, "_")
-      .substring(0, 50);
+  return withSharePointRetry(async () => {
+    console.log("Getting access token for file copy...");
+    const accessToken = await getAccessToken();
+    console.log("Access token received successfully");
+
+    const sanitizedClientName = sanitizeSharePointName(clientName);
     const clientFolderName = `${sanitizedClientName}_${loginKey}`;
+    const sanitizedDestinationPath = destinationPath.split('/').map(part => sanitizeSharePointName(part)).join('/');
+    
     console.log("Client folder name for copy:", clientFolderName);
-    console.log("Using loginKey:", loginKey);
+    console.log("Sanitized destination path:", sanitizedDestinationPath);
 
     // Ensure the path includes CLIENTS as the root folder
-    const fullDestinationPath = `CLIENTS/${clientFolderName}/${destinationPath}`;
+    const fullDestinationPath = `CLIENTS/${clientFolderName}/${sanitizedDestinationPath}`;
     console.log("Copying file to path:", fullDestinationPath);
 
-    try {
-      // Use Microsoft Graph copy API
-      const response = await fetch(
-        `${SITE_URL}/drive/items/${sourceFileId}/copy`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
+    // Use Microsoft Graph copy API
+    const parentPath = sanitizedDestinationPath.split("/").slice(0, -1).join("/");
+    const fileName = sanitizedDestinationPath.split("/").pop();
+    
+    const response = await fetchWithTimeout(
+      `${getSiteUrl()}/drive/items/${sourceFileId}/copy`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          parentReference: {
+            driveId: "root",
+            path: `/CLIENTS/${clientFolderName}${parentPath ? `/${parentPath}` : ''}`
           },
-          body: JSON.stringify({
-            parentReference: {
-              driveId: "root",
-              path: `/CLIENTS/${clientFolderName}/${destinationPath
-                .split("/")
-                .slice(0, -1)
-                .join("/")}`,
-            },
-            name: destinationPath.split("/").pop(), // Get just the filename
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          throw new Error(
-            "Permission denied while copying file. Please contact support."
-          );
-        } else if (response.status === 404) {
-          throw new Error(
-            "Source file or destination folder not found. Please try again or contact support."
-          );
-        } else if (response.status >= 500) {
-          throw new Error("Server error. Please try again later.");
-        }
-
-        const error = await response.json();
-        console.error("Error copying file:", error);
-        throw new Error(
-          `Copy failed: ${
-            error.message || error.error?.message || "Unknown error"
-          }`
-        );
+          name: fileName,
+        }),
       }
+    );
 
-      const data = await response.json();
-      console.log("File copied successfully with ID:", data.id);
-      return data.id;
-    } catch (fetchError: unknown) {
-      // Handle fetch-specific errors
-      if (fetchError instanceof Error) {
-        if (fetchError.name === "AbortError") {
-          throw new Error("Copy was aborted. Please try again.");
-        } else if (
-          fetchError.name === "TypeError" &&
-          fetchError.message.includes("NetworkError")
-        ) {
-          throw new Error(
-            "Network error. Please check your internet connection and try again."
-          );
-        } else {
-          throw fetchError; // Re-throw other errors
-        }
-      } else {
-        throw new Error("Failed to copy file due to an unexpected error");
-      }
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw {
+        status: response.status,
+        message: error.message || `HTTP ${response.status}`,
+        error
+      };
     }
-  } catch (error) {
-    console.error("Error in copyFileToClientFolder:", error);
-    if (error instanceof Error) {
-      throw error; // Re-throw the error with its message intact
-    } else {
-      throw new Error("Failed to copy file due to an unexpected error");
-    }
-  }
+
+    const data = await response.json();
+    console.log("File copied successfully with ID:", data.id);
+    return data.id;
+  }, "copy file to client folder");
 }
 
 export async function uploadFileToClientFolder(
@@ -458,47 +504,161 @@ export async function uploadFileToClientFolder(
   filePath: string,
   fileContent: Blob
 ): Promise<string> {
-  try {
+  // Validate inputs
+  if (!loginKey || typeof loginKey !== 'string') {
+    throw new Error('Invalid login key provided');
+  }
+  if (!clientName || typeof clientName !== 'string') {
+    throw new Error('Invalid client name provided');
+  }
+  if (!filePath || typeof filePath !== 'string') {
+    throw new Error('Invalid file path provided');
+  }
+  if (!fileContent || !(fileContent instanceof Blob)) {
+    throw new Error('Invalid file content provided');
+  }
+  if (fileContent.size > MAX_FILE_SIZE) {
+    throw new Error(`File size (${Math.round(fileContent.size / 1024 / 1024)}MB) exceeds maximum limit of ${MAX_FILE_SIZE / 1024 / 1024}MB`);
+  }
+
+  return withSharePointRetry(async () => {
     console.log("Getting access token for file upload...");
     const accessToken = await getAccessToken();
     console.log("Access token received successfully");
 
-    const sanitizedClientName = clientName
-      .replace(/[^a-zA-Z0-9]/g, "_")
-      .substring(0, 50);
+    const sanitizedClientName = sanitizeSharePointName(clientName);
     const clientFolderName = `${sanitizedClientName}_${loginKey}`;
+    const sanitizedFilePath = filePath.split('/').map(part => sanitizeSharePointName(part)).join('/');
+    
     console.log("Uploading file to client folder:", clientFolderName);
-    console.log("File path:", filePath);
+    console.log("Sanitized file path:", sanitizedFilePath);
+    console.log("File size:", `${Math.round(fileContent.size / 1024)}KB`);
 
-    const response = await fetch(
-      `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}/${filePath}:/content`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": fileContent.type,
-        },
-        body: fileContent,
-      }
-    );
-
-    console.log("Upload response status:", response.status);
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("OneDrive API error uploading file:", error);
-      throw new Error(
-        `Failed to upload file: ${error.message || "Unknown error"}`
-      );
+    // Choose upload method based on file size
+    if (fileContent.size <= SMALL_FILE_THRESHOLD) {
+      // Simple upload for small files
+      return await uploadSmallFile(accessToken, clientFolderName, sanitizedFilePath, fileContent);
+    } else {
+      // Resumable upload for larger files
+      return await uploadLargeFile(accessToken, clientFolderName, sanitizedFilePath, fileContent);
     }
+  }, "upload file to client folder");
+}
 
-    const data = await response.json();
-    console.log("File uploaded successfully with ID:", data.id);
-    return data.id;
-  } catch (error) {
-    console.error("Error in uploadFileToClientFolder:", error);
-    throw error;
+// Helper function for small file uploads
+async function uploadSmallFile(
+  accessToken: string,
+  clientFolderName: string,
+  filePath: string,
+  fileContent: Blob
+): Promise<string> {
+  const response = await fetchWithTimeout(
+    `${getSiteUrl()}/drive/root:/CLIENTS/${clientFolderName}/${filePath}:/content`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": fileContent.type || "application/octet-stream",
+      },
+      body: fileContent,
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw {
+      status: response.status,
+      message: error.message || `Upload failed: HTTP ${response.status}`,
+      error
+    };
   }
+
+  const data = await response.json();
+  console.log("Small file uploaded successfully with ID:", data.id);
+  return data.id;
+}
+
+// Helper function for large file uploads using resumable upload sessions
+async function uploadLargeFile(
+  accessToken: string,
+  clientFolderName: string,
+  filePath: string,
+  fileContent: Blob
+): Promise<string> {
+  console.log("Starting resumable upload session for large file...");
+  
+  // Create upload session
+  const sessionResponse = await fetchWithTimeout(
+    `${getSiteUrl()}/drive/root:/CLIENTS/${clientFolderName}/${filePath}:/createUploadSession`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        item: {
+          "@microsoft.graph.conflictBehavior": "replace",
+          name: filePath.split('/').pop()
+        }
+      }),
+    }
+  );
+
+  if (!sessionResponse.ok) {
+    const error = await sessionResponse.json().catch(() => ({}));
+    throw {
+      status: sessionResponse.status,
+      message: error.message || `Failed to create upload session: HTTP ${sessionResponse.status}`,
+      error
+    };
+  }
+
+  const sessionData = await sessionResponse.json();
+  const uploadUrl = sessionData.uploadUrl;
+  
+  console.log("Upload session created, uploading file chunks...");
+  
+  // Upload the file in chunks
+  const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+  const fileSize = fileContent.size;
+  let uploadedBytes = 0;
+  
+  while (uploadedBytes < fileSize) {
+    const chunkEnd = Math.min(uploadedBytes + chunkSize, fileSize);
+    const chunk = fileContent.slice(uploadedBytes, chunkEnd);
+    
+    const chunkResponse = await fetchWithTimeout(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Range": `bytes ${uploadedBytes}-${chunkEnd - 1}/${fileSize}`,
+        "Content-Length": chunk.size.toString(),
+      },
+      body: chunk,
+    });
+
+    if (!chunkResponse.ok && chunkResponse.status !== 202) {
+      const error = await chunkResponse.json().catch(() => ({}));
+      throw {
+        status: chunkResponse.status,
+        message: error.message || `Chunk upload failed: HTTP ${chunkResponse.status}`,
+        error
+      };
+    }
+    
+    uploadedBytes = chunkEnd;
+    const progress = Math.round((uploadedBytes / fileSize) * 100);
+    console.log(`Upload progress: ${progress}% (${uploadedBytes}/${fileSize} bytes)`);
+    
+    // If this is the final chunk and upload is complete
+    if (uploadedBytes === fileSize && chunkResponse.status === 201) {
+      const data = await chunkResponse.json();
+      console.log("Large file uploaded successfully with ID:", data.id);
+      return data.id;
+    }
+  }
+  
+  throw new Error("Upload completed but no file ID returned");
 }
 
 export async function deleteFileFromOneDrive(
@@ -506,20 +666,31 @@ export async function deleteFileFromOneDrive(
   clientName: string,
   filePath: string
 ): Promise<void> {
-  try {
+  // Validate inputs
+  if (!loginKey || typeof loginKey !== 'string') {
+    throw new Error('Invalid login key provided');
+  }
+  if (!clientName || typeof clientName !== 'string') {
+    throw new Error('Invalid client name provided');
+  }
+  if (!filePath || typeof filePath !== 'string') {
+    throw new Error('Invalid file path provided');
+  }
+
+  return withSharePointRetry(async () => {
     console.log("Getting access token for file deletion...");
     const accessToken = await getAccessToken();
     console.log("Access token received successfully");
 
-    const sanitizedClientName = clientName
-      .replace(/[^a-zA-Z0-9]/g, "_")
-      .substring(0, 50);
+    const sanitizedClientName = sanitizeSharePointName(clientName);
     const clientFolderName = `${sanitizedClientName}_${loginKey}`;
+    const sanitizedFilePath = filePath.split('/').map(part => sanitizeSharePointName(part)).join('/');
+    
     console.log("Deleting file from client folder:", clientFolderName);
-    console.log("File path:", filePath);
+    console.log("Sanitized file path:", sanitizedFilePath);
 
-    const response = await fetch(
-      `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}/${filePath}`,
+    const response = await fetchWithTimeout(
+      `${getSiteUrl()}/drive/root:/CLIENTS/${clientFolderName}/${sanitizedFilePath}`,
       {
         method: "DELETE",
         headers: {
@@ -530,39 +701,27 @@ export async function deleteFileFromOneDrive(
 
     console.log("Delete response status:", response.status);
 
+    // Don't throw error for 404 (file not found) - it's already deleted
+    if (response.status === 404) {
+      console.log("File/folder already deleted or doesn't exist");
+      return;
+    }
+
     if (!response.ok) {
-      let error;
-      try {
-        error = await response.json();
-      } catch {
-        // If response is not JSON, get text instead
+      const error = await response.json().catch(async () => {
         const text = await response.text();
-        error = { message: text, code: response.status };
-      }
-      console.error("OneDrive API error deleting file:", {
-        status: response.status,
-        statusText: response.statusText,
-        error,
-        filePath,
-        clientFolderName
+        return { message: text, code: response.status };
       });
       
-      // Don't throw error for 404 (file not found) - it's already deleted
-      if (response.status === 404) {
-        console.log("File/folder already deleted or doesn't exist");
-        return;
-      }
-      
-      throw new Error(
-        `Failed to delete file (${response.status}): ${error.message || error.code || "Unknown error"}`
-      );
+      throw {
+        status: response.status,
+        message: error.message || error.code || `Delete failed: HTTP ${response.status}`,
+        error
+      };
     }
 
     console.log("File deleted successfully");
-  } catch (error) {
-    console.error("Error in deleteFileFromOneDrive:", error);
-    throw error;
-  }
+  }, "delete file from OneDrive");
 }
 
 export async function checkQuestionCompletion(
@@ -570,11 +729,20 @@ export async function checkQuestionCompletion(
   clientName: string,
   questions: Array<{ question: string }>
 ): Promise<{ [key: string]: boolean }> {
-  try {
+  // Validate inputs
+  if (!loginKey || typeof loginKey !== 'string') {
+    throw new Error('Invalid login key provided');
+  }
+  if (!clientName || typeof clientName !== 'string') {
+    throw new Error('Invalid client name provided');
+  }
+  if (!Array.isArray(questions) || questions.length === 0) {
+    throw new Error('Invalid questions array provided');
+  }
+
+  return withSharePointRetry(async () => {
     const accessToken = await getAccessToken();
-    const sanitizedClientName = clientName
-      .replace(/[^a-zA-Z0-9]/g, "_")
-      .substring(0, 50);
+    const sanitizedClientName = sanitizeSharePointName(clientName);
     const clientFolderName = `${sanitizedClientName}_${loginKey}`;
     console.log(
       "Client folder name for checking completion:",
@@ -585,9 +753,12 @@ export async function checkQuestionCompletion(
     const completionStatus: { [key: string]: boolean } = {};
 
     for (const question of questions) {
-      const sanitizedQuestion = question.question
-        .replace(/[^a-zA-Z0-9]/g, "_")
-        .substring(0, 50);
+      if (!question.question || typeof question.question !== 'string') {
+        console.warn('Skipping invalid question:', question);
+        continue;
+      }
+
+      const sanitizedQuestion = sanitizeSharePointName(question.question);
       // Only check the answer subfolder
       const checkPath = `CLIENTS/${clientFolderName}/${sanitizedQuestion}/answer`;
       console.log(
@@ -595,37 +766,42 @@ export async function checkQuestionCompletion(
         checkPath
       );
 
-      const response = await fetch(
-        `${SITE_URL}/drive/root:/${checkPath}:/children`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        // If the answer subfolder has any items (files), consider the question completed
-        completionStatus[question.question] =
-          data.value && data.value.length > 0;
-        console.log(
-          `Question "${question.question}" completion:`,
-          completionStatus[question.question],
-          data.value ? `(${data.value.length} files found)` : "(no files)"
+      try {
+        const response = await fetchWithTimeout(
+          `${getSiteUrl()}/drive/root:/${checkPath}:/children`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
         );
-      } else {
+
+        if (response.ok) {
+          const data = await response.json();
+          // If the answer subfolder has any items (files), consider the question completed
+          completionStatus[question.question] =
+            data.value && data.value.length > 0;
+          console.log(
+            `Question "${question.question}" completion:`,
+            completionStatus[question.question],
+            data.value ? `(${data.value.length} files found)` : "(no files)"
+          );
+        } else {
+          console.error(
+            `Error checking answer subfolder for question: ${question.question}`,
+            response.status
+          );
+          completionStatus[question.question] = false;
+        }
+      } catch (error) {
         console.error(
-          `Error checking answer subfolder for question: ${question.question}`,
-          response.status
+          `Error checking completion for question "${question.question}":`,
+          error
         );
         completionStatus[question.question] = false;
       }
     }
 
     return completionStatus;
-  } catch (error) {
-    console.error("Error in checkQuestionCompletion:", error);
-    return {};
-  }
+  }, "check question completion");
 }

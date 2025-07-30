@@ -14,6 +14,7 @@ import {
   createQuestionFolders,
   uploadFileToClientFolder,
   copyFileToClientFolder,
+  sanitizeSharePointName,
 } from "@/app/utils/microsoft/graph";
 
 // Configure route segment for large file uploads
@@ -246,9 +247,7 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
         );
         console.log(`Templates for question ${i + 1}:`, question.templates);
         
-        const sanitizedQuestion = question.question
-          .replace(/[^a-zA-Z0-9]/g, "_")
-          .substring(0, 50);
+        const sanitizedQuestion = sanitizeSharePointName(question.question);
 
         // Create a mutable copy of templates to avoid read-only property errors
         const mutableTemplates: (typeof question.templates[0] | null)[] = [...question.templates];
