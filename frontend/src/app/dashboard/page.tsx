@@ -33,8 +33,7 @@ import {
   LoadingOverlay,
 } from "@/components/shared";
 import TemplateSelectionModal from "@/components/forms/TemplateSelectionModal";
-import EditTemplateModal from "@/components/forms/EditTemplateModal";
-import FormModal from "@/components/forms/FormModal";
+import { FormEditorModal } from "@/components/forms";
 import { FaPlus, FaClipboardList, FaSearch } from "react-icons/fa";
 
 export default function Dashboard() {
@@ -81,6 +80,8 @@ export default function Dashboard() {
   const [showEditTemplateModal, setShowEditTemplateModal] = useState(false);
   const [templateToEdit, setTemplateToEdit] = useState<Template | null>(null);
   const [isUpdatingTemplate, setIsUpdatingTemplate] = useState(false);
+  const [editTemplateQuestions, setEditTemplateQuestions] = useState<FormQuestion[]>([]);
+  const [editTemplateName, setEditTemplateName] = useState("");
 
   const filteredForms = forms.filter((form) =>
     form.organization?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -607,15 +608,38 @@ export default function Dashboard() {
   };
 
   const handleEditTemplate = (template: Template) => {
-    setTemplateToEdit(template);
-    setShowEditTemplateModal(true);
+    try {
+      console.log("=== DEBUG: Setting up template for editing ===");
+      console.log("Template:", template);
+      
+      if (!template.questions || typeof template.questions !== "string") {
+        console.error("Invalid template questions format");
+        return;
+      }
+      
+      const templateQuestions = JSON.parse(template.questions);
+      if (!Array.isArray(templateQuestions)) {
+        console.error("Template questions is not an array");
+        return;
+      }
+      
+      // Strip IDs from questions to prevent key errors
+      const questionsWithoutIds = templateQuestions.map(({ id: _id, ...rest }) => rest);
+      
+      setTemplateToEdit(template);
+      setEditTemplateQuestions(questionsWithoutIds);
+      setEditTemplateName(template.template_name || "");
+      setShowEditTemplateModal(true);
+      
+      console.log("=== END DEBUG ===");
+    } catch (err) {
+      console.error("Error setting up template for editing:", err);
+    }
   };
 
-  const handleUpdateTemplate = async (
-    templateId: string,
-    templateName: string,
-    updatedQuestions: FormQuestion[]
-  ) => {
+  const handleUpdateTemplate = async () => {
+    if (!templateToEdit) return;
+    
     setIsUpdatingTemplate(true);
 
     try {
@@ -623,7 +647,7 @@ export default function Dashboard() {
       const templateFiles: { [key: string]: File } = {};
       console.log("=== DEBUG: Collecting template files for updating ===");
 
-      const processedQuestions = updatedQuestions.map((q, idx) => {
+      const processedQuestions = editTemplateQuestions.map((q, idx) => {
         console.log(`Question ${idx + 1}:`, {
           question: q.question,
           response_type: q.response_type,
@@ -686,8 +710,8 @@ export default function Dashboard() {
       );
 
       await updateTemplate(
-        templateId,
-        templateName,
+        String(templateToEdit.id),
+        editTemplateName,
         dbQuestions as Question[],
         templateFiles
       );
@@ -697,11 +721,69 @@ export default function Dashboard() {
 
       setShowEditTemplateModal(false);
       setTemplateToEdit(null);
+      setEditTemplateQuestions([]);
+      setEditTemplateName("");
     } catch (err) {
       console.error("Error updating template:", err);
     } finally {
       setIsUpdatingTemplate(false);
     }
+  };
+
+  // Edit template question manipulation functions
+  const addEditTemplateQuestion = () => {
+    setEditTemplateQuestions([
+      ...editTemplateQuestions,
+      {
+        question: "",
+        description: "",
+        response_type: "text",
+        due_date: "",
+        templates: null,
+        link: "",
+      },
+    ]);
+  };
+
+  const removeEditTemplateQuestion = (index: number) => {
+    setEditTemplateQuestions(editTemplateQuestions.filter((_, i) => i !== index));
+  };
+
+  const updateEditTemplateQuestion = (index: number, field: keyof FormQuestion, value: string | QuestionTemplate[] | null) => {
+    setEditTemplateQuestions(prev => prev.map((q, i) => 
+      i === index ? { ...q, [field]: value } : q
+    ));
+  };
+
+  const handleEditTemplateDeleteFile = (questionIndex: number, templateIndex: number) => {
+    const newQuestions = [...editTemplateQuestions];
+    if (newQuestions[questionIndex].templates) {
+      newQuestions[questionIndex].templates = newQuestions[questionIndex].templates.filter(
+        (_, index) => index !== templateIndex
+      );
+      if (newQuestions[questionIndex].templates.length === 0) {
+        newQuestions[questionIndex].templates = null;
+      }
+    }
+    setEditTemplateQuestions(newQuestions);
+  };
+
+  const moveEditTemplateQuestionUp = (index: number) => {
+    if (index === 0) return;
+    const newQuestions = [...editTemplateQuestions];
+    const temp = newQuestions[index];
+    newQuestions[index] = newQuestions[index - 1];
+    newQuestions[index - 1] = temp;
+    setEditTemplateQuestions(newQuestions);
+  };
+
+  const moveEditTemplateQuestionDown = (index: number) => {
+    if (index === editTemplateQuestions.length - 1) return;
+    const newQuestions = [...editTemplateQuestions];
+    const temp = newQuestions[index];
+    newQuestions[index] = newQuestions[index + 1];
+    newQuestions[index + 1] = temp;
+    setEditTemplateQuestions(newQuestions);
   };
 
   const handleDeleteTemplate = (template: Template, e: React.MouseEvent) => {
@@ -870,39 +952,81 @@ export default function Dashboard() {
       />
 
       {/* Edit Template Modal */}
-      <EditTemplateModal
+      <FormEditorModal
         isOpen={showEditTemplateModal}
+        mode="editTemplate"
         template={templateToEdit}
+        templateName={editTemplateName}
+        onTemplateNameChange={setEditTemplateName}
+        questions={editTemplateQuestions}
+        error={null}
+        isProcessing={isUpdatingTemplate}
         onClose={() => {
           setShowEditTemplateModal(false);
           setTemplateToEdit(null);
+          setEditTemplateQuestions([]);
+          setEditTemplateName("");
         }}
-        onSave={handleUpdateTemplate}
-        isSaving={isUpdatingTemplate}
+        onAddQuestion={addEditTemplateQuestion}
+        onUpdateQuestion={(i, value) => updateEditTemplateQuestion(i, 'question', value)}
+        onUpdateDescription={(i, value) => updateEditTemplateQuestion(i, 'description', value)}
+        onUpdateResponseType={(i, value) => updateEditTemplateQuestion(i, 'response_type', value)}
+        onUpdateDueDate={(i, value) => updateEditTemplateQuestion(i, 'due_date', value)}
+        onUpdateLink={(i, value) => updateEditTemplateQuestion(i, 'link', value)}
+        onRemoveQuestion={removeEditTemplateQuestion}
+        onMoveQuestionUp={moveEditTemplateQuestionUp}
+        onMoveQuestionDown={moveEditTemplateQuestionDown}
+        onTemplateUpload={(index, files) => {
+          if (!files || files.length === 0) return;
+          const newQuestions = [...editTemplateQuestions];
+          const now = new Date().toISOString();
+          const templateFiles = Array.from(files).map((file) => ({
+            fileName: file.name,
+            fileId: "",
+            uploadedAt: now,
+            fileObject: file,
+          }));
+          // Append to existing templates if present, otherwise set new
+          if (
+            Array.isArray(newQuestions[index].templates) &&
+            newQuestions[index].templates.length > 0
+          ) {
+            newQuestions[index].templates = [
+              ...newQuestions[index].templates,
+              ...templateFiles,
+            ];
+          } else {
+            newQuestions[index].templates = templateFiles;
+          }
+          setEditTemplateQuestions(newQuestions);
+        }}
+        onDeleteTemplate={handleEditTemplateDeleteFile}
+        onSubmit={handleUpdateTemplate}
       />
 
       {/* Form Modal */}
-      <FormModal
+      <FormEditorModal
         isOpen={showFormModal}
+        mode="create"
         clientName={clientName}
         organization={organization}
         email={email}
-        onUpdateLink={(i, value) => updateQuestion(i, 'link', value)}
         clientDescription={clientDescription}
-        questions={questions}
-        formError={formError}
-        isGenerating={isGenerating}
-        uploadProgress={uploadProgress}
-        onClose={resetForm}
         onClientNameChange={setClientName}
         onOrganizationChange={setOrganization}
         onEmailChange={setEmail}
         onClientDescriptionChange={setClientDescription}
+        questions={questions}
+        error={formError}
+        isProcessing={isGenerating}
+        uploadProgress={uploadProgress}
+        onClose={resetForm}
         onAddQuestion={addQuestion}
         onUpdateQuestion={(i, value) => updateQuestion(i, 'question', value)}
         onUpdateDescription={(i, value) => updateQuestion(i, 'description', value)}
         onUpdateResponseType={(i, value) => updateQuestion(i, 'response_type', value)}
         onUpdateDueDate={(i, value) => updateQuestion(i, 'due_date', value)}
+        onUpdateLink={(i, value) => updateQuestion(i, 'link', value)}
         onRemoveQuestion={removeQuestion}
         onMoveQuestionUp={moveQuestionUp}
         onMoveQuestionDown={moveQuestionDown}
@@ -930,6 +1054,7 @@ export default function Dashboard() {
           }
           setQuestions(newQuestions);
         }}
+        onDeleteTemplate={handleDeleteTemplateFile}
         onSubmit={handleFormSubmit}
         onSaveAsTemplate={() => {
           console.log("Save as Template button clicked");
@@ -937,7 +1062,6 @@ export default function Dashboard() {
           setShowTemplateModal(true);
           console.log("Set showTemplateModal to true");
         }}
-        onDeleteTemplate={handleDeleteTemplateFile}
       />
 
       {/* Template Modal */}
