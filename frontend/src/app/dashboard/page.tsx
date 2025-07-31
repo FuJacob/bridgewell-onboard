@@ -575,36 +575,63 @@ export default function Dashboard() {
         // Check if this is a file question with templates
         if (
           q.response_type === "file" &&
-          q.templates &&
-          q.templates.length > 0
+          q.templates
         ) {
-          console.log(
-            `Question ${idx + 1} has ${q.templates.length} templates:`
-          );
-          q.templates.forEach(
-            (
-              template: {
-                fileName: string;
-                fileId: string;
-                uploadedAt?: string;
-                fileObject?: File;
-              },
-              templateIdx: number
-            ) => {
-              console.log(`  Template ${templateIdx}:`, {
-                fileName: template.fileName,
-                fileId: template.fileId,
-                uploadedAt: template.uploadedAt,
-                hasFileObject: !!template.fileObject,
-              });
+          // Handle templates that might be stored as JSON strings
+          let templatesArray = q.templates;
+          if (typeof q.templates === "string") {
+            try {
+              templatesArray = JSON.parse(q.templates);
+            } catch (parseError) {
+              console.error(`Error parsing templates for question ${idx + 1}:`, parseError);
+              templatesArray = [];
             }
-          );
+          }
+          
+          if (Array.isArray(templatesArray) && templatesArray.length > 0) {
+            console.log(
+              `Question ${idx + 1} has ${templatesArray.length} templates:`
+            );
+            templatesArray.forEach(
+              (
+                template: {
+                  fileName: string;
+                  fileId: string;
+                  uploadedAt?: string;
+                  fileObject?: File;
+                },
+                templateIdx: number
+              ) => {
+                console.log(`  Template ${templateIdx}:`, {
+                  fileName: template.fileName,
+                  fileId: template.fileId,
+                  uploadedAt: template.uploadedAt,
+                  hasFileObject: !!template.fileObject,
+                });
+              }
+            );
+          }
         }
       });
 
-      // Strip IDs from template questions to prevent duplicate key errors
+      // Strip IDs from template questions to prevent duplicate key errors and handle templates
       const questionsWithoutIds = templateQuestions.map((q: any) => {
         const { id: _id, ...rest } = q;
+        
+        // Handle templates that might be stored as JSON strings
+        if (rest.response_type === "file" && rest.templates) {
+          if (typeof rest.templates === "string") {
+            try {
+              rest.templates = JSON.parse(rest.templates);
+            } catch (parseError) {
+              console.error(`Error parsing templates for question:`, parseError);
+              rest.templates = null;
+            }
+          }
+        } else {
+          rest.templates = null;
+        }
+        
         return rest;
       });
       setQuestions(questionsWithoutIds);
@@ -680,7 +707,13 @@ export default function Dashboard() {
               console.error(`Error parsing templates for question ${index + 1}:`, templateParseError);
               cleanedQuestion.templates = null;
             }
+          } else {
+            // Handle case where templates might be null or undefined
+            cleanedQuestion.templates = null;
           }
+        } else {
+          // Ensure templates is null for non-file questions
+          cleanedQuestion.templates = null;
         }
         
         return cleanedQuestion;
