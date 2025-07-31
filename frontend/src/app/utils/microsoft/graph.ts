@@ -1,16 +1,11 @@
 import { getAccessToken } from "@/app/utils/microsoft/auth";
 import type { SharePointError } from "@/types";
 
-// Environment validation for SharePoint - defer to runtime
-function getSharePointSiteId(): string {
-  if (!process.env.SHAREPOINT_SITE_ID) {
-    throw new Error('SHAREPOINT_SITE_ID environment variable is required');
-  }
-  return process.env.SHAREPOINT_SITE_ID;
-}
+// Hardcoded SharePoint configuration
+const SHAREPOINT_SITE_ID = "bridgewellfinancial.sharepoint.com,80def30d-85bd-4e18-969a-6346931d152d,deb319e5-cef4-4818-9ec3-805bedea8819";
 
 function getSiteUrl(): string {
-  return `https://graph.microsoft.com/v1.0/sites/${getSharePointSiteId()}`;
+  return `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}`;
 }
 
 // Export for external use
