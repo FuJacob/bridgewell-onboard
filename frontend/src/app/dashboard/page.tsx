@@ -543,18 +543,29 @@ export default function Dashboard() {
 
       if (!template.questions || typeof template.questions !== "string") {
         console.error("Invalid template questions format");
+        alert("Error: Template data is corrupted. Please try refreshing the page or contact support.");
         return;
       }
-      const templateQuestions = JSON.parse(template.questions);
+      
+      let templateQuestions;
+      try {
+        templateQuestions = JSON.parse(template.questions);
+      } catch (parseError) {
+        console.error("Error parsing template questions:", parseError);
+        alert("Error: Template data is corrupted and cannot be parsed. Please try refreshing the page or contact support.");
+        return;
+      }
+      
       console.log("Parsed template questions:", templateQuestions);
 
       if (!Array.isArray(templateQuestions)) {
         console.error("Template questions is not an array");
+        alert("Error: Template data structure is invalid. Please try refreshing the page or contact support.");
         return;
       }
 
       // Log each question to see the template structure
-      templateQuestions.forEach((q, idx) => {
+      templateQuestions.forEach((q: any, idx: number) => {
         console.log(`Question ${idx + 1}:`, {
           question: q.question,
           response_type: q.response_type,
@@ -592,13 +603,17 @@ export default function Dashboard() {
       });
 
       // Strip IDs from template questions to prevent duplicate key errors
-      const questionsWithoutIds = templateQuestions.map(({ id: _id, ...rest }) => rest);
+      const questionsWithoutIds = templateQuestions.map((q: any) => {
+        const { id: _id, ...rest } = q;
+        return rest;
+      });
       setQuestions(questionsWithoutIds);
       setShowTemplateSelectionModal(false);
       setShowFormModal(true);
       console.log("=== END DEBUG ===");
     } catch (_err) {
       console.error("Error parsing template questions:", _err);
+      alert("Error: Failed to load template. Please try refreshing the page or contact support.");
     }
   };
 
@@ -614,17 +629,68 @@ export default function Dashboard() {
       
       if (!template.questions || typeof template.questions !== "string") {
         console.error("Invalid template questions format");
+        alert("Error: Template data is corrupted. Please try refreshing the page or contact support.");
         return;
       }
       
-      const templateQuestions = JSON.parse(template.questions);
+      let templateQuestions;
+      try {
+        templateQuestions = JSON.parse(template.questions);
+      } catch (parseError) {
+        console.error("Error parsing template questions:", parseError);
+        alert("Error: Template data is corrupted and cannot be parsed. Please try refreshing the page or contact support.");
+        return;
+      }
+      
       if (!Array.isArray(templateQuestions)) {
         console.error("Template questions is not an array");
+        alert("Error: Template data structure is invalid. Please try refreshing the page or contact support.");
         return;
       }
       
+      // Validate and clean each question
+      const cleanedQuestions = templateQuestions.map((q: any, index: number) => {
+        // Ensure all required fields exist
+        const cleanedQuestion: any = {
+          question: q.question || "",
+          description: q.description || "",
+          response_type: q.response_type || "text",
+          due_date: q.due_date || "",
+          link: q.link || "",
+          templates: null,
+        };
+        
+        // Handle templates if they exist
+        if (q.response_type === "file" && q.templates) {
+          if (Array.isArray(q.templates)) {
+            cleanedQuestion.templates = q.templates.map((template: any) => ({
+              fileName: template.fileName || "",
+              fileId: template.fileId || "",
+              uploadedAt: template.uploadedAt || new Date().toISOString(),
+            }));
+          } else if (typeof q.templates === "string") {
+            try {
+              const parsedTemplates = JSON.parse(q.templates);
+              cleanedQuestion.templates = Array.isArray(parsedTemplates) ? parsedTemplates.map((template: any) => ({
+                fileName: template.fileName || "",
+                fileId: template.fileId || "",
+                uploadedAt: template.uploadedAt || new Date().toISOString(),
+              })) : null;
+            } catch (templateParseError) {
+              console.error(`Error parsing templates for question ${index + 1}:`, templateParseError);
+              cleanedQuestion.templates = null;
+            }
+          }
+        }
+        
+        return cleanedQuestion;
+      });
+      
       // Strip IDs from questions to prevent key errors
-      const questionsWithoutIds = templateQuestions.map(({ id: _id, ...rest }) => rest);
+      const questionsWithoutIds = cleanedQuestions.map((q: any) => {
+        const { id: _id, ...rest } = q;
+        return rest;
+      });
       
       setTemplateToEdit(template);
       setEditTemplateQuestions(questionsWithoutIds);
@@ -634,6 +700,7 @@ export default function Dashboard() {
       console.log("=== END DEBUG ===");
     } catch (err) {
       console.error("Error setting up template for editing:", err);
+      alert("Error: Failed to load template for editing. Please try refreshing the page or contact support.");
     }
   };
 
@@ -643,6 +710,25 @@ export default function Dashboard() {
     setIsUpdatingTemplate(true);
 
     try {
+      // Validate template name
+      if (!editTemplateName.trim()) {
+        alert("Please enter a template name.");
+        return;
+      }
+
+      // Validate questions
+      if (editTemplateQuestions.length === 0) {
+        alert("Please add at least one question to the template.");
+        return;
+      }
+
+      // Check for empty questions
+      const emptyQuestions = editTemplateQuestions.filter(q => !q.question?.trim());
+      if (emptyQuestions.length > 0) {
+        alert("Please fill in all question texts before saving.");
+        return;
+      }
+
       // Collect template files
       const templateFiles: { [key: string]: File } = {};
       console.log("=== DEBUG: Collecting template files for updating ===");
@@ -725,6 +811,7 @@ export default function Dashboard() {
       setEditTemplateName("");
     } catch (err) {
       console.error("Error updating template:", err);
+      alert(`Error updating template: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setIsUpdatingTemplate(false);
     }
