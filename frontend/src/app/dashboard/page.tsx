@@ -345,8 +345,8 @@ export default function Dashboard() {
       console.log("=== END DEBUG ===");
 
       // Check for large file uploads
-      const maxFileSize = 10 * 1024 * 1024; // 10MB per file
-      const maxTotalSize = 50 * 1024 * 1024; // 50MB total
+      const maxFileSize = 10000 * 1024 * 1024; // 10MB per file
+      const maxTotalSize = 50000 * 1024 * 1024; // 50MB total
       
       for (const [key, file] of Object.entries(templateFiles)) {
         if (file.size > maxFileSize) {
