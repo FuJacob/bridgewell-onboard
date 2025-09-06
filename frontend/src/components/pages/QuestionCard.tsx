@@ -64,20 +64,22 @@ export default function QuestionCard({
               </div>
               <div className="flex-1">
                 <h2 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
-                  {question.question}
+                  {question.response_type === 'notice' ? 'Notice' : question.question}
                 </h2>
 
-                <div className="mb-3 p-2 text-xs bg-red-50 border-l-4 border-red-400 text-red-700 rounded-r-lg w-fit">
-                  Due Date:{" "}
-                  {question.due_date
-                    ? new Date(question.due_date).toLocaleString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })
-                    : "N/A"}
-                </div>
-                {question.link && (
+                {question.response_type !== 'notice' && (
+                  <div className="mb-3 p-2 text-xs bg-red-50 border-l-4 border-red-400 text-red-700 rounded-r-lg w-fit">
+                    Due Date:{" "}
+                    {question.due_date
+                      ? new Date(question.due_date).toLocaleString("en-US", {
+                          month: "long",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "N/A"}
+                  </div>
+                )}
+                {question.link && question.response_type !== 'notice' && (
                   <div className="mb-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
                     <div className="flex items-center gap-2">
                       <span className="text-blue-700 font-medium text-sm">
@@ -199,7 +201,7 @@ export default function QuestionCard({
               disabled={isSubmitting || isSubmitted}
               className="resize-none"
             />
-          ) : (
+          ) : question.response_type === 'file' ? (
             <FileUpload
               selectedFiles={selectedFiles || null}
               onFileChange={onFileChange}
@@ -207,6 +209,8 @@ export default function QuestionCard({
               id={`file-input-${index}`}
               multiple
             />
+          ) : (
+            <div className="text-gray-700 text-sm"></div>
           )}
         </div>
 
@@ -225,28 +229,30 @@ export default function QuestionCard({
               Reset submission
             </Button>
           )}
-          <Button
-            onClick={onSubmit}
-            disabled={isSubmitting || isSubmitted || !canSubmit}
-            loading={isSubmitting}
-            size="lg"
-            className={`px-8 py-3 font-semibold ${
-              isSubmitted
-                ? "!bg-green-500 !text-white !border-green-500 cursor-default hover:!bg-green-500 hover:!border-green-500"
-                : !canSubmit
-                ? "!bg-gray-300 !text-gray-500 !border-gray-300 cursor-not-allowed hover:!bg-gray-300 hover:!border-gray-300 hover:!text-gray-500"
-                : "shadow-lg hover:shadow-xl"
-            }`}
-          >
-            {isSubmitted ? (
-              <div className="flex items-center gap-2">
-                <FaCheckCircle className="w-4 h-4 mr-2" />
-                Submitted Successfully
-              </div>
-            ) : (
-              "Submit Response"
-            )}
-          </Button>
+          {question.response_type !== 'notice' && (
+            <Button
+              onClick={onSubmit}
+              disabled={isSubmitting || isSubmitted || !canSubmit}
+              loading={isSubmitting}
+              size="lg"
+              className={`px-8 py-3 font-semibold ${
+                isSubmitted
+                  ? "!bg-green-500 !text-white !border-green-500 cursor-default hover:!bg-green-500 hover:!border-green-500"
+                  : !canSubmit
+                  ? "!bg-gray-300 !text-gray-500 !border-gray-300 cursor-not-allowed hover:!bg-gray-300 hover:!border-gray-300 hover:!text-gray-500"
+                  : "shadow-lg hover:shadow-xl"
+              }`}
+            >
+              {isSubmitted ? (
+                <div className="flex items-center gap-2">
+                  <FaCheckCircle className="w-4 h-4 mr-2" />
+                  Submitted Successfully
+                </div>
+              ) : (
+                "Submit Response"
+              )}
+            </Button>
+          )}
         </div>
       </div>
     </div>

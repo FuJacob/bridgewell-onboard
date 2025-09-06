@@ -14,7 +14,7 @@ export default function SubmissionResponseCard({
     <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-200 shadow-sm">
       <div className="mb-3 sm:mb-4">
         <span className="bg-primary text-white text-xs sm:text-sm py-1 px-2 sm:px-3 rounded-full">
-          Question {index + 1}
+          {response.response_type === 'notice' ? 'Notice' : `Question ${index + 1}`}
         </span>
       </div>
 
@@ -52,6 +52,13 @@ export default function SubmissionResponseCard({
               No file uploaded
             </p>
           )}
+        </div>
+      ) : response.response_type === 'notice' ? (
+        <div className="mt-2">
+          <p className="text-xs sm:text-sm text-gray-500 mb-1">Notice</p>
+          <p className="bg-gray-50 p-3 sm:p-4 rounded-xl whitespace-pre-wrap text-sm sm:text-base">
+            {/* Notice content is the questionText/description shown elsewhere */}
+          </p>
         </div>
       ) : (
         <div className="mt-2">

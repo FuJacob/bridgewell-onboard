@@ -156,10 +156,11 @@ export default function ClientFormPage() {
         const initialSubmitted: { [index: number]: boolean } = {};
         const initialErrors: { [index: number]: string | null } = {};
 
-        convertedQuestions.forEach((_question: AppQuestion, index: number) => {
+        convertedQuestions.forEach((q: AppQuestion, index: number) => {
           initialResponses[index] = "";
           initialSubmitting[index] = false;
-          initialSubmitted[index] = false;
+          // Auto-complete notices
+          initialSubmitted[index] = q.response_type === 'notice';
           initialErrors[index] = null;
         });
 
@@ -235,7 +236,7 @@ export default function ClientFormPage() {
     // Clear any previous errors for this question
     setQuestionErrors({ ...questionErrors, [index]: null });
 
-    // Check if we have a response for this question
+    // Check if we have a response for this question (not applicable for notice)
     if (
       question.response_type === "text" &&
       (!responses[index] || responses[index]?.trim() === "")
@@ -285,6 +286,9 @@ export default function ClientFormPage() {
           undefined,
           files[index] as File[]
         );
+      } else if (question.response_type === "notice") {
+        // Auto-mark notice as submitted without calling upload API
+        responseData = { fileIds: [] };
       }
 
       console.log("Submission response:", responseData);
@@ -300,6 +304,11 @@ export default function ClientFormPage() {
           name: `${arr.length} file${arr.length > 1 ? "s" : ""} uploaded`,
           type: "application/octet-stream",
           fileId: responseData.fileIds?.[0],
+        };
+      } else if (question.response_type === "notice") {
+        newSubmittedFiles[index] = {
+          name: "Notice acknowledged",
+          type: "text/plain",
         };
       } else if (
         question.response_type === "text" &&

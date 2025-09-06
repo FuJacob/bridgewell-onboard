@@ -103,7 +103,7 @@ export async function submitQuestionResponse(
     throw new Error("Question text is required");
   }
 
-  if (!response_type || !["text", "file"].includes(response_type)) {
+  if (!response_type || !["text", "file", "notice"].includes(response_type)) {
     throw new Error("Invalid response type");
   }
 

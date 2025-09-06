@@ -64,7 +64,7 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
       );
     }
 
-    if (!response_type || !["text", "file"].includes(response_type)) {
+    if (!response_type || !["text", "file", "notice"].includes(response_type)) {
       return NextResponse.json(
         { error: "Invalid response type", success: false },
         { status: 400 }

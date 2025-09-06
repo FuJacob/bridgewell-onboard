@@ -90,7 +90,7 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
     // Validate each question
     for (let i = 0; i < questions.length; i++) {
       const question = questions[i];
-      if (!question.question) {
+      if (!question.question && question.response_type !== 'notice') {
         return NextResponse.json(
           { error: `Question ${i + 1} is missing question text`, success: false },
           { status: 400 }
@@ -105,7 +105,7 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
         );
       }
 
-      if (!question.response_type || !["text", "file"].includes(question.response_type)) {
+      if (!question.response_type || !["text", "file", "notice"].includes(question.response_type)) {
         return NextResponse.json(
           { error: `Question ${i + 1} has invalid response type`, success: false },
           { status: 400 }
