@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAccessToken } from "@/app/utils/microsoft/auth";
-import { createClient } from "@/app/utils/supabase/server";
+import { createServiceClient } from "@/app/utils/supabase/server";
+import { sanitizeSharePointName } from "@/app/utils/microsoft/graph";
 
 const SHAREPOINT_SITE_ID =
   "bridgewellfinancial.sharepoint.com,80def30d-85bd-4e18-969a-6346931d152d,deb319e5-cef4-4818-9ec3-805bedea8819";
@@ -11,8 +12,8 @@ export async function DELETE(request: Request) {
     const { loginKey, clientName } = await request.json();
     const accessToken = await getAccessToken();
     console.log("Access token:", accessToken);
-    // Delete from Supabase first
-    const supabase = await createClient();
+    // Delete from Supabase first using service role (bypass RLS)
+    const supabase = createServiceClient();
     const { data: deletedForms, error } = await supabase
       .from("clients")
       .delete()
@@ -45,7 +46,8 @@ export async function DELETE(request: Request) {
       });
     }
 
-    const clientFolderName = `${clientName}_${loginKey}`;
+    const sanitizedClientName = sanitizeSharePointName(clientName);
+    const clientFolderName = `${sanitizedClientName}_${loginKey}`;
     console.log(
       "Client folder name for deleting uploads to x question:",
       clientFolderName
@@ -105,7 +107,7 @@ export async function DELETE(request: Request) {
 
     // Delete the main client folder
     const removeOriginalFolder = await fetch(
-      `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}`,
+      `${SITE_URL}/drive/root:/CLIENTS/${clientFolderName}:`,
       {
         method: "DELETE",
         headers: {
