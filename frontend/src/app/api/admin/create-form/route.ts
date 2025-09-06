@@ -134,7 +134,6 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
       client_name: clientName,
       organization: organization,
       description: clientDescription,
-      // @ts-ignore - new column in DB: admin
       admin: adminEmail,
     };
 

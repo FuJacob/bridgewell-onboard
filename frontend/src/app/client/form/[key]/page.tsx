@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { createClient } from "@/app/utils/supabase/client";
+import { getClientFolderWebUrl } from "@/app/utils/microsoft/graph";
 import { AppQuestion, Question, QuestionTemplate } from "@/types";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import {
@@ -365,8 +366,12 @@ export default function ClientFormPage() {
   const handleLogout = () => {
     // Clear login key from localStorage
     localStorage.removeItem("clientLoginKey");
-    // Redirect to client login page
-    router.push("/");
+    // Redirect based on role
+    if (signedIn) {
+      router.push("/dashboard");
+    } else {
+      router.push("/");
+    }
   };
 
   // Admin edit handlers
@@ -529,7 +534,7 @@ export default function ClientFormPage() {
                     {clientData.organization}
                   </p>
                 </div>
-                <div className="mt-4 sm:mt-0 sm:text-right">
+                <div className="mt-4 sm:mt-0 sm:text-right space-y-2">
                   <div className="bg-white bg-opacity-20 rounded-lg p-3 backdrop-blur-sm">
                     <p className="text-sm font-medium text-blue-100 mb-1">
                       {signedIn
@@ -558,6 +563,7 @@ export default function ClientFormPage() {
                       )}
                     </p>
                   </div>
+                  {/* Removed admin shortcuts per request */}
                 </div>
               </div>
 

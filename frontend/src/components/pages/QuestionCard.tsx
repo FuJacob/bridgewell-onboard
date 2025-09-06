@@ -115,7 +115,7 @@ export default function QuestionCard({
           </div>
 
           {/* Admin Panel */}
-          {showAdminPanel && isSubmitted && question.response_type !== 'notice' && (
+          {showAdminPanel && question.response_type !== 'notice' && (
             <div className="bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200 rounded-xl p-4 shrink-0 min-w-[200px]">
               <div className="flex items-center gap-2 mb-3">
                 <FaUserShield className="text-orange-600 w-4 h-4" />
@@ -123,16 +123,34 @@ export default function QuestionCard({
                   Admin Controls
                 </h3>
               </div>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={onRedoQuestion}
-                className="w-full flex items-center justify-center gap-2"
-                disabled={isSubmitting}
-              >
-                <FaRedo className="w-3 h-3" />
-                Reset client responses
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    if (!question.question) return;
+                    const qt = encodeURIComponent(question.question || "");
+                    window.open(`/api/admin/download-answers?key=${encodeURIComponent((question as any).login_key || '')}&question=${qt}`, "_blank");
+                  }}
+                  className="w-full flex items-center justify-center gap-2"
+                  disabled={!isSubmitted}
+                >
+                  <FaDownload className="w-3 h-3" />
+                  Download responses
+                </Button>
+                {isSubmitted && (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={onRedoQuestion}
+                    className="w-full flex items-center justify-center gap-2"
+                    disabled={isSubmitting}
+                  >
+                    <FaRedo className="w-3 h-3" />
+                    Reset client responses
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </div>

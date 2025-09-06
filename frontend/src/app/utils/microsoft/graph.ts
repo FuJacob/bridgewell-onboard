@@ -12,6 +12,11 @@ function getSiteUrl(): string {
 export function getSiteURL(): string {
   return getSiteUrl();
 }
+export function getClientFolderWebUrl(loginKey: string, clientName: string): string {
+  const sanitizedClientName = sanitizeSharePointName(clientName);
+  const clientFolderName = `${sanitizedClientName}_${loginKey}`;
+  return `${getSiteUrl()}/drive/root:/CLIENTS/${clientFolderName}`;
+}
 const REQUEST_TIMEOUT = 60000; // 60 seconds for file operations
 const MAX_FILE_SIZE = Number.MAX_SAFE_INTEGER; // No explicit limit enforced here
 const SMALL_FILE_THRESHOLD = 4 * 1024 * 1024; // 4MB threshold for simple upload
