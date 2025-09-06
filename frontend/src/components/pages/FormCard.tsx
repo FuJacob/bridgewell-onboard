@@ -28,6 +28,14 @@ export default function FormCard({ form, onDelete }: FormCardProps) {
     navigator.clipboard.writeText(text);
   };
 
+  const formatEmailForDisplay = (email?: string | null) => {
+    if (!email) return 'No email';
+    const [local, domain] = email.split('@');
+    if (!domain) return email;
+    const first = local?.charAt(0) || '';
+    return `${first}…@${domain}`;
+  };
+
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     onDelete(form.login_key, form.client_name || '', form.organization || '');
@@ -44,8 +52,8 @@ export default function FormCard({ form, onDelete }: FormCardProps) {
         onClick={handleFormClick}
       >
         <div className="flex justify-between w-full items-start">
-          <div className="flex flex-col items-start gap-2">
-            <h2 className="font-semibold text-base sm:text-lg text-primary group-hover:text-white flex items-center gap-2">
+          <div className="flex flex-col items-start gap-2 min-w-0">
+            <h2 className="font-semibold text-base sm:text-lg text-primary group-hover:text-white flex items-center gap-2 whitespace-nowrap overflow-hidden text-ellipsis" title={form.client_name || 'Unknown Client'}>
               <FaUser />
               {form.client_name || 'Unknown Client'}
             </h2>
@@ -54,15 +62,29 @@ export default function FormCard({ form, onDelete }: FormCardProps) {
               {form.organization || 'Unknown Organization'}
             </h3>
           </div>
-          <div className="flex flex-col items-end mt-2 gap-2">
+          <div className="flex flex-col items-end mt-2 gap-2 flex-shrink-0 max-w-[220px] sm:max-w-[260px]">
             <p className="flex gap-2 items-center text-xs sm:text-sm text-gray-500 group-hover:text-white text-right">
               <FaCalendar />
               {new Date(form.created_at).toLocaleDateString()}
             </p>
-            <p className="flex gap-2 items-center text-xs sm:text-sm text-gray-500 group-hover:text-white text-right">
+            <div className="flex gap-2 items-center text-xs sm:text-sm text-gray-500 group-hover:text-white text-right">
               <FaEnvelope />
-              {form.email || 'No email'}
-            </p>
+              <span
+                className="whitespace-nowrap overflow-hidden text-ellipsis block"
+                title={form.email || 'No email'}
+              >
+                {formatEmailForDisplay(form.email)}
+              </span>
+              {form.email && (
+                <button
+                  onClick={(e) => handleCopyToClipboard(e, form.email || '')}
+                  className="p-1 rounded hover:bg-white/20"
+                  title="Copy email"
+                >
+                  <FaClipboard />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
