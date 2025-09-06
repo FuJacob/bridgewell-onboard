@@ -153,10 +153,33 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
       }
 
       // Success - the file was uploaded to OneDrive
-      return NextResponse.json({
-        data: { fileIds },
-        success: true
-      });
+      // Notify admin by email if admin is set
+      try {
+        const adminEmail = (clientData as any).admin as string | null;
+        if (adminEmail && typeof adminEmail === 'string' && adminEmail.includes('@')) {
+          const formUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/client/form/${encodeURIComponent(loginKey)}`;
+          const subject = `New submission from ${clientData.client_name || 'Client'} for "${questionText}"`;
+          const html = `
+            <div style="font-family:Arial,sans-serif;font-size:14px;color:#222">
+              <p>Hi,</p>
+              <p>The client <strong>${clientData.client_name || 'Unknown'}</strong> submitted a response for:</p>
+              <p><strong>Question:</strong> ${questionText}</p>
+              <p>You can review or download the files here:</p>
+              <p><a href="${formUrl}" target="_blank">Open client form</a></p>
+              <p style="color:#555">This is an automated notification.</p>
+            </div>
+          `;
+          await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/notify-admin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: adminEmail, subject, html })
+          }).catch(() => null);
+        }
+      } catch (e) {
+        console.error('Admin email notification failed:', e);
+      }
+
+      return NextResponse.json({ data: { fileIds }, success: true });
 
     } catch (uploadError) {
       console.error("Error during file upload:", uploadError);

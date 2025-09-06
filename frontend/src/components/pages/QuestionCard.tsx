@@ -249,10 +249,24 @@ export default function QuestionCard({
               Reset submission
             </Button>
           )}
+          {!showAdminPanel && isSubmitted && question.response_type !== 'notice' && (
+            <Button
+              variant="primary"
+              onClick={() => {
+                const qt = encodeURIComponent(question.question || "");
+                window.open(`/api/admin/download-answers?key=${encodeURIComponent((question as any).login_key || '')}&question=${qt}`, "_blank");
+              }}
+              disabled={isSubmitting}
+              size="lg"
+              className="px-6 py-3 font-semibold"
+            >
+              Download previous responses
+            </Button>
+          )}
           {question.response_type !== 'notice' && (
             <Button
               onClick={onSubmit}
-              disabled={isSubmitting || isSubmitted || !canSubmit}
+              disabled={isSubmitting || !canSubmit}
               loading={isSubmitting}
               size="lg"
               className={`px-8 py-3 font-semibold ${
@@ -263,14 +277,7 @@ export default function QuestionCard({
                   : "shadow-lg hover:shadow-xl"
               }`}
             >
-              {isSubmitted ? (
-                <div className="flex items-center gap-2">
-                  <FaCheckCircle className="w-4 h-4 mr-2" />
-                  Submitted Successfully
-                </div>
-              ) : (
-                "Submit Response"
-              )}
+              {isSubmitted ? "Submit Again" : "Submit Response"}
             </Button>
           )}
         </div>
