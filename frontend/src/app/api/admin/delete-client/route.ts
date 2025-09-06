@@ -54,51 +54,43 @@ export async function DELETE(request: Request) {
     );
 
     const deleteChildFolder = async (itemPath: string, accessToken: string) => {
-      const listResponse = await fetch(
-        `${SITE_URL}/drive/root:/CLIENTS/${itemPath}:/children`,
-        {
+      // Paginate through children; recurse into subfolders; delete items by id
+      let nextUrl: string | null = `${SITE_URL}/drive/root:/CLIENTS/${itemPath}:/children`;
+      while (nextUrl) {
+        const resp: Response = await fetch(nextUrl, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
+        });
+        if (!resp.ok) {
+          console.error("Error fetching child items:", resp.status, await resp.text().catch(() => ""));
+          break;
         }
-      );
-      if (!listResponse.ok) {
-        console.error("Error fetching child items:", listResponse.statusText);
-        return;
-      }
+        const page: { value?: Array<{ id: string; name: string; folder?: unknown }>; [k: string]: unknown } = await resp.json();
+        for (const child of page.value || []) {
+          if (child.folder) {
+            console.log("Child FOLDER to be deleted:", child.name);
+            await deleteChildFolder(`${itemPath}/${child.name}`, accessToken);
+          } else {
+            console.log("Child item to be deleted:", child.name);
+          }
 
-      const listData = await listResponse.json();
-
-      console.log("List data for child folder deletion:", listData);
-
-      for (const child of listData.value) {
-        if (child.folder) {
-          console.log("Child FOLDER to be deleted:", child.name);
-          await deleteChildFolder(`${itemPath}/${child.name}`, accessToken);
-        } else {
-          console.log("Child item to be deleted:", child.name);
-        }
-
-        // Delete the current child item (file or folder)
-        const deleteResponse = await fetch(
-          `${SITE_URL}/drive/items/${child.id}`,
-          {
+          const deleteResponse = await fetch(`${SITE_URL}/drive/items/${child.id}`, {
             method: "DELETE",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${accessToken}`,
             },
+          });
+          if (!deleteResponse.ok && deleteResponse.status !== 404) {
+            console.error(`Error deleting ${child.name}:`, deleteResponse.status, await deleteResponse.text().catch(() => ""));
           }
-        );
-
-        if (!deleteResponse.ok) {
-          console.error(
-            `Error deleting ${child.name}:`,
-            deleteResponse.statusText
-          );
         }
+
+        const nextLink = (page as Record<string, unknown>)["@odata.nextLink"];
+        nextUrl = typeof nextLink === "string" ? nextLink : null;
       }
     };
 

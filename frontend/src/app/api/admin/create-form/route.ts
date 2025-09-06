@@ -278,7 +278,7 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
               const buffer = await file.arrayBuffer();
               const fileName = file.name;
               
-              // Add timeout for individual file uploads (30 seconds)
+              // Add timeout for individual file uploads (60 seconds)
               const uploadPromise = uploadFileToClientFolder(
                 loginKey,
                 clientName,
@@ -287,7 +287,7 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
               );
               
               const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('File upload timeout after 30 seconds')), 30000);
+                setTimeout(() => reject(new Error('File upload timeout after 60 seconds')), 60000);
               });
               
               const fileId = await Promise.race([uploadPromise, timeoutPromise]) as string;

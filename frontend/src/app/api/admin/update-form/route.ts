@@ -114,43 +114,62 @@ export async function POST(request: Request) {
       // In this system, when questions are deleted, the corresponding SharePoint files
       // should be removed as part of the SharePoint cleanup process.
 
-      // Clear OneDrive files for deleted questions
+      // Clear OneDrive files for deleted questions (recursive leaf-first)
       console.log("Clearing OneDrive files for deleted questions...");
       try {
-        // Import the delete function from Microsoft Graph utilities
-        const { deleteFileFromOneDrive } = await import(
-          "@/app/utils/microsoft/graph"
-        );
+        const { getAccessToken } = await import("@/app/utils/microsoft/auth");
+        const { sanitizeSharePointName } = await import("@/app/utils/microsoft/graph");
+        const accessToken = await getAccessToken();
+        const sanitizedClientName = sanitizeSharePointName(clientName || 'unknown_client');
+        const clientFolderName = `${sanitizedClientName}_${loginKey}`;
+        const SHAREPOINT_SITE_ID = "bridgewellfinancial.sharepoint.com,80def30d-85bd-4e18-969a-6346931d152d,deb319e5-cef4-4818-9ec3-805bedea8819";
+        const SITE_URL = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}`;
+
+        const listChildrenByPath = async (path: string) => {
+          let url: string | null = `${SITE_URL}/drive/root:/${path}:/children`;
+          const results: Array<{ id: string; name: string; folder?: unknown }> = [];
+          while (url) {
+            const r: Response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+            if (!r.ok) break;
+            const p: { value?: Array<{ id: string; name: string; folder?: unknown }>; [k: string]: unknown } = await r.json();
+            (p.value || []).forEach((x) => results.push(x));
+            const nl = (p as Record<string, unknown>)["@odata.nextLink"];
+            url = typeof nl === 'string' ? nl : null;
+          }
+          return results;
+        };
+
+        const deleteRecursivelyByPath = async (path: string) => {
+          const children = await listChildrenByPath(path);
+          for (const child of children) {
+            if (child.folder) {
+              await deleteRecursivelyByPath(`${path}/${child.name}`);
+              await fetch(`${SITE_URL}/drive/items/${child.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } });
+            } else {
+              await fetch(`${SITE_URL}/drive/items/${child.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } });
+            }
+          }
+        };
 
         for (const questionIndex of deletedQuestionIndices) {
           const existingQuestion = existingQuestionsMap.get(questionIndex);
-          if (existingQuestion) {
-            const sanitizedQuestion = existingQuestion.question
+          if (existingQuestion && existingQuestion.question) {
+            const sanitizedQuestion = (existingQuestion.question as string)
               .replace(/[^a-zA-Z0-9]/g, "_")
               .substring(0, 50);
-
-            // Delete the entire question folder from OneDrive
+            const questionPath = `CLIENTS/${clientFolderName}/${sanitizedQuestion}`;
             try {
-              await deleteFileFromOneDrive(
-                loginKey,
-                clientName || 'unknown_client',
-                sanitizedQuestion
-              );
-              console.log(
-                `Deleted OneDrive folder for question ${questionIndex}: ${sanitizedQuestion}`
-              );
-            } catch (deleteError) {
-              console.error(
-                `Error deleting OneDrive folder for question ${questionIndex}:`,
-                deleteError
-              );
-              // Continue with other deletions even if one fails
-              // This is not a critical error - form update can still succeed
+              await deleteRecursivelyByPath(questionPath);
+              // attempt to delete the now-empty question folder
+              await fetch(`${SITE_URL}/drive/root:/${questionPath}:`, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } });
+              console.log(`Deleted OneDrive folder for question ${questionIndex}: ${sanitizedQuestion}`);
+            } catch (err) {
+              console.error(`Error deleting OneDrive folder for question ${questionIndex}:`, err);
             }
           }
         }
       } catch (importError) {
-        console.error("Error importing deleteFileFromOneDrive:", importError);
+        console.error("Error during recursive OneDrive question cleanup:", importError);
       }
     }
 
