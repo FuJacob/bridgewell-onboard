@@ -24,6 +24,7 @@ export default function FileUpload({
   id,
   multiple = true,
 }: FileUploadProps) {
+  const [dragActive, setDragActive] = React.useState(false);
   // const validateFile = (file: File): string | null => {
   //   const maxSize = 10 * 1024 * 1024; // 10MB
   //   const allowedTypes = [
@@ -58,6 +59,34 @@ export default function FileUpload({
     }
   };
 
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (disabled) return;
+    if (!dragActive) setDragActive(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragActive) setDragActive(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (disabled) return;
+    setDragActive(false);
+    const dtFiles = e.dataTransfer?.files;
+    if (dtFiles && dtFiles.length > 0) {
+      const newFiles = Array.from(dtFiles);
+      const merged = selectedFiles && selectedFiles.length > 0
+        ? [...selectedFiles, ...newFiles]
+        : newFiles;
+      onFileChange(merged);
+    }
+  };
+
   return (
     <div className="space-y-1">
       {label && (
@@ -67,11 +96,17 @@ export default function FileUpload({
       )}
 
       <label
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         className={`flex flex-col items-center px-3 sm:px-4 py-4 sm:py-6 border-2 border-dashed rounded-lg transition-colors ${
           disabled
             ? "border-gray-200 cursor-not-allowed opacity-50"
             : error
             ? "border-red-300 cursor-pointer hover:border-red-400"
+            : dragActive
+            ? "border-primary cursor-copy bg-primary/5"
             : "border-gray-300 cursor-pointer hover:border-primary"
         }`}
       >
