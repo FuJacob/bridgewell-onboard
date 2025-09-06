@@ -164,8 +164,7 @@ export default function ClientFormPage() {
         convertedQuestions.forEach((q: AppQuestion, index: number) => {
           initialResponses[index] = "";
           initialSubmitting[index] = false;
-          // Auto-complete notices
-          initialSubmitted[index] = q.response_type === 'notice';
+          initialSubmitted[index] = false;
           initialErrors[index] = null;
         });
 

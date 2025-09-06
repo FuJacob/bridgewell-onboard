@@ -65,10 +65,7 @@ export async function GET(request: NextRequest) {
     // Build responses keyed by the sorted question index to align with client UI
     const responses: Record<string, { completed: boolean }> = {};
     questions.forEach((q: any, index: number) => {
-      if (q.response_type === 'notice') {
-        // Notices are considered completed
-        responses[String(index)] = { completed: true };
-      } else if (typeof q.question === 'string' && q.question) {
+      if (typeof q.question === 'string' && q.question && q.response_type !== 'notice') {
         if (completionStatus[q.question]) {
           responses[String(index)] = { completed: true };
         }

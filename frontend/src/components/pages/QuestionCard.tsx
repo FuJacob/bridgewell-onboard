@@ -44,7 +44,9 @@ export default function QuestionCard({
   const canSubmit =
     question.response_type === "text"
       ? textResponse.trim() !== ""
-      : Array.isArray(selectedFiles) && selectedFiles.length > 0;
+      : question.response_type === 'file'
+      ? Array.isArray(selectedFiles) && selectedFiles.length > 0
+      : false;
 
   return (
     <div
@@ -113,7 +115,7 @@ export default function QuestionCard({
           </div>
 
           {/* Admin Panel */}
-          {showAdminPanel && isSubmitted && (
+          {showAdminPanel && isSubmitted && question.response_type !== 'notice' && (
             <div className="bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200 rounded-xl p-4 shrink-0 min-w-[200px]">
               <div className="flex items-center gap-2 mb-3">
                 <FaUserShield className="text-orange-600 w-4 h-4" />
@@ -218,7 +220,7 @@ export default function QuestionCard({
 
         {/* Submit / Reset Buttons */}
         <div className="flex justify-end gap-3">
-          {isSubmitted && onRedoQuestion && (
+          {!showAdminPanel && isSubmitted && onRedoQuestion && question.response_type !== 'notice' && (
             <Button
               variant="danger"
               onClick={onRedoQuestion}
