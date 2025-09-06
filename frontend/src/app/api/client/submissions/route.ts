@@ -43,27 +43,35 @@ export async function GET(request: NextRequest) {
         { status: 500 }
       );
     }
-    const questions = questionsData;
-    console.log("Questions:", questions);
+    // Sort questions deterministically to match client-side rendering
+    const questions = (questionsData || []).slice().sort((a: any, b: any) => {
+      const aId = typeof a.id === 'number' ? a.id : 0;
+      const bId = typeof b.id === 'number' ? b.id : 0;
+      return aId - bId;
+    });
+    console.log("Questions (sorted by id asc):", questions.map((q: any) => ({ id: q.id, question: q.question, response_type: q.response_type })));
 
-    // Check OneDrive folder for completions
-    // Filter out questions with null question text and transform to expected format
+    // Check OneDrive folder for completions (only for questions with text)
     const validQuestions = questions
-      .filter(q => q.question !== null)
-      .map(q => ({ question: q.question as string }));
-    
+      .filter((q: any) => typeof q.question === 'string' && q.question)
+      .map((q: any) => ({ question: q.question as string }));
+
     const completionStatus = await checkQuestionCompletion(
       loginKey,
       clientData.client_name || 'unknown_client',
       validQuestions
     );
 
-    // Convert the completion status object to a responses-like format
-    // where the key is the question index and the value indicates it's completed
+    // Build responses keyed by the sorted question index to align with client UI
     const responses: Record<string, { completed: boolean }> = {};
-    validQuestions.forEach((question: { question: string }, index: number) => {
-      if (completionStatus[question.question]) {
-        responses[index] = { completed: true };
+    questions.forEach((q: any, index: number) => {
+      if (q.response_type === 'notice') {
+        // Notices are considered completed
+        responses[String(index)] = { completed: true };
+      } else if (typeof q.question === 'string' && q.question) {
+        if (completionStatus[q.question]) {
+          responses[String(index)] = { completed: true };
+        }
       }
     });
 
