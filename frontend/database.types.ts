@@ -23,6 +23,7 @@ export type Database = {
           last_active_at: string | null
           login_key: string
           organization: string | null
+          admin?: string | null
         }
         Insert: {
           client_name?: string | null
@@ -32,6 +33,7 @@ export type Database = {
           last_active_at?: string | null
           login_key?: string
           organization?: string | null
+          admin?: string | null
         }
         Update: {
           client_name?: string | null
@@ -41,6 +43,7 @@ export type Database = {
           last_active_at?: string | null
           login_key?: string
           organization?: string | null
+          admin?: string | null
         }
         Relationships: []
       }
@@ -214,7 +217,7 @@ export type Enums<
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    ? DefaultSchema["Enums"][EnumName]
     : never
 
 export type CompositeTypes<

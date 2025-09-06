@@ -46,6 +46,7 @@ export default function Dashboard() {
   const [clientName, setClientName] = useState("");
   const [organization, setOrganization] = useState("");
   const [email, setEmail] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
   const [clientDescription, setClientDescription] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [questions, setQuestions] = useState<FormQuestion[]>([]);
@@ -144,6 +145,14 @@ export default function Dashboard() {
   useEffect(() => {
     setMounted(true);
     checkSignedIn();
+    (async () => {
+      try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        const userEmail = user?.email || "";
+        if (userEmail) setAdminEmail(userEmail);
+      } catch {}
+    })();
   }, []);
 
   useEffect(() => {
@@ -370,7 +379,8 @@ export default function Dashboard() {
         organization,
         clientDescription,
         dbQuestions as Question[],
-        templateFiles
+        templateFiles,
+        adminEmail
       );
 
       if (data.loginKey) {
@@ -1121,10 +1131,12 @@ export default function Dashboard() {
         organization={organization}
         email={email}
         clientDescription={clientDescription}
+        adminEmail={adminEmail}
         onClientNameChange={setClientName}
         onOrganizationChange={setOrganization}
         onEmailChange={setEmail}
         onClientDescriptionChange={setClientDescription}
+        onAdminEmailChange={setAdminEmail}
         questions={questions}
         error={formError}
         isProcessing={isGenerating}

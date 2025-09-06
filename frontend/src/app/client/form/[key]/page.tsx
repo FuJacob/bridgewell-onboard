@@ -569,6 +569,14 @@ export default function ClientFormPage() {
                   <span className="font-bold text-secondary">
                     Bridgewell Financial Advisor
                   </span>
+                  {clientData?.admin ? (
+                    <>
+                      :{" "}
+                      <a href={`mailto:${clientData.admin}`} className="underline text-white">
+                        {clientData.admin}
+                      </a>
+                    </>
+                  ) : null}
                   .
                 </p>
               </div>

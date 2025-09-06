@@ -64,7 +64,8 @@ export async function createForm(
   organization: string,
   clientDescription: string,
   questions: Question[],
-  templateFiles: { [key: string]: File } = {}
+  templateFiles: { [key: string]: File } = {},
+  adminEmail?: string
 ): Promise<{ loginKey?: string; error?: string }> {
   // Validate inputs
   if (!clientName) {
@@ -105,6 +106,9 @@ export async function createForm(
   formData.append("organization", organization);
   formData.append("clientDescription", clientDescription);
   formData.append("questions", JSON.stringify(questions));
+  if (adminEmail) {
+    formData.append("adminEmail", adminEmail);
+  }
 
   // Add template files to FormData with detailed logging
   console.log(`=== Adding ${Object.keys(templateFiles).length} files to FormData ===`);

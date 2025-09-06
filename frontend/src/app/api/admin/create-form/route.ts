@@ -34,6 +34,7 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
     const email = formData.get("email") as string;
     const organization = formData.get("organization") as string;
     const clientDescription = formData.get("clientDescription") as string;
+    const adminEmail = (formData.get("adminEmail") as string) || null;
     const questionsRaw = formData.get("questions") as string;
     
     console.log("Received form data:", {
@@ -133,6 +134,8 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
       client_name: clientName,
       organization: organization,
       description: clientDescription,
+      // @ts-ignore - new column in DB: admin
+      admin: adminEmail,
     };
 
     const result = await withRetry(async () => {
