@@ -113,6 +113,11 @@ export default function Dashboard() {
         setForms((prevForms) =>
           prevForms.filter((form) => form.login_key !== formToDelete.loginKey)
         );
+        // Ensure UI reflects deletion immediately
+        try {
+          await new Promise((r) => setTimeout(r, 250));
+          window.location.reload();
+        } catch (_) {}
       } else {
         console.error("Failed to delete client:", result.message);
       }

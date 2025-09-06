@@ -46,16 +46,13 @@ export async function deleteClient(
     body: JSON.stringify({ loginKey, clientName }),
   });
 
-  const result: APIResponse = await response.json().catch(() => ({
-    error: "Network error",
-    success: false
-  }));
+  const result = await response.json().catch(() => ({} as any));
 
-  if (!response.ok || !result.success) {
-    throw new Error(result.error || "Failed to delete client");
+  if (!response.ok) {
+    throw new Error(result?.error || result?.message || "Failed to delete client");
   }
 
-  return { message: "Client deleted successfully", status: response.status };
+  return { message: result?.message || "Client deleted successfully", status: response.status };
 }
 
 /**

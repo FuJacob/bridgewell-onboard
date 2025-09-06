@@ -62,6 +62,7 @@ export default function ClientFormPage() {
   const [clientData, setClientData] = useState<ClientData | null>(null);
   const [questions, setQuestions] = useState<AppQuestion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checkingCompletion, setCheckingCompletion] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [responses, setResponses] = useState<{
     [index: number]: string | null;
@@ -88,6 +89,7 @@ export default function ClientFormPage() {
   // Check if questions are already completed
   const checkCompletionStatus = useCallback(async () => {
     try {
+      setCheckingCompletion(true);
       const submissionData = await getClientSubmissions(loginKey);
 
       if (submissionData && submissionData.responses) {
@@ -102,6 +104,9 @@ export default function ClientFormPage() {
       }
     } catch (err) {
       console.error("Error checking completion status:", err);
+    }
+    finally {
+      setCheckingCompletion(false);
     }
   }, [loginKey]);
   const checkSignedIn = useCallback(async () => {
@@ -467,7 +472,7 @@ export default function ClientFormPage() {
     Object.values(submittedQuestions).filter(Boolean).length;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
+    <div className="min-h-screen flex flex-col items-center justify-center relative">
       <div className="max-w-4xl mx-auto p-4 sm:p-6 w-full">
         {/* Header with logo */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 md:mb-8">
@@ -600,6 +605,18 @@ export default function ClientFormPage() {
           </div>
         ) : null}
       </div>
+
+      {checkingCompletion && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-xl p-6 w-11/12 max-w-md text-center shadow-2xl">
+            <h2 className="text-lg font-semibold text-gray-800 mb-3">Checking for form completion…</h2>
+            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+              <div className="bg-primary h-2 w-1/3 animate-pulse"></div>
+            </div>
+            <p className="text-gray-600 text-sm mt-3">Please wait while we verify which questions are completed.</p>
+          </div>
+        </div>
+      )}
 
       {/* Admin Edit Form Modal */}
       {clientData && showEditModal && (
