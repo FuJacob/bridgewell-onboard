@@ -13,7 +13,7 @@ export function getSiteURL(): string {
   return getSiteUrl();
 }
 const REQUEST_TIMEOUT = 60000; // 60 seconds for file operations
-const MAX_FILE_SIZE = 250 * 1024 * 1024; // 250MB limit for large file uploads
+const MAX_FILE_SIZE = Number.MAX_SAFE_INTEGER; // No explicit limit enforced here
 const SMALL_FILE_THRESHOLD = 4 * 1024 * 1024; // 4MB threshold for simple upload
 
 // Enhanced error handling for SharePoint operations

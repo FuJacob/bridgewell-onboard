@@ -344,23 +344,7 @@ export default function Dashboard() {
       console.log(`Total file size: ${totalSize} bytes (${(totalSize / 1024 / 1024).toFixed(2)} MB)`);
       console.log("=== END DEBUG ===");
 
-      // Check for large file uploads
-      const maxFileSize = 10000 * 1024 * 1024; // 10MB per file
-      const maxTotalSize = 50000 * 1024 * 1024; // 50MB total
-      
-      for (const [key, file] of Object.entries(templateFiles)) {
-        if (file.size > maxFileSize) {
-          setFormError(`File "${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(2)} MB). Maximum file size is 10MB.`);
-          setUploadProgress(null);
-          return;
-        }
-      }
-      
-      if (totalSize > maxTotalSize) {
-        setFormError(`Total file size is too large (${(totalSize / 1024 / 1024).toFixed(2)} MB). Maximum total size is 50MB.`);
-        setUploadProgress(null);
-        return;
-      }
+      // Remove client-side file size limits for admin uploads
 
       const fileCount = Object.keys(templateFiles).length;
       if (fileCount > 0) {

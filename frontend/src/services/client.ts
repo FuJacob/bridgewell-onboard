@@ -87,8 +87,8 @@ export async function submitQuestionResponse(
   questionText: string,
   response_type: string,
   textResponse?: string,
-  file?: File
-): Promise<{ fileId: string }> {
+  files?: File[]
+): Promise<{ fileIds: string[] }> {
   // Validate inputs
   if (!loginKey) {
     throw new Error("Login key is required");
@@ -111,16 +111,11 @@ export async function submitQuestionResponse(
     throw new Error("Text response is required for text responses");
   }
 
-  if (response_type === "file" && !file) {
-    throw new Error("File is required for file responses");
+  if (response_type === "file" && (!files || files.length === 0)) {
+    throw new Error("At least one file is required for file responses");
   }
 
-  // Validate file if provided
-  if (file) {
-    if (file.size > 50 * 1024 * 1024) { // 50MB limit
-      throw new Error("File size must be less than 50MB");
-    }
-  }
+  // No client-side file size/type validation
 
   const formData = new FormData();
   formData.append("loginKey", loginKey);
@@ -130,8 +125,8 @@ export async function submitQuestionResponse(
 
   if (response_type === "text" && textResponse) {
     formData.append("textResponse", textResponse);
-  } else if (response_type === "file" && file) {
-    formData.append("file", file);
+  } else if (response_type === "file" && files && files.length > 0) {
+    files.forEach((file) => formData.append("files", file));
   }
 
   const response = await fetch("/api/client/submit-question", {
@@ -139,7 +134,7 @@ export async function submitQuestionResponse(
     body: formData,
   });
 
-  const result: APIResponse<{ fileId: string }> = await response.json().catch(() => ({
+  const result: APIResponse<{ fileIds: string[] }> = await response.json().catch(() => ({
     error: "Network error",
     success: false
   }));
@@ -148,7 +143,7 @@ export async function submitQuestionResponse(
     throw new Error(result.error || "Failed to submit response");
   }
 
-  if (!result.data?.fileId) {
+  if (!result.data?.fileIds) {
     throw new Error("Invalid response from server");
   }
 

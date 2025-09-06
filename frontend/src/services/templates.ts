@@ -56,9 +56,7 @@ export async function saveTemplate(
       const text = await responseClone.text();
       console.error("Non-JSON response received:", text);
       
-      if (response.status === 413) {
-        throw new Error("Template files are too large. Please reduce the total file size and try again.");
-      } else if (response.status === 408) {
+      if (response.status === 408) {
         throw new Error("Request timeout. Please try again with fewer files.");
       } else {
         throw new Error(`Server error (${response.status}): ${text || "Unknown error"}`);
@@ -88,9 +86,7 @@ export async function saveTemplate(
       const text = await responseClone.text();
       console.error("Non-JSON response received:", text);
       
-      if (response.status === 413) {
-        throw new Error("Template data is too large. Please reduce the template size and try again.");
-      } else if (response.status === 408) {
+      if (response.status === 408) {
         throw new Error("Request timeout. Please try again.");
       } else {
         throw new Error(`Server error (${response.status}): ${text || "Unknown error"}`);
@@ -182,9 +178,7 @@ export async function updateTemplate(
       const text = await responseClone.text();
       console.error("Non-JSON response received:", text);
       
-      if (response.status === 413) {
-        throw new Error("Template files are too large. Please reduce the total file size and try again.");
-      } else if (response.status === 408) {
+      if (response.status === 408) {
         throw new Error("Request timeout. Please try again with fewer files.");
       } else {
         throw new Error(`Server error (${response.status}): ${text || "Unknown error"}`);
@@ -214,9 +208,7 @@ export async function updateTemplate(
       const text = await responseClone.text();
       console.error("Non-JSON response received:", text);
       
-      if (response.status === 413) {
-        throw new Error("Template data is too large. Please reduce the template size and try again.");
-      } else if (response.status === 408) {
+      if (response.status === 408) {
         throw new Error("Request timeout. Please try again.");
       } else {
         throw new Error(`Server error (${response.status}): ${text || "Unknown error"}`);

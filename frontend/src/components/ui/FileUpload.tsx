@@ -1,25 +1,28 @@
 import React from "react";
+import { FaTimes } from "react-icons/fa";
 
 interface FileUploadProps {
   label?: string;
   error?: string;
   helperText?: string;
-  selectedFile?: File | null;
-  onFileChange: (file: File | null) => void;
+  selectedFiles?: File[] | null;
+  onFileChange: (files: File[] | null) => void;
   accept?: string;
   disabled?: boolean;
   id?: string;
+  multiple?: boolean;
 }
 
 export default function FileUpload({
   label,
   error,
-  helperText = "Allowed file types: PDF, DOC, DOCX, JPG, PNG",
-  selectedFile,
+  helperText = "Allowed file types: PDF, DOC, DOCX, JPG, PNG, XLS, XLSX, XLSM",
+  selectedFiles,
   onFileChange,
-  accept = ".pdf,.doc,.docx,.jpg,.jpeg,.png",
+  accept = ".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx,.xlsm",
   disabled = false,
   id,
+  multiple = true,
 }: FileUploadProps) {
   // const validateFile = (file: File): string | null => {
   //   const maxSize = 10 * 1024 * 1024; // 10MB
@@ -45,8 +48,11 @@ export default function FileUpload({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      onFileChange(file);
+      const newFiles = Array.from(e.target.files);
+      const merged = selectedFiles && selectedFiles.length > 0
+        ? [...selectedFiles, ...newFiles]
+        : newFiles;
+      onFileChange(merged);
     } else {
       onFileChange(null);
     }
@@ -85,8 +91,8 @@ export default function FileUpload({
             />
           </svg>
           <p className="mb-1 text-sm text-gray-700">
-            {selectedFile
-              ? selectedFile.name
+            {selectedFiles && selectedFiles.length > 0
+              ? `${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} selected`
               : "Click to upload or drag and drop"}
           </p>
           <p className="text-xs text-gray-500">{helperText}</p>
@@ -98,28 +104,34 @@ export default function FileUpload({
           accept={accept}
           className="hidden"
           disabled={disabled}
+          multiple={multiple}
         />
       </label>
 
-      {selectedFile && (
-        <div className="mt-2 flex items-center p-2 sm:p-3 bg-gray-50 rounded-lg">
-          <svg
-            className="w-4 h-4 sm:w-5 sm:h-5 text-primary mr-2 flex-shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <span className="text-xs sm:text-sm text-gray-700 truncate">
-            File selected: {selectedFile.name}
-          </span>
+      {selectedFiles && selectedFiles.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {selectedFiles.map((f, idx) => (
+            <span
+              key={`${f.name}-${idx}`}
+              className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 text-xs sm:text-sm px-3 py-1.5 rounded-full border border-blue-200"
+            >
+              <span className="truncate max-w-[160px] sm:max-w-[220px]">{f.name}</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  const next = selectedFiles.filter((_, i) => i !== idx);
+                  onFileChange(next.length > 0 ? next : null);
+                }}
+                className="text-blue-600 hover:text-red-600 hover:bg-red-50 rounded"
+                aria-label={`Remove ${f.name}`}
+                title="Remove file"
+                disabled={disabled}
+              >
+                <FaTimes className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
         </div>
       )}
 

@@ -7,7 +7,7 @@ import { TemplateInsert, TemplateQuestion } from "@/types";
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '50mb',
+      sizeLimit: '0', // no explicit limit
     },
   },
 };

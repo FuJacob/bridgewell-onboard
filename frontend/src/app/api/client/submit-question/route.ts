@@ -12,7 +12,7 @@ interface SubmissionRequest {
   file?: File;
 }
 
-export async function POST(request: Request): Promise<NextResponse<APIResponse<{ fileId: string }>>> {
+export async function POST(request: Request): Promise<NextResponse<APIResponse<{ fileIds: string[] }>>> {
   try {
     const formData = await request.formData();
     const loginKey = formData.get("loginKey") as string;
@@ -20,9 +20,9 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
     const questionText = formData.get("questionText") as string;
     const response_type = formData.get("response_type") as string;
 
-    // Text response or file
+    // Text response or files
     const textResponse = formData.get("textResponse") as string;
-    const file = formData.get("file") as File | null;
+    const files = formData.getAll("files") as File[];
 
     console.log("Processing question submission:", {
       loginKey,
@@ -30,7 +30,7 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
       questionText,
       response_type,
       hasTextResponse: !!textResponse,
-      hasFile: !!file,
+      hasFiles: files && files.length > 0,
     });
 
     // Validate inputs
@@ -102,9 +102,9 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 
     // Validate response data
-    if (response_type === "file" && !file) {
+    if (response_type === "file" && (!files || files.length === 0)) {
       return NextResponse.json(
-        { error: "File is required for file response type", success: false },
+        { error: "At least one file is required for file response type", success: false },
         { status: 400 }
       );
     }
@@ -116,60 +116,35 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
       );
     }
 
-    // Validate file if provided
-    if (file) {
-      if (file.size > 50 * 1024 * 1024) { // 50MB limit
-        return NextResponse.json(
-          { error: "File size must be less than 50MB", success: false },
-          { status: 400 }
-        );
-      }
-      
-      // Basic file type validation
-      const allowedTypes = [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'text/plain',
-        'image/jpeg',
-        'image/png',
-        'image/gif'
-      ];
-      
-      if (!allowedTypes.includes(file.type)) {
-        return NextResponse.json(
-          { error: "File type not allowed", success: false },
-          { status: 400 }
-        );
-      }
-    }
+    // No server-side file size/type validation
 
-    let fileId: string;
+    const fileIds: string[] = [];
 
     try {
-      if (response_type === "file" && file) {
-        // Upload file
-        const buffer = await file.arrayBuffer();
-        const fileName = `${timestamp}_${file.name}`;
-        fileId = await uploadFileToClientFolder(
-          loginKey,
-          clientData.client_name || 'unknown_client',
-          `${sanitizedQuestion}/answer/${fileName}`,
-          new Blob([buffer], { type: file.type })
-        );
-        console.log("File uploaded successfully:", fileName);
+      if (response_type === "file" && files && files.length > 0) {
+        for (const file of files) {
+          const buffer = await file.arrayBuffer();
+          const fileName = `${timestamp}_${file.name}`;
+          const fileId = await uploadFileToClientFolder(
+            loginKey,
+            clientData.client_name || 'unknown_client',
+            `${sanitizedQuestion}/answer/${fileName}`,
+            new Blob([buffer], { type: file.type })
+          );
+          fileIds.push(fileId);
+          console.log("File uploaded successfully:", fileName);
+        }
       } else if (response_type === "text" && textResponse) {
         // Convert text response to file and upload
         const fileName = `response_${timestamp}.txt`;
-        fileId = await uploadFileToClientFolder(
+        const fileId = await uploadFileToClientFolder(
           loginKey,
           clientData.client_name || 'unknown_client',
           `${sanitizedQuestion}/answer/${fileName}`,
           new Blob([textResponse], { type: "text/plain" })
         );
         console.log("Text response uploaded as file:", fileName);
+        fileIds.push(fileId);
       } else {
         return NextResponse.json(
           { error: "No valid response provided", success: false },
@@ -179,7 +154,7 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
 
       // Success - the file was uploaded to OneDrive
       return NextResponse.json({
-        data: { fileId },
+        data: { fileIds },
         success: true
       });
 

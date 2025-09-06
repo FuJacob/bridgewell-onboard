@@ -100,11 +100,7 @@ export async function createForm(
     return { error: "At least one question is required" };
   }
 
-  // Validate file sizes
-  const totalSize = Object.values(templateFiles).reduce((sum, file) => sum + file.size, 0);
-  if (totalSize > 100 * 1024 * 1024) { // 100MB total limit
-    return { error: "Total file size must be less than 100MB" };
-  }
+  // Remove file size validations for admin template uploads
 
   const formData = new FormData();
   formData.append("clientName", clientName);

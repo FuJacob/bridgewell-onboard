@@ -66,7 +66,7 @@ export default function ClientFormPage() {
   const [responses, setResponses] = useState<{
     [index: number]: string | null;
   }>({});
-  const [files, setFiles] = useState<{ [index: number]: File | null }>({});
+  const [files, setFiles] = useState<{ [index: number]: File[] | null }>({});
   const [submittingQuestions, setSubmittingQuestions] = useState<{
     [index: number]: boolean;
   }>({});
@@ -198,8 +198,8 @@ export default function ClientFormPage() {
     }
   };
 
-  const handleFileChange = (index: number, file: File | null) => {
-    setFiles({ ...files, [index]: file });
+  const handleFileChange = (index: number, newFiles: File[] | null) => {
+    setFiles({ ...files, [index]: newFiles });
 
     // Clear error when selecting a file
     if (questionErrors[index]) {
@@ -245,7 +245,10 @@ export default function ClientFormPage() {
         [index]: "Please enter a text response",
       });
       return;
-    } else if (question.response_type === "file" && !files[index]) {
+    } else if (
+      question.response_type === "file" &&
+      (!files[index] || (Array.isArray(files[index]) && (files[index] as File[]).length === 0))
+    ) {
       setQuestionErrors({
         ...questionErrors,
         [index]: "Please select a file to upload",
@@ -269,14 +272,18 @@ export default function ClientFormPage() {
           responses[index] as string
         );
       } else if (question.response_type === "file" && files[index]) {
-        console.log("Submitting file for question", index, files[index]?.name);
+        console.log(
+          "Submitting files for question",
+          index,
+          (files[index] as File[])?.map((f) => f.name).join(", ")
+        );
         responseData = await submitQuestionResponse(
           loginKey,
           index,
           question.question || "",
           question.response_type,
           undefined,
-          files[index] as File
+          files[index] as File[]
         );
       }
 
@@ -288,10 +295,11 @@ export default function ClientFormPage() {
       // Store submission in local state
       const newSubmittedFiles = { ...submittedFiles };
       if (question.response_type === "file" && files[index] && responseData) {
+        const arr = files[index] as File[];
         newSubmittedFiles[index] = {
-          name: files[index].name,
-          type: files[index].type,
-          fileId: responseData.fileId,
+          name: `${arr.length} file${arr.length > 1 ? "s" : ""} uploaded`,
+          type: "application/octet-stream",
+          fileId: responseData.fileIds?.[0],
         };
       } else if (
         question.response_type === "text" &&
@@ -301,7 +309,7 @@ export default function ClientFormPage() {
         newSubmittedFiles[index] = {
           name: `Text Response (${new Date().toLocaleTimeString()})`,
           type: "text/plain",
-          fileId: responseData.fileId,
+          fileId: responseData.fileIds?.[0],
         };
       }
       setSubmittedFiles(newSubmittedFiles);
@@ -329,8 +337,6 @@ export default function ClientFormPage() {
       } else if (errorMessage.includes("Permission denied")) {
         errorMessage =
           "Permission denied while uploading file. Please try again or contact support.";
-      } else if (errorMessage.includes("File is too large")) {
-        errorMessage = "File is too large. Please upload a smaller file.";
       }
 
       setQuestionErrors({
@@ -566,7 +572,7 @@ export default function ClientFormPage() {
                   isSubmitting={submittingQuestions[index] || false}
                   error={questionErrors[index]}
                   textResponse={responses[index] || ""}
-                  selectedFile={files[index]}
+                  selectedFiles={files[index] as File[] | null}
                   onTextChange={(value) => handleTextChange(index, value)}
                   onFileChange={(file) => handleFileChange(index, file)}
                   onSubmit={() => handleSubmitQuestion(index, question)}

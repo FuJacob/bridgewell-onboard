@@ -19,9 +19,9 @@ interface QuestionCardProps {
   isSubmitting: boolean;
   error?: string | null;
   textResponse?: string;
-  selectedFile?: File | null;
+  selectedFiles?: File[] | null;
   onTextChange: (value: string) => void;
-  onFileChange: (file: File | null) => void;
+  onFileChange: (files: File[] | null) => void;
   onSubmit: () => void;
   showAdminPanel?: boolean;
   onRedoQuestion?: () => void;
@@ -34,7 +34,7 @@ export default function QuestionCard({
   isSubmitting,
   error,
   textResponse = "",
-  selectedFile,
+  selectedFiles,
   onTextChange,
   onFileChange,
   onSubmit,
@@ -44,7 +44,7 @@ export default function QuestionCard({
   const canSubmit =
     question.response_type === "text"
       ? textResponse.trim() !== ""
-      : selectedFile !== null;
+      : Array.isArray(selectedFiles) && selectedFiles.length > 0;
 
   return (
     <div
@@ -111,7 +111,7 @@ export default function QuestionCard({
           </div>
 
           {/* Admin Panel */}
-          {showAdminPanel && (
+          {showAdminPanel && isSubmitted && (
             <div className="bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200 rounded-xl p-4 shrink-0 min-w-[200px]">
               <div className="flex items-center gap-2 mb-3">
                 <FaUserShield className="text-orange-600 w-4 h-4" />
@@ -124,6 +124,7 @@ export default function QuestionCard({
                 size="sm"
                 onClick={onRedoQuestion}
                 className="w-full flex items-center justify-center gap-2"
+                disabled={isSubmitting}
               >
                 <FaRedo className="w-3 h-3" />
                 Reset client responses
@@ -200,18 +201,30 @@ export default function QuestionCard({
             />
           ) : (
             <FileUpload
-              selectedFile={selectedFile}
+              selectedFiles={selectedFiles || null}
               onFileChange={onFileChange}
               disabled={isSubmitting || isSubmitted}
               id={`file-input-${index}`}
+              multiple
             />
           )}
         </div>
 
         {error && <ErrorMessage message={error} className="mb-4" />}
 
-        {/* Submit Button */}
-        <div className="flex justify-end">
+        {/* Submit / Reset Buttons */}
+        <div className="flex justify-end gap-3">
+          {isSubmitted && onRedoQuestion && (
+            <Button
+              variant="danger"
+              onClick={onRedoQuestion}
+              disabled={isSubmitting}
+              size="lg"
+              className="px-6 py-3 font-semibold"
+            >
+              Reset submission
+            </Button>
+          )}
           <Button
             onClick={onSubmit}
             disabled={isSubmitting || isSubmitted || !canSubmit}
