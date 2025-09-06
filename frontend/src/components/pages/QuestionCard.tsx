@@ -65,8 +65,13 @@ export default function QuestionCard({
                 {index + 1}
               </div>
               <div className="flex-1">
+                {question.response_type === 'notice' && (
+                  <div className="mb-2 inline-flex items-center gap-2 text-xs text-orange-700 bg-orange-100 px-2 py-1 rounded">
+                    Notice
+                  </div>
+                )}
                 <h2 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
-                  {question.response_type === 'notice' ? 'Notice' : question.question}
+                  {question.question || ''}
                 </h2>
 
                 {question.response_type !== 'notice' && (
@@ -208,31 +213,31 @@ export default function QuestionCard({
           )}
 
         {/* Response Input */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Your Response
-          </label>
-          {question.response_type === "text" ? (
-            <Textarea
-              value={textResponse}
-              onChange={(e) => onTextChange(e.target.value)}
-              placeholder="Type your response here..."
-              rows={4}
-              disabled={isSubmitting || isSubmitted}
-              className="resize-none"
-            />
-          ) : question.response_type === 'file' ? (
-            <FileUpload
-              selectedFiles={selectedFiles || null}
-              onFileChange={onFileChange}
-              disabled={isSubmitting || isSubmitted}
-              id={`file-input-${index}`}
-              multiple
-            />
-          ) : (
-            <div className="text-gray-700 text-sm"></div>
-          )}
-        </div>
+        {question.response_type !== 'notice' && (
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Your Response
+            </label>
+            {question.response_type === "text" ? (
+              <Textarea
+                value={textResponse}
+                onChange={(e) => onTextChange(e.target.value)}
+                placeholder="Type your response here..."
+                rows={4}
+                disabled={isSubmitting || isSubmitted}
+                className="resize-none"
+              />
+            ) : (
+              <FileUpload
+                selectedFiles={selectedFiles || null}
+                onFileChange={onFileChange}
+                disabled={isSubmitting || isSubmitted}
+                id={`file-input-${index}`}
+                multiple
+              />
+            )}
+          </div>
+        )}
 
         {error && <ErrorMessage message={error} className="mb-4" />}
 

@@ -692,28 +692,7 @@ export default function ClientFormPage() {
                 <h3 className="text-lg sm:text-xl font-semibold text-primary">
                   Questions
                 </h3>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-gray-600">Edit questions below</p>
-                  <button
-                    onClick={() => {
-                      const newQuestion: AppQuestion = {
-                        question: "",
-                        description: "",
-                        response_type: "text",
-                        due_date: new Date().toISOString().split("T")[0],
-                        templates: null,
-                        link: "",
-                        created_at: new Date().toISOString(),
-                        id: Date.now(), // temporary ID
-                        login_key: loginKey,
-                      };
-                      setQuestions([...questions, newQuestion]);
-                    }}
-                    className="bg-secondary text-white px-3 py-2 rounded-lg font-medium text-sm hover:bg-secondary-DARK transition"
-                  >
-                    + Add Question
-                  </button>
-                </div>
+                <p className="text-sm text-gray-600">Edit questions below</p>
               </div>
 
               {/* Warning about clearing submissions */}
@@ -835,6 +814,7 @@ export default function ClientFormPage() {
                           >
                             <option value="text">Text</option>
                             <option value="file">File Upload</option>
+                            <option value="notice">No Response</option>
                           </select>
                         </div>
 
@@ -880,6 +860,28 @@ export default function ClientFormPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="mt-4">
+                <button
+                  onClick={() => {
+                    const newQuestion: AppQuestion = {
+                      question: "",
+                      description: "",
+                      response_type: "text",
+                      due_date: new Date().toISOString().split("T")[0],
+                      templates: null,
+                      link: "",
+                      created_at: new Date().toISOString(),
+                      id: Date.now(), // temporary ID
+                      login_key: loginKey,
+                    };
+                    setQuestions([...questions, newQuestion]);
+                  }}
+                  className="bg-secondary text-white px-3 py-2 rounded-lg font-medium text-sm hover:bg-secondary-DARK transition"
+                >
+                  + Add Question
+                </button>
               </div>
 
               <div className="mt-6 flex justify-end gap-4">

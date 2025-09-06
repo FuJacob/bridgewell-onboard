@@ -38,7 +38,7 @@ export async function login(formData: FormData): Promise<{ status: string }> {
   if (error) {
     return { status: "Invalid email or password" };
   }
-  redirect("/");
+  redirect("/dashboard");
 }
 
 export async function signOut(): Promise<void> {

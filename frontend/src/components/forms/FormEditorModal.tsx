@@ -302,15 +302,26 @@ export default function FormEditorModal({
               ))}
             </div>
 
-            {/* Add Question at bottom */}
-            <div className="mt-4">
-              <button
-                onClick={onAddQuestion}
-                className="w-full sm:w-auto bg-secondary text-white px-3 sm:px-4 py-2 rounded-xl font-medium text-sm sm:text-base"
-              >
-                + Add Question
-              </button>
-            </div>
+            {mode === "editTemplate" && (
+              <div className="mt-4">
+                <button
+                  onClick={onAddQuestion}
+                  className="w-full sm:w-auto bg-secondary text-white px-3 sm:px-4 py-2 rounded-xl font-medium text-sm sm:text-base"
+                >
+                  + Add Question
+                </button>
+              </div>
+            )}
+            {mode === "create" && (
+              <div className="mt-4">
+                <button
+                  onClick={onAddQuestion}
+                  className="w-full sm:w-auto bg-secondary text-white px-3 sm:px-4 py-2 rounded-xl font-medium text-sm sm:text-base"
+                >
+                  + Add Question
+                </button>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex justify-end gap-4 mt-6">

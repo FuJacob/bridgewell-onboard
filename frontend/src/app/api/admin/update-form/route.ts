@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/app/utils/supabase/server";
 import { TemplateQuestion } from "@/types";
-import { createQuestionFolders } from "@/app/utils/microsoft/graph";
+import { createQuestionFolders, uploadFileToClientFolder, sanitizeSharePointName } from "@/app/utils/microsoft/graph";
 
 export async function POST(request: Request) {
   try {
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const questions = JSON.parse(questionsRaw);
+    let questions = JSON.parse(questionsRaw);
     console.log("Parsed questions:", JSON.stringify(questions, null, 2));
 
     // Parse templates from JSON strings back to arrays
@@ -74,8 +74,7 @@ export async function POST(request: Request) {
     }
 
     const clientName = existingClient.client_name;
-
-    // Get existing questions to compare with new ones
+    // Fetch existing questions and build map + deletions list
     const { data: existingQuestions, error: existingQuestionsError } =
       await supabase.from("questions").select("*").eq("login_key", loginKey);
 
@@ -90,32 +89,122 @@ export async function POST(request: Request) {
       );
     }
 
-    // Identify which questions have been deleted (need to clear client data)
-    const deletedQuestionIndices = [];
-    const existingQuestionsMap = new Map();
+    const existingQuestionsMap = new Map<number, any>();
+    existingQuestions?.forEach((q, idx) => existingQuestionsMap.set(idx, q));
 
-    existingQuestions?.forEach((q, index) => {
-      existingQuestionsMap.set(index, q);
+    // Compute deleted questions by ID (handles deletions in the middle)
+    const existingById = new Map<number, any>();
+    existingQuestions?.forEach((q) => existingById.set(q.id, q));
+    const newIds = new Set<number>();
+    questions.forEach((q: any) => {
+      if (typeof q.id === 'number') newIds.add(q.id);
     });
+    const deletedExistingQuestions = (existingQuestions || []).filter((q: any) => !newIds.has(q.id));
+    // Handle renamed questions: delete old folder and create new folder
+    try {
+      const { getAccessToken } = await import("@/app/utils/microsoft/auth");
+      const accessToken = await getAccessToken();
+      const sanitizedClientName = sanitizeSharePointName(clientName || 'unknown_client');
+      const clientFolderName = `${sanitizedClientName}_${loginKey}`;
+      const SHAREPOINT_SITE_ID = "bridgewellfinancial.sharepoint.com,80def30d-85bd-4e18-969a-6346931d152d,deb319e5-cef4-4818-9ec3-805bedea8819";
+      const SITE_URL = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}`;
 
-    // Mark questions that were removed as deleted (these need cleanup)
-    for (let i = questions.length; i < (existingQuestions?.length || 0); i++) {
-      deletedQuestionIndices.push(i);
+      const listChildrenByPath = async (path: string) => {
+        let url: string | null = `${SITE_URL}/drive/root:/${path}:/children`;
+        const results: Array<{ id: string; name: string; folder?: unknown }> = [];
+        while (url) {
+          const r: Response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+          if (!r.ok) break;
+          const p: { value?: Array<{ id: string; name: string; folder?: unknown }>; [k: string]: unknown } = await r.json();
+          (p.value || []).forEach((x) => results.push(x));
+          const nl = (p as Record<string, unknown>)["@odata.nextLink"];
+          url = typeof nl === 'string' ? nl : null;
+        }
+        return results;
+      };
+
+      const deleteRecursivelyByPath = async (path: string) => {
+        const children = await listChildrenByPath(path);
+        for (const child of children) {
+          if (child.folder) {
+            await deleteRecursivelyByPath(`${path}/${child.name}`);
+            await fetch(`${SITE_URL}/drive/items/${child.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } });
+          } else {
+            await fetch(`${SITE_URL}/drive/items/${child.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } });
+          }
+        }
+        // try delete the now-empty folder itself
+        await fetch(`${SITE_URL}/drive/root:/${path}:`, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } });
+      };
+
+      const renamedQuestions: Array<{ oldSanitized: string; newSanitized: string; newQuestion: string }> = [];
+      const maxCommon = Math.min(questions.length, (existingQuestions?.length || 0));
+      for (let i = 0; i < maxCommon; i++) {
+        const oldQ = existingQuestionsMap.get(i);
+        const newQ = questions[i];
+        if (oldQ && typeof oldQ.question === 'string' && newQ && typeof newQ.question === 'string') {
+          const oldSan = oldQ.question.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 50);
+          const newSan = newQ.question.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 50);
+          if (oldSan !== newSan) {
+            renamedQuestions.push({ oldSanitized: oldSan, newSanitized: newSan, newQuestion: newQ.question });
+          }
+        }
+      }
+
+      for (const rq of renamedQuestions) {
+        const oldPath = `CLIENTS/${clientFolderName}/${rq.oldSanitized}`;
+        try {
+          await deleteRecursivelyByPath(oldPath);
+        } catch (e) {
+          console.error('Failed deleting old question folder (rename):', oldPath, e);
+        }
+        // Create new folder and subfolders for the renamed question
+        try {
+          await createQuestionFolders(loginKey, clientName || 'unknown_client', [{ question: rq.newQuestion }]);
+        } catch (e) {
+          console.error('Failed creating folder for renamed question:', rq.newQuestion, e);
+        }
+      }
+    } catch (e) {
+      console.error('Rename handling failed:', e);
     }
 
-    console.log("Deleted question indices:", deletedQuestionIndices);
+    // Upload any new template files for file questions (now that clientName is known)
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      if (q.response_type === "file" && q.templates && q.templates.length > 0) {
+        const sanitizedQuestion = sanitizeSharePointName(q.question || '');
+        const updatedTemplates = [] as any[];
+        for (let templateIdx = 0; templateIdx < q.templates.length; templateIdx++) {
+          const fileKey = `templateFile_${i}_${templateIdx}`;
+          const file = formData.get(fileKey) as File | null;
+          const existing = q.templates[templateIdx];
+          if (file) {
+            const buffer = await file.arrayBuffer();
+            const fileId = await uploadFileToClientFolder(
+              loginKey,
+              clientName || 'unknown_client',
+              `${sanitizedQuestion}/template/${file.name}`,
+              new Blob([buffer], { type: file.type })
+            );
+            updatedTemplates.push({ fileName: file.name, fileId, uploadedAt: new Date().toISOString() });
+          } else {
+            updatedTemplates.push({
+              fileName: existing.fileName,
+              fileId: existing.fileId || "",
+              uploadedAt: existing.uploadedAt || new Date().toISOString(),
+            });
+          }
+        }
+        questions[i] = { ...q, templates: updatedTemplates };
+      }
+    }
 
-    // Clear client submissions for DELETED questions only
-    if (deletedQuestionIndices.length > 0) {
-      console.log("Clearing client submissions for deleted questions...");
+    // existingQuestions and maps declared above
 
-      // Note: Submissions are tracked via SharePoint file existence, not database records
-      console.log("Skipping submission cleanup - submissions tracked via SharePoint files");
-      // In this system, when questions are deleted, the corresponding SharePoint files
-      // should be removed as part of the SharePoint cleanup process.
-
-      // Clear OneDrive files for deleted questions (recursive leaf-first)
-      console.log("Clearing OneDrive files for deleted questions...");
+    // Clear OneDrive files for DELETED questions (by ID), then delete DB rows
+    if (deletedExistingQuestions.length > 0) {
+      console.log("Clearing OneDrive folders for deleted questions (by ID)...");
       try {
         const { getAccessToken } = await import("@/app/utils/microsoft/auth");
         const { sanitizeSharePointName } = await import("@/app/utils/microsoft/graph");
@@ -151,8 +240,7 @@ export async function POST(request: Request) {
           }
         };
 
-        for (const questionIndex of deletedQuestionIndices) {
-          const existingQuestion = existingQuestionsMap.get(questionIndex);
+        for (const existingQuestion of deletedExistingQuestions) {
           if (existingQuestion && existingQuestion.question) {
             const sanitizedQuestion = (existingQuestion.question as string)
               .replace(/[^a-zA-Z0-9]/g, "_")
@@ -162,9 +250,9 @@ export async function POST(request: Request) {
               await deleteRecursivelyByPath(questionPath);
               // attempt to delete the now-empty question folder
               await fetch(`${SITE_URL}/drive/root:/${questionPath}:`, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } });
-              console.log(`Deleted OneDrive folder for question ${questionIndex}: ${sanitizedQuestion}`);
+              console.log(`Deleted OneDrive folder for question id ${existingQuestion.id}: ${sanitizedQuestion}`);
             } catch (err) {
-              console.error(`Error deleting OneDrive folder for question ${questionIndex}:`, err);
+              console.error(`Error deleting OneDrive folder for question id ${existingQuestion.id}:`, err);
             }
           }
         }
@@ -175,6 +263,7 @@ export async function POST(request: Request) {
 
     // Upsert questions individually
     console.log("Upserting questions...");
+    const newQuestionTitlesForFolders: Array<{ question: string }> = [];
     for (let i = 0; i < questions.length; i++) {
       const question = questions[i];
       const existingQuestion = existingQuestionsMap.get(i);
@@ -224,35 +313,41 @@ export async function POST(request: Request) {
             { status: 500 }
           );
         }
+
+        // Track new questions to create folders for them only
+        if (typeof question.question === 'string' && question.question.trim().length > 0) {
+          newQuestionTitlesForFolders.push({ question: question.question });
+        }
       }
     }
 
-    // Delete questions that were removed
-    for (let i = questions.length; i < (existingQuestions?.length || 0); i++) {
-      const existingQuestion = existingQuestionsMap.get(i);
-      if (existingQuestion) {
-        const { error: deleteError } = await supabase
-          .from("questions")
-          .delete()
-          .eq("id", existingQuestion.id);
+    // Delete questions that were removed (by ID set)
+    for (const removed of deletedExistingQuestions) {
+      const { error: deleteError } = await supabase
+        .from("questions")
+        .delete()
+        .eq("id", removed.id);
 
-        if (deleteError) {
-          console.error(`Error deleting question ${i}:`, deleteError);
-          return NextResponse.json(
-            {
-              error: `Database error deleting question ${i}: ${deleteError.message}`,
-            },
-            { status: 500 }
-          );
-        }
+      if (deleteError) {
+        console.error(`Error deleting question id ${removed.id}:`, deleteError);
+        return NextResponse.json(
+          {
+            error: `Database error deleting question id ${removed.id}: ${deleteError.message}`,
+          },
+          { status: 500 }
+        );
       }
     }
 
     console.log("Form questions updated successfully in Supabase");
 
-    // Update OneDrive folders for new questions
-    console.log("Updating OneDrive folders...");
-    await createQuestionFolders(loginKey, clientName || 'unknown_client', questions);
+    // Update OneDrive folders for NEW questions only to avoid renamed duplicates
+    if (newQuestionTitlesForFolders.length > 0) {
+      console.log("Creating OneDrive folders for new questions only...");
+      await createQuestionFolders(loginKey, clientName || 'unknown_client', newQuestionTitlesForFolders);
+    } else {
+      console.log("No new questions to create folders for.");
+    }
 
     console.log("Form updated successfully");
 
