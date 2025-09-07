@@ -13,6 +13,11 @@ export const metadata: Metadata = {
     "Bridgewell Client Onboarding Portal- Financial Services for Organizations and Professionals",
   description:
     "Bridgewell Client Onboarding Portal is a secure and user-friendly web application that facilitates the onboarding of Bridgewell clients",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
@@ -22,9 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${lexend.variable}`}>
-      <head>
-        <link rel="icon" href="favicon.png" />
-      </head>
+      <head></head>
       <body className={` antialiased max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`}>
         {children}
       </body>
