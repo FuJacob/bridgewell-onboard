@@ -1,16 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { AppQuestion } from "@/types";
 import Textarea from "../ui/Textarea";
 import FileUpload from "../ui/FileUpload";
 import Button from "../ui/Button";
 import ErrorMessage from "../shared/ErrorMessage";
-import {
-  FaCheckCircle,
-  FaDownload,
-  FaUserShield,
-  FaRedo,
-  FaExternalLinkAlt,
-} from "react-icons/fa";
+import { FaCheckCircle, FaDownload, FaRedo, FaExternalLinkAlt } from "react-icons/fa";
 
 interface QuestionCardProps {
   question: AppQuestion;
@@ -25,6 +19,7 @@ interface QuestionCardProps {
   onSubmit: () => void;
   showAdminPanel?: boolean;
   onRedoQuestion?: () => void;
+  loginKey?: string;
 }
 
 export default function QuestionCard({
@@ -40,7 +35,9 @@ export default function QuestionCard({
   onSubmit,
   showAdminPanel = false,
   onRedoQuestion,
+  loginKey,
 }: QuestionCardProps) {
+  const [isResetting, setIsResetting] = useState(false);
   const canSubmit =
     question.response_type === "text"
       ? textResponse.trim() !== ""
@@ -119,45 +116,7 @@ export default function QuestionCard({
             </div>
           </div>
 
-          {/* Admin Panel */}
-          {showAdminPanel && question.response_type !== 'notice' && (
-            <div className="bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200 rounded-xl p-4 shrink-0 min-w-[200px]">
-              <div className="flex items-center gap-2 mb-3">
-                <FaUserShield className="text-orange-600 w-4 h-4" />
-                <h3 className="text-orange-800 font-bold text-sm">
-                  Admin Controls
-                </h3>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => {
-                    if (!question.question) return;
-                    const qt = encodeURIComponent(question.question || "");
-                    window.open(`/api/admin/download-answers?key=${encodeURIComponent((question as any).login_key || '')}&question=${qt}`, "_blank");
-                  }}
-                  className="w-full flex items-center justify-center gap-2"
-                  disabled={!isSubmitted}
-                >
-                  <FaDownload className="w-3 h-3" />
-                  Download responses
-                </Button>
-                {isSubmitted && (
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={onRedoQuestion}
-                    className="w-full flex items-center justify-center gap-2"
-                    disabled={isSubmitting}
-                  >
-                    <FaRedo className="w-3 h-3" />
-                    Reset client responses
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Admin panel removed; unified controls are shown below */}
         </div>
       </div>
 
@@ -243,25 +202,34 @@ export default function QuestionCard({
 
         {/* Submit / Reset Buttons */}
         <div className="flex justify-end gap-3">
-          {!showAdminPanel && isSubmitted && onRedoQuestion && question.response_type !== 'notice' && (
+          {isSubmitted && onRedoQuestion && question.response_type !== 'notice' && (
             <Button
               variant="danger"
-              onClick={onRedoQuestion}
-              disabled={isSubmitting}
+              onClick={async () => {
+                try {
+                  setIsResetting(true);
+                  await onRedoQuestion();
+                } finally {
+                  setIsResetting(false);
+                }
+              }}
+              disabled={isSubmitting || isResetting}
               size="lg"
               className="px-6 py-3 font-semibold"
+              loading={isResetting}
             >
               Reset submission
             </Button>
           )}
-          {!showAdminPanel && isSubmitted && question.response_type !== 'notice' && (
+          {isSubmitted && question.response_type !== 'notice' && (
             <Button
               variant="primary"
               onClick={() => {
                 const qt = encodeURIComponent(question.question || "");
-                window.open(`/api/admin/download-answers?key=${encodeURIComponent((question as any).login_key || '')}&question=${qt}`, "_blank");
+                const k = encodeURIComponent(loginKey || (question as any).login_key || '');
+                window.open(`/api/admin/download-answers?key=${k}&question=${qt}`, "_blank");
               }}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isResetting}
               size="lg"
               className="px-6 py-3 font-semibold"
             >
@@ -282,7 +250,7 @@ export default function QuestionCard({
                   : "shadow-lg hover:shadow-xl"
               }`}
             >
-              {isSubmitted ? "Submit Again" : "Submit Response"}
+              {isSubmitted ? "Submitted" : "Submit Response"}
             </Button>
           )}
         </div>

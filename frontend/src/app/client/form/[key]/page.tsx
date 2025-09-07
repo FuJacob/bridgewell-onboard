@@ -702,7 +702,8 @@ export default function ClientFormPage() {
                   onTextChange={(value) => handleTextChange(index, value)}
                   onFileChange={(file) => handleFileChange(index, file)}
                   onSubmit={() => handleSubmitQuestion(index, question)}
-                  showAdminPanel={signedIn}
+                  showAdminPanel={false}
+                  loginKey={loginKey}
                   onRedoQuestion={() =>
                     deleteClientUploads(
                       loginKey,

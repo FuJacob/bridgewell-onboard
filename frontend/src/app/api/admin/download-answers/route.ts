@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/app/utils/supabase/server";
 import { getAccessToken } from "@/app/utils/microsoft/auth";
-import { getSiteURL } from "@/app/utils/microsoft/graph";
+import { getSiteURL, sanitizeSharePointName } from "@/app/utils/microsoft/graph";
 import JSZip from "jszip";
-
-function sanitizeSharePointName(name: string, maxLength = 50): string {
-  return (name || "")
-    .replace(/[^a-zA-Z0-9]/g, "_")
-    .substring(0, maxLength);
-}
 
 export async function GET(req: NextRequest) {
   const key = req.nextUrl.searchParams.get("key");
@@ -32,25 +26,27 @@ export async function GET(req: NextRequest) {
     const accessToken = await getAccessToken();
     const sanitizedClient = sanitizeSharePointName(clientRow.client_name || "unknown_client");
     const clientFolderName = `${sanitizedClient}_${key}`;
-    const sanitizedQuestion = sanitizeSharePointName(question, 50);
+    const sanitizedQuestion = sanitizeSharePointName(question || "");
     const basePath = `CLIENTS/${clientFolderName}/${sanitizedQuestion}/answer`;
 
-    // List all files under the answer folder (no recursion expected normally)
-    const listUrl = `${getSiteURL()}/drive/root:/${basePath}:/children`;
-    const listResp = await fetch(listUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!listResp.ok) {
-      const t = await listResp.text().catch(() => "");
-      return NextResponse.json(
-        { error: `Failed to list answer files: ${listResp.status} ${t}` },
-        { status: 502 }
-      );
+    // List all files (with pagination) under the answer folder by path
+    const items: Array<{ id: string; name: string }> = [];
+    let url: string | null = `${getSiteURL()}/drive/root:/${basePath}:/children`;
+    while (url) {
+      const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!resp.ok) {
+        if (resp.status === 404) {
+          return NextResponse.json({ error: "No files found in answer folder" }, { status: 404 });
+        }
+        const t = await resp.text().catch(() => "");
+        return NextResponse.json({ error: `Failed to list answer files: ${resp.status} ${t}` }, { status: 502 });
+      }
+      const list = await resp.json();
+      (list.value || [])
+        .filter((v: any) => !v.folder && v.id && v.name)
+        .forEach((v: any) => items.push({ id: String(v.id), name: String(v.name) }));
+      url = typeof list["@odata.nextLink"] === 'string' ? list["@odata.nextLink"] : null;
     }
-    const list = await listResp.json();
-    const items: Array<{ id: string; name: string }> = (list.value || [])
-      .filter((v: any) => !v.folder && v.id && v.name)
-      .map((v: any) => ({ id: v.id as string, name: String(v.name) }));
 
     if (items.length === 0) {
       return NextResponse.json({ error: "No files found in answer folder" }, { status: 404 });
@@ -67,7 +63,7 @@ export async function GET(req: NextRequest) {
           continue;
         }
         const buf = await fileResp.arrayBuffer();
-        const safeName = sanitizeSharePointName(item.name, 100);
+        const safeName = sanitizeSharePointName(item.name || "", 100);
         zip.file(safeName || `answer_${downloaded + 1}`, buf);
         downloaded++;
       } catch {
