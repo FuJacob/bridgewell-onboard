@@ -22,6 +22,8 @@ interface QuestionEditorProps {
   onMoveQuestionDown: (index: number) => void;
   onTemplateUpload: (index: number, files: FileList) => void;
   onDeleteTemplate?: (questionIndex: number, templateIndex: number) => void;
+  // New optional flag to indicate editor is in template editing mode
+  isTemplateMode?: boolean;
 }
 
 export default function QuestionEditor({
@@ -38,6 +40,7 @@ export default function QuestionEditor({
   onMoveQuestionDown,
   onTemplateUpload,
   onDeleteTemplate,
+  isTemplateMode = false,
 }: QuestionEditorProps) {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -184,13 +187,19 @@ export default function QuestionEditor({
               📎 Template Document{" "}
               <span className="text-blue-600 font-normal">(optional)</span>
             </label>
-            <input
-              type="file"
-              multiple
-              accept=".pdf,.doc,.docx,.jpg,.png,.xls,.xlsx,.xlsm"
-              onChange={handleFileUpload}
-              className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm bg-white"
-            />
+            {!isTemplateMode ? (
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.jpg,.png,.xls,.xlsx,.xlsm"
+                onChange={handleFileUpload}
+                className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm bg-white"
+              />
+            ) : (
+              <div className="text-sm text-blue-700">
+                File templates are disabled while editing templates.
+              </div>
+            )}
             {question.templates && question.templates.length > 0 && (
               <div className="mt-2 space-y-2">
                 {question.templates.map((template, templateIndex) => (
@@ -201,7 +210,7 @@ export default function QuestionEditor({
                         {template.fileName}
                       </span>
                     </div>
-                    {onDeleteTemplate && (
+                    {onDeleteTemplate && !isTemplateMode && (
                       <button
                         onClick={() => onDeleteTemplate(index, templateIndex)}
                         className="text-red-600 hover:text-red-800 hover:bg-red-100 p-1 rounded transition-colors"

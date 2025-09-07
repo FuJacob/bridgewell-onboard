@@ -298,6 +298,7 @@ export default function FormEditorModal({
                   onMoveQuestionDown={onMoveQuestionDown}
                   onTemplateUpload={onTemplateUpload}
                   onDeleteTemplate={onDeleteTemplate}
+                  isTemplateMode={mode === "editTemplate"}
                 />
               ))}
             </div>

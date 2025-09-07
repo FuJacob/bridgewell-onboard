@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/app/utils/supabase/server";
-import { uploadFileToClientFolder } from "@/app/utils/microsoft/graph";
 import { TemplateQuestion } from "@/types";
 
 // Configure route segment for large file uploads
@@ -21,7 +20,7 @@ export async function PUT(request: Request) {
     const contentType = request.headers.get("content-type") || "";
 
     if (contentType.includes("multipart/form-data")) {
-      // Handle FormData with files
+      // Handle FormData with files (but we will not upload any files to OneDrive)
       const formData = await request.formData();
       const templateId = formData.get("templateId") as string;
       const templateName = formData.get("templateName") as string;
@@ -40,104 +39,12 @@ export async function PUT(request: Request) {
 
       const questions = JSON.parse(questionsRaw) as TemplateQuestion[];
       console.log("Parsed questions:", questions);
-      
-      // Parse templates from JSON strings back to arrays if needed
-      questions.forEach((question: TemplateQuestion, index: number) => {
-        if (question.templates && typeof question.templates === 'string') {
-          try {
-            const parsed = JSON.parse(question.templates as string);
-            question.templates = Array.isArray(parsed) ? parsed : null;
-            console.log(`Question ${index + 1}: Parsed ${question.templates?.length || 0} templates from JSON string`);
-          } catch (parseError) {
-            console.error(`Error parsing templates for question ${index + 1}:`, parseError);
-            question.templates = null;
-          }
-        }
-      });
 
-      // Process questions and upload template files
-      const processedQuestions = questions.map(
-        (q: TemplateQuestion, idx: number) => {
-          if (
-            q.response_type === "file" &&
-            q.templates &&
-            q.templates.length > 0
-          ) {
-            return {
-              ...q,
-              templates: q.templates.map((template, templateIdx: number) => {
-                const fileKey = `templateFile_${idx}_${templateIdx}`;
-                const file = formData.get(fileKey) as File | null;
-
-                if (file) {
-                  // File exists in FormData - upload it
-                  console.log(`Uploading template file: ${file.name}`);
-                  return {
-                    fileName: file.name,
-                    fileId: "", // Will be updated after upload
-                    uploadedAt: new Date().toISOString(),
-                    _needsUpload: true,
-                    _file: file,
-                    _fileKey: fileKey,
-                  };
-                } else {
-                  // No file in FormData - keep existing data
-                  return {
-                    fileName: template.fileName,
-                    fileId: template.fileId || "",
-                    uploadedAt: template.uploadedAt || new Date().toISOString(),
-                  };
-                }
-              }),
-            };
-          }
-          return q;
-        }
-      );
-
-      // Upload files and update fileIds
-      for (let i = 0; i < processedQuestions.length; i++) {
-        const question = processedQuestions[i];
-        if (question.response_type === "file" && question.templates) {
-          for (
-            let templateIdx = 0;
-            templateIdx < question.templates.length;
-            templateIdx++
-          ) {
-            const template = question.templates[templateIdx];
-            if (template._needsUpload && template._file) {
-              try {
-                const sanitizedQuestion = question.question
-                  .replace(/[^a-zA-Z0-9]/g, "_")
-                  .substring(0, 50);
-
-                const buffer = await template._file.arrayBuffer();
-                const fileId = await uploadFileToClientFolder(
-                  "TEMPLATE", // Use a special key for templates
-                  "TEMPLATES",
-                  `${sanitizedQuestion}/template/${template.fileName}`,
-                  new Blob([buffer], { type: template._file.type })
-                );
-
-                console.log(`Template file uploaded with ID: ${fileId}`);
-                template.fileId = fileId;
-                delete template._needsUpload;
-                delete template._file;
-                delete template._fileKey;
-              } catch (uploadError) {
-                console.error(
-                  `Error uploading template file ${template.fileName}:`,
-                  uploadError
-                );
-                template.fileId = "";
-                delete template._needsUpload;
-                delete template._file;
-                delete template._fileKey;
-              }
-            }
-          }
-        }
-      }
+      // For templates: do not keep or upload per-question template files
+      const processedQuestions = questions.map((q: TemplateQuestion) => ({
+        ...q,
+        templates: null,
+      }));
 
       // Update in database
       const supabase = createServiceClient();
@@ -181,11 +88,16 @@ export async function PUT(request: Request) {
       console.log("Questions to store:", questions);
 
       const supabase = createServiceClient();
+      // Strip any file template metadata before storing
+      const processed = (questions as TemplateQuestion[]).map((q) => ({
+        ...q,
+        templates: null,
+      }));
       const { data, error } = await supabase
         .from("templates")
         .update({
           template_name: templateName,
-          questions: JSON.stringify(questions), // store as text
+          questions: JSON.stringify(processed), // store as text without files
         })
         .eq("id", parseInt(templateId, 10))
         .select();
