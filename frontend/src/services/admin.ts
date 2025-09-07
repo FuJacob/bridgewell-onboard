@@ -161,6 +161,8 @@ export async function updateForm(
   const formData = new FormData();
   formData.append("loginKey", loginKey);
   formData.append("questions", JSON.stringify(questions));
+  // Pass through flags indicating template folder clears per question (if encoded in questions)
+  // We will derive clear flags server-side from a special map if provided separately in future.
 
   // Add template files to FormData with detailed logging
   console.log(`=== Adding ${Object.keys(templateFiles).length} files to FormData for update ===`);

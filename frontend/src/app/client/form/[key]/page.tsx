@@ -81,6 +81,7 @@ export default function ClientFormPage() {
   const [submittedFiles, setSubmittedFiles] = useState<{
     [index: number]: { name: string; type: string; fileId?: string };
   }>({});
+  // immediate clear handled via API, no deferred flags needed
 
   // Admin edit state
   const [showEditModal, setShowEditModal] = useState(false);
@@ -210,6 +211,63 @@ export default function ClientFormPage() {
     // Clear error when selecting a file
     if (questionErrors[index]) {
       setQuestionErrors({ ...questionErrors, [index]: null });
+    }
+  };
+
+  // Add template files while editing an existing form (admin modal)
+  const handleTemplateUploadInEdit = (index: number, fileList: FileList) => {
+    const incomingFiles = Array.from(fileList);
+    setQuestions((prev) => {
+      const newQuestions = [...prev];
+      const q = newQuestions[index];
+      const existingTemplates = Array.isArray(q.templates) ? [...q.templates] : [];
+      const nowIso = new Date().toISOString();
+      incomingFiles.forEach((file) => {
+        existingTemplates.push({
+          fileName: file.name,
+          fileId: "",
+          uploadedAt: nowIso,
+          // client-side only handle; server reads FormData and uploads
+          fileObject: file,
+        } as unknown as QuestionTemplate);
+      });
+      newQuestions[index] = { ...q, templates: existingTemplates };
+      return newQuestions;
+    });
+  };
+
+  const handleClearTemplatesInEdit = async (index: number) => {
+    const q = questions[index];
+    if (q.response_type !== "file") return;
+    // Optionally fetch count first by listing current templates state (best-effort via state)
+    const count = Array.isArray(q.templates) ? q.templates.length : 0;
+    const confirmed = window.confirm(
+      count > 0
+        ? `Remove existing ${count} template${count === 1 ? '' : 's'} for this question? This only clears the template folder (answers remain).`
+        : `Clear template folder for this question? This only clears the template folder (answers remain).`
+    );
+    if (!confirmed) return;
+
+    try {
+      const resp = await fetch('/api/admin/clear-template-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ loginKey, question: q.question || '' }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        throw new Error(data.error || 'Failed to clear template folder');
+      }
+      // Update UI to reflect cleared templates
+      setQuestions((prev) => {
+        const next = [...prev];
+        next[index] = { ...next[index], templates: [] };
+        return next;
+      });
+      alert('Template folder cleared. You can add new templates now.');
+    } catch (e) {
+      console.error(e);
+      alert('Failed to clear template folder.');
     }
   };
 
@@ -775,6 +833,48 @@ export default function ClientFormPage() {
                           className="block w-full p-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
                         />
                       </div>
+                      {question.response_type === "file" && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                          <label className="block text-sm font-medium text-blue-800 mb-2">
+                            Template Documents <span className="text-blue-600 font-normal">(optional)</span>
+                          </label>
+                          <input
+                            type="file"
+                            multiple
+                            accept=".pdf,.doc,.docx,.jpg,.png,.xls,.xlsx,.xlsm"
+                            onChange={(e) => {
+                              if (e.target.files) {
+                                handleTemplateUploadInEdit(index, e.target.files);
+                                e.currentTarget.value = "";
+                              }
+                            }}
+                            className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm bg-white"
+                          />
+                          {Array.isArray(question.templates) && question.templates.length > 0 && (
+                            <div className="mt-2 space-y-2">
+                              {question.templates.map((t, tIdx) => (
+                                <div key={(t as any).fileName + tIdx} className="flex items-center justify-between bg-blue-100 px-3 py-2 rounded-lg">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-blue-800">📄</span>
+                                    <span className="text-sm font-medium text-blue-700">
+                                      {(t as any).fileObject?.name || (t as any).fileName}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              onClick={() => handleClearTemplatesInEdit(index)}
+                              className="text-sm px-3 py-2 rounded-lg border border-red-300 text-red-700 hover:bg-red-50"
+                            >
+                              Remove existing templates
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">

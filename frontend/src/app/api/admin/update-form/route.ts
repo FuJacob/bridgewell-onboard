@@ -172,8 +172,54 @@ export async function POST(request: Request) {
     // Upload any new template files for file questions (now that clientName is known)
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
+      const sanitizedQuestion = sanitizeSharePointName(q.question || '');
+
+      // If templates array is empty for a file question and no incoming files for this index,
+      // interpret as a request to clear the template subfolder contents.
+      const anyIncomingForIndex = Array.from(formData.keys()).some((k) => k.startsWith(`templateFile_${i}_`));
+      if (q.response_type === "file" && Array.isArray(q.templates) && q.templates.length === 0 && !anyIncomingForIndex) {
+        try {
+          const { getAccessToken } = await import("@/app/utils/microsoft/auth");
+          const accessToken = await getAccessToken();
+          const sanitizedClientName = sanitizeSharePointName(clientName || 'unknown_client');
+          const clientFolderName = `${sanitizedClientName}_${loginKey}`;
+          const SHAREPOINT_SITE_ID = "bridgewellfinancial.sharepoint.com,80def30d-85bd-4e18-969a-6346931d152d,deb319e5-cef4-4818-9ec3-805bedea8819";
+          const SITE_URL = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}`;
+          const templatePath = `CLIENTS/${clientFolderName}/${sanitizedQuestion}/template`;
+
+          const listChildrenByPath = async (path: string) => {
+            let url: string | null = `${SITE_URL}/drive/root:/${path}:/children`;
+            const results: Array<{ id: string; name: string; folder?: unknown }> = [];
+            while (url) {
+              const r: Response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+              if (!r.ok) break;
+              const p: { value?: Array<{ id: string; name: string; folder?: unknown }>; [k: string]: unknown } = await r.json();
+              (p.value || []).forEach((x) => results.push(x));
+              const nl = (p as Record<string, unknown>)["@odata.nextLink"];
+              url = typeof nl === 'string' ? nl : null;
+            }
+            return results;
+          };
+
+          const deleteRecursivelyByPath = async (path: string) => {
+            const children = await listChildrenByPath(path);
+            for (const child of children) {
+              if (child.folder) {
+                await deleteRecursivelyByPath(`${path}/${child.name}`);
+                await fetch(`${SITE_URL}/drive/items/${child.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } });
+              } else {
+                await fetch(`${SITE_URL}/drive/items/${child.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } });
+              }
+            }
+          };
+
+          await deleteRecursivelyByPath(templatePath);
+        } catch (e) {
+          console.error('Failed clearing template subfolder:', e);
+        }
+      }
+
       if (q.response_type === "file" && q.templates && q.templates.length > 0) {
-        const sanitizedQuestion = sanitizeSharePointName(q.question || '');
         const updatedTemplates = [] as any[];
         for (let templateIdx = 0; templateIdx < q.templates.length; templateIdx++) {
           const fileKey = `templateFile_${i}_${templateIdx}`;
