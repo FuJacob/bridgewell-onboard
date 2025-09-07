@@ -58,6 +58,17 @@ export async function POST(request: Request) {
 
     await deleteRecursivelyByPath(templatePath);
 
+    // Immediately clear templates in Supabase for this question
+    try {
+      await supabase
+        .from("questions")
+        .update({ templates: JSON.stringify([]) })
+        .eq("login_key", loginKey)
+        .eq("question", question);
+    } catch (dbErr) {
+      console.error("Failed to update question templates to empty array:", dbErr);
+    }
+
     // return how many were deleted by recounting children
     const remaining = await listChildrenByPath(templatePath);
     const cleared = remaining.length === 0;

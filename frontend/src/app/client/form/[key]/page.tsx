@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -88,6 +88,8 @@ export default function ClientFormPage() {
   const [isUpdatingForm, setIsUpdatingForm] = useState(false);
   const [editFormError, setEditFormError] = useState<string | null>(null);
   const [editUploadNotice, setEditUploadNotice] = useState<string | null>(null);
+  const [clearingTemplates, setClearingTemplates] = useState<{ [index: number]: boolean }>({});
+  const beforeUnloadRef = useRef<((e: BeforeUnloadEvent) => void) | null>(null);
 
   // Check if questions are already completed
   const checkCompletionStatus = useCallback(async () => {
@@ -264,6 +266,7 @@ export default function ClientFormPage() {
     if (!confirmed) return;
 
     try {
+      setClearingTemplates((prev) => ({ ...prev, [index]: true }));
       const resp = await fetch('/api/admin/clear-template-folder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -283,6 +286,8 @@ export default function ClientFormPage() {
     } catch (e) {
       console.error(e);
       alert('Failed to clear template folder.');
+    } finally {
+      setClearingTemplates((prev) => ({ ...prev, [index]: false }));
     }
   };
 
@@ -498,14 +503,14 @@ export default function ClientFormPage() {
       });
       // If uploading files, warn before unload and show notice
       const uploadFileCount = Object.keys(templateFiles).length;
-      let beforeUnloadHandler: ((e: BeforeUnloadEvent) => void) | null = null;
       if (uploadFileCount > 0) {
         setEditUploadNotice(`Uploading ${uploadFileCount} file(s)... Please keep this tab open. Large files may take several minutes.`);
-        beforeUnloadHandler = (e: BeforeUnloadEvent) => {
+        const handler = (e: BeforeUnloadEvent) => {
           e.preventDefault();
           e.returnValue = '';
         };
-        window.addEventListener('beforeunload', beforeUnloadHandler);
+        beforeUnloadRef.current = handler;
+        window.addEventListener('beforeunload', handler);
       }
 
       // Update the form using the new updateForm API
@@ -514,6 +519,10 @@ export default function ClientFormPage() {
 
       if (data.success) {
         // Refresh the page to show the updated form
+        if (beforeUnloadRef.current) {
+          try { window.removeEventListener('beforeunload', beforeUnloadRef.current as any); } catch {}
+          beforeUnloadRef.current = null;
+        }
         window.location.reload();
       } else {
         setEditFormError(
@@ -527,10 +536,10 @@ export default function ClientFormPage() {
       );
     } finally {
       // Clear unload warning and notice
-      try {
-        // Note: beforeUnloadHandler is defined in the try block; remove listener defensively
-        window.removeEventListener('beforeunload', (() => {}) as any);
-      } catch {}
+      if (beforeUnloadRef.current) {
+        try { window.removeEventListener('beforeunload', beforeUnloadRef.current as any); } catch {}
+        beforeUnloadRef.current = null;
+      }
       setEditUploadNotice(null);
       setIsUpdatingForm(false);
     }
@@ -832,7 +841,7 @@ export default function ClientFormPage() {
                 {questions.map((question, index) => (
                   <div
                     key={index}
-                    className="border border-gray-200 rounded-xl p-4"
+                    className={`border border-gray-200 rounded-xl p-4 ${((clearingTemplates[index]) || isUpdatingForm) ? 'opacity-60 pointer-events-none' : ''}`}
                   >
                     <div className="flex justify-between items-start mb-3">
                       <h4 className="font-semibold text-gray-900">
