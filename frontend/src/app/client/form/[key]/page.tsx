@@ -87,6 +87,7 @@ export default function ClientFormPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [isUpdatingForm, setIsUpdatingForm] = useState(false);
   const [editFormError, setEditFormError] = useState<string | null>(null);
+  const [editUploadNotice, setEditUploadNotice] = useState<string | null>(null);
 
   // Check if questions are already completed
   const checkCompletionStatus = useCallback(async () => {
@@ -495,6 +496,17 @@ export default function ClientFormPage() {
             q.templates && Array.isArray(q.templates) ? [...q.templates] : null,
         };
       });
+      // If uploading files, warn before unload and show notice
+      const uploadFileCount = Object.keys(templateFiles).length;
+      let beforeUnloadHandler: ((e: BeforeUnloadEvent) => void) | null = null;
+      if (uploadFileCount > 0) {
+        setEditUploadNotice(`Uploading ${uploadFileCount} file(s)... Please keep this tab open. Large files may take several minutes.`);
+        beforeUnloadHandler = (e: BeforeUnloadEvent) => {
+          e.preventDefault();
+          e.returnValue = '';
+        };
+        window.addEventListener('beforeunload', beforeUnloadHandler);
+      }
 
       // Update the form using the new updateForm API
       const dbQuestions = convertToDbQuestions(processedQuestions);
@@ -514,6 +526,12 @@ export default function ClientFormPage() {
         err instanceof Error ? err.message : "Failed to update form"
       );
     } finally {
+      // Clear unload warning and notice
+      try {
+        // Note: beforeUnloadHandler is defined in the try block; remove listener defensively
+        window.removeEventListener('beforeunload', (() => {}) as any);
+      } catch {}
+      setEditUploadNotice(null);
       setIsUpdatingForm(false);
     }
   };
@@ -802,6 +820,11 @@ export default function ClientFormPage() {
               {editFormError && (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
                   <p className="text-red-700">{editFormError}</p>
+                </div>
+              )}
+              {editUploadNotice && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+                  <p className="text-blue-800 text-sm">{editUploadNotice}</p>
                 </div>
               )}
 

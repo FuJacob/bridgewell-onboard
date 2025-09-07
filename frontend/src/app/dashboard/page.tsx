@@ -275,7 +275,13 @@ export default function Dashboard() {
     setFormError(null);
     setUploadProgress("Preparing files for upload...");
 
+    // Warn user before unload during uploads/creation
+    const beforeUnloadHandler = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+        e.returnValue = '';
+      };
     try {
+      window.addEventListener('beforeunload', beforeUnloadHandler);
       // Collect template files
       const templateFiles: { [key: string]: File } = {};
       const processedQuestions = questions.map((q, idx) => {
@@ -362,7 +368,7 @@ export default function Dashboard() {
 
       const fileCount = Object.keys(templateFiles).length;
       if (fileCount > 0) {
-        setUploadProgress(`Uploading ${fileCount} files...`);
+        setUploadProgress(`Uploading ${fileCount} files... Please keep this tab open. Large files may take several minutes.`);
       } else {
         setUploadProgress("Creating form...");
       }
@@ -406,6 +412,8 @@ export default function Dashboard() {
       );
       setUploadProgress(null);
     } finally {
+      // Remove unload warning
+      try { window.removeEventListener('beforeunload', beforeUnloadHandler as any); } catch {}
       setIsGenerating(false);
     }
   };

@@ -281,19 +281,13 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
               const buffer = await file.arrayBuffer();
               const fileName = file.name;
               
-              // Add timeout for individual file uploads (60 seconds)
-              const uploadPromise = uploadFileToClientFolder(
+              // Upload without artificial timeout; allow large files to complete
+              const fileId = await uploadFileToClientFolder(
                 loginKey,
                 clientName,
                 `${sanitizedQuestion}/template/${fileName}`,
                 new Blob([buffer], { type: file.type })
               );
-              
-              const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('File upload timeout after 60 seconds')), 60000);
-              });
-              
-              const fileId = await Promise.race([uploadPromise, timeoutPromise]) as string;
               console.log(`File uploaded successfully with ID: ${fileId}`);
               mutableTemplates[templateIdx] = {
                 fileName,
