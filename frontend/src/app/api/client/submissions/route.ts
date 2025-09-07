@@ -43,8 +43,20 @@ export async function GET(request: NextRequest) {
         { status: 500 }
       );
     }
-    // Sort questions deterministically to match client-side rendering
+    // Sort by explicit order first, then id asc as tiebreaker
+    const getOrder = (q: any) => {
+      const o = q?.order;
+      if (typeof o === 'number') return o;
+      if (typeof o === 'string') {
+        const n = parseInt(o, 10);
+        return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER;
+      }
+      return Number.MAX_SAFE_INTEGER;
+    };
     const questions = (questionsData || []).slice().sort((a: any, b: any) => {
+      const ao = getOrder(a);
+      const bo = getOrder(b);
+      if (ao !== bo) return ao - bo;
       const aId = typeof a.id === 'number' ? a.id : 0;
       const bId = typeof b.id === 'number' ? b.id : 0;
       return aId - bId;

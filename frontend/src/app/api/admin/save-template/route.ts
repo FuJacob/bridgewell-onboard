@@ -39,8 +39,10 @@ export async function POST(request: Request) {
       console.log("Parsed questions:", questions);
 
       // For templates: never keep or upload per-question template files
-      const processedQuestions = questions.map((q: TemplateQuestion) => ({
+      const processedQuestions = questions.map((q: TemplateQuestion, idx: number) => ({
         ...q,
+        // store order in template for future use
+        order: typeof (q as any).order === 'number' ? (q as any).order : idx + 1,
         templates: null,
       }));
 
@@ -85,8 +87,9 @@ export async function POST(request: Request) {
 
       const supabase = createServiceClient();
       // Strip any file template metadata before storing
-      const processed = (questions as TemplateQuestion[]).map((q) => ({
+      const processed = (questions as TemplateQuestion[]).map((q, idx) => ({
         ...q,
+        order: typeof (q as any).order === 'number' ? (q as any).order : idx + 1,
         templates: null,
       }));
       const templateInsertData: TemplateInsert = {

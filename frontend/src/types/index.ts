@@ -47,6 +47,7 @@ export interface FormQuestion {
   id?: number;
   created_at?: string;
   login_key?: string | null;
+  order?: number | null;
 }
 
 // Helper function to convert FormQuestion to Question for database operations
@@ -59,6 +60,7 @@ export const convertFormQuestionToQuestion = (
   due_date: formQ.due_date,
   link: formQ.link || null,
   login_key: loginKey,
+  order: typeof formQ.order === 'number' ? formQ.order : null,
   question: formQ.question,
   response_type: formQ.response_type,
   templates: formQ.templates ? JSON.stringify(formQ.templates) : null,

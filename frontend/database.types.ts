@@ -55,6 +55,7 @@ export type Database = {
           id: number
           link: string | null
           login_key: string | null
+          order: number | null
           question: string | null
           response_type: string | null
           templates: Json | null
@@ -66,6 +67,7 @@ export type Database = {
           id?: number
           link?: string | null
           login_key?: string | null
+          order?: number | null
           question?: string | null
           response_type?: string | null
           templates?: Json | null
@@ -77,6 +79,7 @@ export type Database = {
           id?: number
           link?: string | null
           login_key?: string | null
+          order?: number | null
           question?: string | null
           response_type?: string | null
           templates?: Json | null

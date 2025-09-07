@@ -174,13 +174,14 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
 
     // Add login_key to each question to link them to the client
     const questionsWithLoginKey: QuestionInsert[] = questions.map(
-      (question) => ({
+      (question, idx) => ({
         question: question.question,
         description: question.description,
         response_type: question.response_type,
         due_date: question.due_date,
         link: question.link,
         login_key: loginKey,
+        order: typeof (question as any).order === 'number' ? (question as any).order : idx + 1,
         templates: question.templates ? JSON.stringify(question.templates) : null,
       })
     );

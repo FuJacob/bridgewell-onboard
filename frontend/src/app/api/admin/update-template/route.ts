@@ -41,8 +41,9 @@ export async function PUT(request: Request) {
       console.log("Parsed questions:", questions);
 
       // For templates: do not keep or upload per-question template files
-      const processedQuestions = questions.map((q: TemplateQuestion) => ({
+      const processedQuestions = questions.map((q: TemplateQuestion, idx: number) => ({
         ...q,
+        order: typeof (q as any).order === 'number' ? (q as any).order : idx + 1,
         templates: null,
       }));
 

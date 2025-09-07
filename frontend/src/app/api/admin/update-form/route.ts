@@ -138,10 +138,10 @@ export async function POST(request: Request) {
       };
 
       const renamedQuestions: Array<{ oldSanitized: string; newSanitized: string; newQuestion: string }> = [];
-      const maxCommon = Math.min(questions.length, (existingQuestions?.length || 0));
-      for (let i = 0; i < maxCommon; i++) {
-        const oldQ = existingQuestionsMap.get(i);
-        const newQ = questions[i];
+      // Prefer matching by id to avoid index-based drift
+      for (let i = 0; i < questions.length; i++) {
+        const newQ = questions[i] as any;
+        const oldQ = (existingQuestions || []).find((q: any) => q.id === newQ?.id) || existingQuestionsMap.get(i);
         if (oldQ && typeof oldQ.question === 'string' && newQ && typeof newQ.question === 'string') {
           const oldSan = oldQ.question.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 50);
           const newSan = newQ.question.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 50);
@@ -311,8 +311,13 @@ export async function POST(request: Request) {
     console.log("Upserting questions...");
     const newQuestionTitlesForFolders: Array<{ question: string }> = [];
     for (let i = 0; i < questions.length; i++) {
-      const question = questions[i];
-      const existingQuestion = existingQuestionsMap.get(i);
+      const question = questions[i] as any;
+      // Persist order; default to position if absent
+      const orderValue = typeof question.order === 'number' ? question.order : (i + 1);
+      question.order = orderValue;
+      const existingQuestion = question.id
+        ? (existingQuestions || []).find((q: any) => q.id === question.id)
+        : existingQuestionsMap.get(i);
 
       if (existingQuestion) {
         // Update existing question - exclude ID to avoid conflicts
@@ -321,6 +326,7 @@ export async function POST(request: Request) {
         const updateData = {
           ...questionDataWithoutId,
           login_key: loginKey,
+          order: orderValue,
         };
         
         const { error: updateError } = await supabase
@@ -344,6 +350,7 @@ export async function POST(request: Request) {
         const insertData = {
           ...questionDataWithoutId,
           login_key: loginKey,
+          order: orderValue,
         };
         
         const { error: insertError } = await supabase

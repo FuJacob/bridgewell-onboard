@@ -153,8 +153,22 @@ export default function ClientFormPage() {
         const clientData = await getClientFormData(loginKey);
         setClientData(clientData);
         const convertedQuestions = convertToAppQuestions(clientData.questions);
+        const getOrder = (q: any) => {
+          const o = q?.order;
+          if (typeof o === 'number') return o;
+          if (typeof o === 'string') {
+            const n = parseInt(o, 10);
+            return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER;
+          }
+          return Number.MAX_SAFE_INTEGER;
+        };
         setQuestions(
-          convertedQuestions.sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+          convertedQuestions.sort((a, b) => {
+            const ao = getOrder(a);
+            const bo = getOrder(b);
+            if (ao !== bo) return ao - bo;
+            return (a.id ?? 0) - (b.id ?? 0);
+          })
         );
 
         // Initialize responses and status objects
@@ -975,6 +989,7 @@ export default function ClientFormPage() {
                       created_at: new Date().toISOString(),
                       id: Date.now(), // temporary ID
                       login_key: loginKey,
+                      order: (questions.length || 0) + 1,
                     };
                     setQuestions([...questions, newQuestion]);
                   }}
