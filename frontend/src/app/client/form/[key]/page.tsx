@@ -21,7 +21,7 @@ import { updateForm } from "@/services/admin";
 import CompletionBar from "@/components/pages/CompletionBar";
 import QuestionCard from "@/components/pages/QuestionCard";
 import ErrorMessage from "@/components/shared/ErrorMessage";
-import { FaSignInAlt, FaEdit } from "react-icons/fa";
+import { FaSignInAlt, FaEdit, FaTimes } from "react-icons/fa";
 
 // Helper function to convert database questions to app questions
 const convertToAppQuestions = (dbQuestions: Question[]): AppQuestion[] => {
@@ -896,19 +896,66 @@ export default function ClientFormPage() {
                             }}
                             className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm bg-white"
                           />
-                          {Array.isArray(question.templates) && question.templates.length > 0 && (
-                            <div className="mt-2 space-y-2">
-                              {question.templates.map((t, tIdx) => (
-                                <div key={(t as any).fileName + tIdx} className="flex items-center justify-between bg-blue-100 px-3 py-2 rounded-lg">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-blue-800">📄</span>
-                                    <span className="text-sm font-medium text-blue-700">
-                                      {(t as any).fileObject?.name || (t as any).fileName}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                          {/* Pending (new) templates: blue chips with remove */}
+                          {Array.isArray(question.templates) && (
+                            (() => {
+                              const pending = (question.templates || [])
+                                .map((t, tIdx) => ({ t, tIdx }))
+                                .filter((x: any) => !!(x.t as any).fileObject);
+                              const uploaded = (question.templates || [])
+                                .map((t, tIdx) => ({ t, tIdx }))
+                                .filter((x: any) => !(x.t as any).fileObject && !!(x.t as any).fileId);
+                              return (
+                                <>
+                                  {pending.length > 0 && (
+                                    <div className="mt-2 space-y-2">
+                                      {pending.map(({ t, tIdx }: any) => (
+                                        <div key={(t as any).fileName + tIdx} className="flex items-center justify-between bg-blue-100 px-3 py-2 rounded-lg">
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-blue-800">📄</span>
+                                            <span className="text-sm font-medium text-blue-700">
+                                              {(t as any).fileObject?.name || (t as any).fileName}
+                                            </span>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            className="text-red-600 hover:text-red-800 hover:bg-red-100 p-1 rounded"
+                                            title="Remove pending template"
+                                            onClick={() => {
+                                              setQuestions((prev) => {
+                                                const next = [...prev];
+                                                const cur = next[index];
+                                                const arr = Array.isArray(cur.templates) ? [...(cur.templates as any[])] : [];
+                                                arr.splice(tIdx, 1);
+                                                next[index] = { ...cur, templates: arr } as any;
+                                                return next;
+                                              });
+                                            }}
+                                          >
+                                            <FaTimes className="w-3 h-3" />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {/* Already uploaded templates: green chips (informational) */}
+                                  {uploaded.length > 0 && (
+                                    <div className="mt-4 space-y-2">
+                                      {uploaded.map(({ t, tIdx }: any) => (
+                                        <div key={(t as any).fileName + 'uploaded' + tIdx} className="flex items-center justify-between bg-green-100 px-3 py-2 rounded-lg">
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-green-800">📄</span>
+                                            <span className="text-sm font-medium text-green-700">
+                                              {(t as any).fileName}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()
                           )}
                           <div className="mt-3">
                             <button
@@ -916,7 +963,7 @@ export default function ClientFormPage() {
                               onClick={() => handleClearTemplatesInEdit(index)}
                               className="text-sm px-3 py-2 rounded-lg border border-red-300 text-red-700 hover:bg-red-50"
                             >
-                              Remove existing templates
+                              Clear already uploaded templates
                             </button>
                           </div>
                         </div>
