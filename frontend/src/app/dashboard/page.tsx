@@ -192,6 +192,7 @@ export default function Dashboard() {
         due_date: "",
         templates: null,
         link: "",
+        order: (questions.length || 0) + 1,
       },
     ]);
   };
@@ -226,7 +227,9 @@ export default function Dashboard() {
     const temp = newQuestions[index];
     newQuestions[index] = newQuestions[index - 1];
     newQuestions[index - 1] = temp;
-    setQuestions(newQuestions);
+    // Recompute order indices
+    const reordered = newQuestions.map((q, i) => ({ ...q, order: i + 1 }));
+    setQuestions(reordered);
   };
 
   const moveQuestionDown = (index: number) => {
@@ -235,7 +238,8 @@ export default function Dashboard() {
     const temp = newQuestions[index];
     newQuestions[index] = newQuestions[index + 1];
     newQuestions[index + 1] = temp;
-    setQuestions(newQuestions);
+    const reordered = newQuestions.map((q, i) => ({ ...q, order: i + 1 }));
+    setQuestions(reordered);
   };
 
   const validateForm = () => {
@@ -374,9 +378,9 @@ export default function Dashboard() {
       }
 
       // Convert FormQuestions to database Questions
-      const dbQuestions = processedQuestions.map((q) =>
-        convertFormQuestionToQuestion(q, "")
-      );
+      // Ensure order persisted from current UI order
+      const ordered = processedQuestions.map((q, i) => ({ ...q, order: typeof (q as any).order === 'number' ? (q as any).order : i + 1 }));
+      const dbQuestions = ordered.map((q) => convertFormQuestionToQuestion(q, ""));
 
       setUploadProgress("Creating form in database...");
       const data = await createForm(

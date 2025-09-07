@@ -861,6 +861,40 @@ export default function ClientFormPage() {
                     </div>
 
                     <div className="space-y-3">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-50"
+                          onClick={() => {
+                            if (index === 0) return;
+                            const arr = [...questions];
+                            const tmp = arr[index - 1];
+                            arr[index - 1] = arr[index];
+                            arr[index] = tmp;
+                            const withOrder = arr.map((q, i) => ({ ...q, order: i + 1 }));
+                            setQuestions(withOrder);
+                          }}
+                          disabled={index === 0}
+                        >
+                          Move up
+                        </button>
+                        <button
+                          type="button"
+                          className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-50"
+                          onClick={() => {
+                            if (index === questions.length - 1) return;
+                            const arr = [...questions];
+                            const tmp = arr[index + 1];
+                            arr[index + 1] = arr[index];
+                            arr[index] = tmp;
+                            const withOrder = arr.map((q, i) => ({ ...q, order: i + 1 }));
+                            setQuestions(withOrder);
+                          }}
+                          disabled={index === questions.length - 1}
+                        >
+                          Move down
+                        </button>
+                      </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Question Text

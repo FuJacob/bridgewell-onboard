@@ -155,7 +155,14 @@ export default function FormEditorModal({
         </div>
       )}
 
-      <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full overflow-y-auto max-h-[95vh] sm:h-5/6">
+      <div className="relative bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full overflow-y-auto max-h-[95vh] sm:h-5/6">
+        {mode === "create" && isProcessing && (
+          <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] z-20 flex flex-col items-center justify-center text-center p-6">
+            <div className="w-10 h-10 border-2 border-gray-400 border-t-primary rounded-full animate-spin mb-3"></div>
+            <p className="text-gray-800 font-medium">Preparing and uploading files…</p>
+            <p className="text-gray-600 text-sm mt-1">Large files may take several minutes. Please keep this tab open.</p>
+          </div>
+        )}
         <div className="flex justify-between items-center mb-4 sm:mb-6">
           <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-primary">
             {modalTitle}
@@ -168,7 +175,7 @@ export default function FormEditorModal({
           </button>
         </div>
 
-        <div className="space-y-4 sm:space-y-6">
+        <div className={`space-y-4 sm:space-y-6 ${mode === "create" && isProcessing ? 'pointer-events-none opacity-60' : ''}`}>
           {/* Client Information Section - Only for create mode */}
           {mode === "create" && (
             <div className="flex flex-col sm:flex-row gap-y-4 sm:gap-x-6">
