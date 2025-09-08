@@ -5,9 +5,7 @@ import { TemplateInsert, TemplateQuestion } from "@/types";
 // Configure route segment for large file uploads
 export const config = {
   api: {
-    bodyParser: {
-      sizeLimit: '0', // no explicit limit
-    },
+    bodyParser: false,
   },
 };
 
@@ -19,53 +17,7 @@ export async function POST(request: Request) {
     // Check if this is FormData (with files) or JSON
     const contentType = request.headers.get("content-type") || "";
 
-    if (contentType.includes("multipart/form-data")) {
-      // Handle FormData with files
-      const formData = await request.formData();
-      const templateName = formData.get("templateName") as string;
-      const questionsRaw = formData.get("questions") as string;
-
-      console.log("Received FormData - templateName:", templateName);
-      console.log("Questions raw:", questionsRaw);
-
-      if (!templateName || !questionsRaw) {
-        return NextResponse.json(
-          { error: "Missing required fields" },
-          { status: 400 }
-        );
-      }
-
-      const questions = JSON.parse(questionsRaw) as TemplateQuestion[];
-      console.log("Parsed questions:", questions);
-
-      // For templates: never keep or upload per-question template files
-      const processedQuestions = questions.map((q: TemplateQuestion, idx: number) => ({
-        ...q,
-        // store order in template for future use
-        order: typeof (q as any).order === 'number' ? (q as any).order : idx + 1,
-        templates: null,
-      }));
-
-      // Save to database
-      const supabase = createServiceClient();
-      const templateInsertData: TemplateInsert = {
-        template_name: templateName,
-        questions: JSON.stringify(processedQuestions),
-      };
-      
-      const { data, error } = await supabase
-        .from("templates")
-        .insert([templateInsertData])
-        .select();
-
-      if (error) {
-        console.error("Supabase error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-
-      console.log("Template saved successfully:", data);
-      return NextResponse.json({ success: true, data });
-    } else {
+    if (contentType.includes("application/json")) {
       // Handle JSON request (existing behavior)
       const body = await request.json();
       console.log("Request body:", body);
@@ -109,6 +61,9 @@ export async function POST(request: Request) {
 
       console.log("Template saved successfully:", data);
       return NextResponse.json({ success: true, data });
+    } else {
+      // Fallback: treat any non-JSON request as invalid to avoid large body handling
+      return NextResponse.json({ error: "Invalid content type" }, { status: 400 });
     }
   } catch (err) {
     console.error("Server error in save-template:", err);
