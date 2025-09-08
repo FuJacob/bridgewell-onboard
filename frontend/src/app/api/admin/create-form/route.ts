@@ -20,23 +20,41 @@ import {
 // Configure route segment for large file uploads
 export const config = {
   api: {
-    bodyParser: {
-      sizeLimit: '0', // no explicit limit
-    },
+    bodyParser: false,
   },
 };
 
 export async function POST(request: Request): Promise<NextResponse<APIResponse<{ loginKey: string; uploadSummary: any }>>> {
   try {
-    // Accept FormData
-    const formData = await request.formData();
-    const clientName = formData.get("clientName") as string;
-    const email = formData.get("email") as string;
-    const organization = formData.get("organization") as string;
-    const clientDescription = formData.get("clientDescription") as string;
-    const adminEmail = (formData.get("adminEmail") as string) || null;
-    const questionsRaw = formData.get("questions") as string;
-    const directUpload = formData.get("directUpload") === '1';
+    // Accept either JSON (directUpload) or FormData
+    const contentType = request.headers.get('content-type') || '';
+    let clientName: string;
+    let email: string;
+    let organization: string;
+    let clientDescription: string;
+    let adminEmail: string | null;
+    let questionsRaw: string;
+    let directUpload = false;
+    let formData: FormData | null = null;
+    if (contentType.includes('application/json')) {
+      const body = await request.json();
+      clientName = body.clientName;
+      email = body.email;
+      organization = body.organization;
+      clientDescription = body.clientDescription;
+      adminEmail = body.adminEmail || null;
+      questionsRaw = JSON.stringify(body.questions);
+      directUpload = !!body.directUpload;
+    } else {
+      formData = await request.formData();
+      clientName = formData.get("clientName") as string;
+      email = formData.get("email") as string;
+      organization = formData.get("organization") as string;
+      clientDescription = formData.get("clientDescription") as string;
+      adminEmail = (formData.get("adminEmail") as string) || null;
+      questionsRaw = formData.get("questions") as string;
+      directUpload = formData.get("directUpload") === '1';
+    }
     
     console.log("Received form data:", {
       clientName,
@@ -213,13 +231,13 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
     
     // Pre-validate all file keys exist in FormData
     console.log("=== Pre-validation: Checking all expected files ===");
-    const expectedFiles = [];
+    const expectedFiles: Array<{ questionIndex: number; templateIndex: number; fileKey: string; hasFile: boolean; templateData: any }>= [];
     for (let i = 0; i < questions.length; i++) {
       const question = questions[i];
       if (question.response_type === "file" && question.templates && question.templates.length > 0) {
         for (let templateIdx = 0; templateIdx < question.templates.length; templateIdx++) {
           const fileKey = `templateFile_${i}_${templateIdx}`;
-          const hasFile = formData.has(fileKey);
+          const hasFile = !!formData && formData.has(fileKey);
           expectedFiles.push({
             questionIndex: i,
             templateIndex: templateIdx,
@@ -241,7 +259,7 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
       console.log(`Question response_type:`, question.response_type);
       console.log(`Question templates:`, question.templates);
 
-      if (!directUpload && (
+      if (!directUpload && formData && (
         question.response_type === "file" &&
         question.templates &&
         question.templates.length > 0

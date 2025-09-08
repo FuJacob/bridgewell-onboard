@@ -101,34 +101,43 @@ export async function createForm(
 
   // Remove file size validations for admin template uploads
 
-  const formData = new FormData();
-  formData.append("clientName", clientName);
-  formData.append("email", email);
-  formData.append("organization", organization);
-  formData.append("clientDescription", clientDescription);
-  formData.append("questions", JSON.stringify(questions));
-  if (adminEmail) {
-    formData.append("adminEmail", adminEmail);
-  }
+  let response: Response;
   if (directUpload) {
-    formData.append("directUpload", "1");
-  }
-
-  // Only append template files when NOT using direct client uploads
-  if (!directUpload) {
+    // Send JSON body only (no multipart) to avoid any chance of 413 on Vercel
+    const payload = {
+      clientName,
+      email,
+      organization,
+      clientDescription,
+      questions,
+      adminEmail: adminEmail || null,
+      directUpload: true,
+    };
+    response = await fetch("/api/admin/create-form", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } else {
+    const formData = new FormData();
+    formData.append("clientName", clientName);
+    formData.append("email", email);
+    formData.append("organization", organization);
+    formData.append("clientDescription", clientDescription);
+    formData.append("questions", JSON.stringify(questions));
+    if (adminEmail) {
+      formData.append("adminEmail", adminEmail);
+    }
     console.log(`=== Adding ${Object.keys(templateFiles).length} files to FormData ===`);
     Object.entries(templateFiles).forEach(([key, file]) => {
       console.log(`Adding to FormData: ${key} -> ${file.name} (${file.size} bytes)`);
       formData.append(key, file);
     });
-  } else {
-    console.log('Direct upload enabled: skipping appending template files to request body');
+    response = await fetch("/api/admin/create-form", {
+      method: "POST",
+      body: formData,
+    });
   }
-
-  const response = await fetch("/api/admin/create-form", {
-    method: "POST",
-    body: formData,
-  });
 
   let data: APIResponse<{ loginKey: string; uploadSummary: any }>;
   try {
