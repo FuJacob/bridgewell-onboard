@@ -114,12 +114,16 @@ export async function createForm(
     formData.append("directUpload", "1");
   }
 
-  // Add template files to FormData with detailed logging
-  console.log(`=== Adding ${Object.keys(templateFiles).length} files to FormData ===`);
-  Object.entries(templateFiles).forEach(([key, file]) => {
-    console.log(`Adding to FormData: ${key} -> ${file.name} (${file.size} bytes)`);
-    formData.append(key, file);
-  });
+  // Only append template files when NOT using direct client uploads
+  if (!directUpload) {
+    console.log(`=== Adding ${Object.keys(templateFiles).length} files to FormData ===`);
+    Object.entries(templateFiles).forEach(([key, file]) => {
+      console.log(`Adding to FormData: ${key} -> ${file.name} (${file.size} bytes)`);
+      formData.append(key, file);
+    });
+  } else {
+    console.log('Direct upload enabled: skipping appending template files to request body');
+  }
 
   const response = await fetch("/api/admin/create-form", {
     method: "POST",
