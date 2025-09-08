@@ -425,6 +425,38 @@ export async function createQuestionFolders(
   }, "create question folders");
 }
 
+// Sanitize a path but preserve the original filename formatting (spaces allowed)
+function sanitizePathPreservingFilename(path: string): { sanitizedPath: string; fileName: string } {
+  const parts = (path || '').split('/').filter(Boolean);
+  if (parts.length === 0) {
+    return { sanitizedPath: '', fileName: '' };
+  }
+  const fileName = parts[parts.length - 1];
+  const folderParts = parts.slice(0, -1).map((p) => sanitizeSharePointName(p));
+  // For file name, remove only illegal characters and control chars, but KEEP spaces
+  let safeFileName = (fileName || '').trim()
+    .replace(/[\\/:*?"<>|]/g, '_')
+    .replace(/[\x00-\x1f\x80-\x9f]/g, '_')
+    .replace(/\.+$/g, '')
+    .replace(/_{2,}/g, '_')
+    .replace(/^_+|_+$/g, '');
+  if (!safeFileName) safeFileName = 'unnamed';
+  // Truncate while preserving extension
+  if (safeFileName.length > 255) {
+    const dot = safeFileName.lastIndexOf('.');
+    if (dot > 0 && dot > safeFileName.length - 10) {
+      const ext = safeFileName.substring(dot);
+      const base = safeFileName.substring(0, dot);
+      const maxBase = 255 - ext.length;
+      safeFileName = base.substring(0, maxBase) + ext;
+    } else {
+      safeFileName = safeFileName.substring(0, 255);
+    }
+  }
+  const sanitizedPath = [...folderParts, safeFileName].join('/');
+  return { sanitizedPath, fileName: safeFileName };
+}
+
 export async function copyFileToClientFolder(
   sourceFileId: string,
   loginKey: string,
@@ -452,7 +484,7 @@ export async function copyFileToClientFolder(
 
     const sanitizedClientName = sanitizeSharePointName(clientName);
     const clientFolderName = `${sanitizedClientName}_${loginKey}`;
-    const sanitizedDestinationPath = destinationPath.split('/').map(part => sanitizeSharePointName(part)).join('/');
+    const { sanitizedPath: sanitizedDestinationPath, fileName: safeFileName } = sanitizePathPreservingFilename(destinationPath);
     
     console.log("Client folder name for copy:", clientFolderName);
     console.log("Sanitized destination path:", sanitizedDestinationPath);
@@ -463,7 +495,7 @@ export async function copyFileToClientFolder(
 
     // Use Microsoft Graph copy API
     const parentPath = sanitizedDestinationPath.split("/").slice(0, -1).join("/");
-    const fileName = sanitizedDestinationPath.split("/").pop();
+    const fileName = safeFileName;
     
     const response = await fetchWithTimeout(
       `${getSiteUrl()}/drive/items/${sourceFileId}/copy`,
@@ -528,7 +560,7 @@ export async function uploadFileToClientFolder(
 
     const sanitizedClientName = sanitizeSharePointName(clientName);
     const clientFolderName = `${sanitizedClientName}_${loginKey}`;
-    const sanitizedFilePath = filePath.split('/').map(part => sanitizeSharePointName(part)).join('/');
+    const { sanitizedPath: sanitizedFilePath, fileName: safeFileName } = sanitizePathPreservingFilename(filePath);
     
     console.log("Uploading file to client folder:", clientFolderName);
     console.log("Sanitized file path:", sanitizedFilePath);
@@ -540,7 +572,7 @@ export async function uploadFileToClientFolder(
       return await uploadSmallFile(accessToken, clientFolderName, sanitizedFilePath, fileContent);
     } else {
       // Resumable upload for larger files
-      return await uploadLargeFile(accessToken, clientFolderName, sanitizedFilePath, fileContent);
+      return await uploadLargeFile(accessToken, clientFolderName, sanitizedFilePath, fileContent, safeFileName);
     }
   }, "upload file to client folder");
 }
@@ -583,7 +615,8 @@ async function uploadLargeFile(
   accessToken: string,
   clientFolderName: string,
   filePath: string,
-  fileContent: Blob
+  fileContent: Blob,
+  safeFileName?: string
 ): Promise<string> {
   console.log("Starting resumable upload session for large file...");
   
@@ -599,7 +632,7 @@ async function uploadLargeFile(
       body: JSON.stringify({
         item: {
           "@microsoft.graph.conflictBehavior": "replace",
-          name: filePath.split('/').pop()
+          name: safeFileName || filePath.split('/').pop()
         }
       }),
     }

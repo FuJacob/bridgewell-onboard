@@ -46,7 +46,14 @@ export async function POST(request: Request) {
     const sanitizedQuestion = sanitizeSharePointName(question || "");
     const clientFolderName = `${sanitizedClient}_${loginKey}`;
 
-    const targetPath = `CLIENTS/${clientFolderName}/${sanitizedQuestion}/${folderType}/${filename}`;
+    // Sanitize folders but keep the original filename (spaces allowed)
+    const safeFileName = (filename as string)
+      .replace(/[\\/:*?"<>|]/g, '_')
+      .replace(/[\x00-\x1f\x80-\x9f]/g, '_')
+      .replace(/\.+$/g, '')
+      .replace(/_{2,}/g, '_')
+      .replace(/^_+|_+$/g, '') || 'unnamed';
+    const targetPath = `CLIENTS/${clientFolderName}/${sanitizedQuestion}/${folderType}/${safeFileName}`;
 
     // Create upload session (resumable)
     const createResp = await fetch(
@@ -60,7 +67,7 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           item: {
             "@microsoft.graph.conflictBehavior": "replace",
-            name: filename,
+            name: safeFileName,
           },
         }),
       }

@@ -36,6 +36,7 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
     const clientDescription = formData.get("clientDescription") as string;
     const adminEmail = (formData.get("adminEmail") as string) || null;
     const questionsRaw = formData.get("questions") as string;
+    const directUpload = formData.get("directUpload") === '1';
     
     console.log("Received form data:", {
       clientName,
@@ -204,7 +205,7 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
     await createClientFolder(loginKey, clientName);
     await createQuestionFolders(loginKey, clientName, questions);
 
-    // 2. Upload template files and update question metadata
+    // 2. Upload template files and update question metadata (skip if directUpload enabled)
     console.log("Starting template file uploads...");
     let totalFilesUploaded = 0;
     let totalFilesSkipped = 0;
@@ -240,11 +241,11 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
       console.log(`Question response_type:`, question.response_type);
       console.log(`Question templates:`, question.templates);
 
-      if (
+      if (!directUpload && (
         question.response_type === "file" &&
         question.templates &&
         question.templates.length > 0
-      ) {
+      )) {
         console.log(
           `Found ${question.templates.length} templates for question ${i + 1}`
         );
@@ -419,8 +420,12 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
       }
     }
 
-    console.log(`Upload summary: ${totalFilesUploaded} files uploaded, ${totalFilesSkipped} files skipped/failed`);
-    console.log('Upload results:', uploadResults);
+    if (!directUpload) {
+      console.log(`Upload summary: ${totalFilesUploaded} files uploaded, ${totalFilesSkipped} files skipped/failed`);
+      console.log('Upload results:', uploadResults);
+    } else {
+      console.log('Direct upload mode: skipping server-side template uploads');
+    }
     console.log("Form creation completed successfully");
     
     return NextResponse.json({

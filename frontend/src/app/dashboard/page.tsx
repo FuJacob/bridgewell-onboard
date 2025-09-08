@@ -390,13 +390,62 @@ export default function Dashboard() {
         clientDescription,
         dbQuestions as Question[],
         templateFiles,
-        adminEmail
+        adminEmail,
+        true
       );
 
       if (data.loginKey) {
         console.log("Form created successfully with login key:", data.loginKey);
+        // After form creation, upload any pending template files directly to SharePoint
+        const lk = data.loginKey;
+        // Build upload list from the original questions (preserves fileObject references)
+        const toUpload: Array<{ questionText: string; file: File }>= [];
+        questions.forEach((q) => {
+          if (q.response_type === 'file' && Array.isArray(q.templates)) {
+            (q.templates as any[]).forEach((t: any) => {
+              if (t?.fileObject instanceof File) {
+                toUpload.push({ questionText: q.question || '', file: t.fileObject as File });
+              }
+            });
+          }
+        });
+        if (toUpload.length > 0) {
+          setUploadProgress(`Uploading ${toUpload.length} template file(s) to SharePoint...`);
+          const chunkSize = 5 * 1024 * 1024;
+          for (const item of toUpload) {
+            const sessionResp = await fetch('/api/uploads/create-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ loginKey: lk, clientName, question: item.questionText, folderType: 'template', filename: item.file.name })
+            });
+            const sessionJson = await sessionResp.json();
+            if (!sessionResp.ok || !sessionJson?.success || !sessionJson?.uploadUrl) {
+              throw new Error(sessionJson?.error || 'Failed to create upload session');
+            }
+            let start = 0;
+            while (start < item.file.size) {
+              const end = Math.min(start + chunkSize, item.file.size);
+              const chunk = item.file.slice(start, end);
+              const respUp = await fetch(sessionJson.uploadUrl as string, {
+                method: 'PUT',
+                headers: { 'Content-Length': String(chunk.size), 'Content-Range': `bytes ${start}-${end - 1}/${item.file.size}` },
+                body: chunk,
+              });
+              if (!respUp.ok && respUp.status !== 202) {
+                const t = await respUp.text().catch(() => '');
+                throw new Error(`Upload failed: ${respUp.status} ${t}`);
+              }
+              start = end;
+            }
+            await fetch('/api/uploads/finalize', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ loginKey: lk, question: item.questionText, mode: 'template', fileName: item.file.name })
+            });
+          }
+        }
         setUploadProgress("Form created successfully!");
-        setLoginKey(data.loginKey);
+        setLoginKey(lk);
         // Refresh the forms list
         const supabase = createClient();
         const { data: formsData } = await supabase

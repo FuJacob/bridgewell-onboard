@@ -9,6 +9,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const loginKey = formData.get("loginKey") as string;
     const questionsRaw = formData.get("questions") as string;
+    const directUpload = formData.get("directUpload") === '1';
 
     console.log("Received update form data:", {
       loginKey,
@@ -219,7 +220,7 @@ export async function POST(request: Request) {
         }
       }
 
-      if (q.response_type === "file" && q.templates && q.templates.length > 0) {
+      if (!directUpload && q.response_type === "file" && q.templates && q.templates.length > 0) {
         const updatedTemplates = [] as any[];
         for (let templateIdx = 0; templateIdx < q.templates.length; templateIdx++) {
           const fileKey = `templateFile_${i}_${templateIdx}`;
@@ -376,19 +377,19 @@ export async function POST(request: Request) {
 
     // Delete questions that were removed (by ID set)
     for (const removed of deletedExistingQuestions) {
-      const { error: deleteError } = await supabase
-        .from("questions")
-        .delete()
+        const { error: deleteError } = await supabase
+          .from("questions")
+          .delete()
         .eq("id", removed.id);
 
-      if (deleteError) {
+        if (deleteError) {
         console.error(`Error deleting question id ${removed.id}:`, deleteError);
-        return NextResponse.json(
-          {
+          return NextResponse.json(
+            {
             error: `Database error deleting question id ${removed.id}: ${deleteError.message}`,
-          },
-          { status: 500 }
-        );
+            },
+            { status: 500 }
+          );
       }
     }
 

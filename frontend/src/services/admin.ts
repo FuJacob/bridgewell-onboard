@@ -193,10 +193,15 @@ export async function updateForm(
     body: formData,
   });
 
-  const data = await response.json();
+  let data: any = null;
+  try {
+    data = await response.json();
+  } catch {
+    // Some platforms may return empty body on success; treat as success if status OK
+  }
 
   if (!response.ok) {
-    return { error: data.error || "Failed to update form" };
+    return { error: (data && data.error) || `Failed to update form (${response.status})` };
   }
 
   return { success: true };

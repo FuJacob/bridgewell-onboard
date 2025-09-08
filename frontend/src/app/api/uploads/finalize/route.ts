@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/app/utils/supabase/server";
+import { getAccessToken } from "@/app/utils/microsoft/auth";
+import { sanitizeSharePointName, getSiteURL } from "@/app/utils/microsoft/graph";
 
 export const runtime = "nodejs";
 
@@ -31,8 +33,44 @@ export async function POST(request: Request) {
         else if (Array.isArray(qs.templates)) templates = qs.templates as any;
       } catch {}
       templates = Array.isArray(templates) ? templates : [];
-      if (fileId && typeof fileId === 'string') {
-        templates.push({ fileName, fileId, uploadedAt: new Date().toISOString() });
+      let resolvedFileId: string | undefined = typeof fileId === 'string' && fileId.length > 0 ? fileId : undefined;
+      // If fileId not provided (common for some large final chunk responses), attempt to resolve by path
+      if (!resolvedFileId) {
+        try {
+          // Lookup client name
+          const { data: clientRow } = await supabase
+            .from('clients')
+            .select('client_name')
+            .eq('login_key', loginKey)
+            .maybeSingle();
+          const clientName = clientRow?.client_name as string | undefined;
+          if (clientName) {
+            const accessToken = await getAccessToken();
+            const sanitizedClient = sanitizeSharePointName(clientName);
+            const sanitizedQuestion = sanitizeSharePointName(question as string);
+            // Keep spaces in filename but strip illegal chars
+            const safeFileName = String(fileName || '')
+              .replace(/[\\/:*?"<>|]/g, '_')
+              .replace(/[\x00-\x1f\x80-\x9f]/g, '_')
+              .replace(/\.+$/g, '')
+              .replace(/_{2,}/g, '_')
+              .replace(/^_+|_+$/g, '') || 'unnamed';
+            const clientFolderName = `${sanitizedClient}_${loginKey}`;
+            const filePath = `CLIENTS/${clientFolderName}/${sanitizedQuestion}/template/${safeFileName}`;
+            const res = await fetch(`${getSiteURL()}/drive/root:/${encodeURI(filePath)}`, {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (res.ok) {
+              const meta = await res.json();
+              if (typeof meta?.id === 'string') {
+                resolvedFileId = meta.id;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+      if (resolvedFileId) {
+        templates.push({ fileName, fileId: resolvedFileId, uploadedAt: new Date().toISOString() });
       }
       const { error: upErr } = await supabase
         .from("questions")
