@@ -460,55 +460,90 @@ export default function ClientFormPage() {
     setEditFormError(null);
 
     try {
-      // Collect template files staged locally (pending blue chips)
-      const templateFiles: { [key: string]: File } = {};
+      // Build uploads list from staged files (pending blue chips)
+      const uploads: Array<{ qIndex: number; tIndex: number; questionText: string; file: File }>= [];
       const processedQuestions = updatedQuestions.map((q, idx) => {
-        if (
-          q.response_type === "file" &&
-          q.templates &&
-          Array.isArray(q.templates) &&
-          q.templates.length > 0
-        ) {
-          q.templates.forEach((template, templateIdx) => {
-            if ((template as any).fileObject instanceof File) {
-              const fileKey = `templateFile_${idx}_${templateIdx}`;
-              templateFiles[fileKey] = (template as any).fileObject as File;
+        if (q.response_type === "file" && Array.isArray(q.templates) && q.templates.length > 0) {
+          q.templates.forEach((t: any, tIdx: number) => {
+            if (t && t.fileObject instanceof File) {
+              uploads.push({ qIndex: idx, tIndex: tIdx, questionText: q.question || '', file: t.fileObject as File });
             }
           });
-
           return {
             ...q,
-            templates: q.templates.map((template) => ({
-              fileName: template.fileObject?.name || template.fileName,
-              fileId: template.fileId || "",
-              uploadedAt: template.uploadedAt || "",
+            templates: q.templates.map((t: any) => ({
+              fileName: (t?.fileObject as File | undefined)?.name || t?.fileName,
+              fileId: t?.fileId || "",
+              uploadedAt: t?.uploadedAt || "",
             })),
           };
         }
-        return {
-          ...q,
-          templates:
-            q.templates && Array.isArray(q.templates) ? [...q.templates] : null,
-        };
+        return { ...q, templates: q.templates && Array.isArray(q.templates) ? [...q.templates] : null };
       });
-      // If uploading files, warn before unload and show notice
-      const uploadFileCount = Object.keys(templateFiles).length;
-      if (uploadFileCount > 0) {
-        setEditUploadNotice(`Uploading ${uploadFileCount} file(s)... Please keep this tab open. Large files may take several minutes.`);
-        const handler = (e: BeforeUnloadEvent) => {
-          e.preventDefault();
-          e.returnValue = '';
-        };
+
+      if (uploads.length > 0) {
+        setEditUploadNotice(`Uploading ${uploads.length} file(s)... Please keep this tab open. Large files may take several minutes.`);
+        const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
         beforeUnloadRef.current = handler;
         window.addEventListener('beforeunload', handler);
+
+        // Direct client→Graph resumable uploads (bypasses Vercel)
+        const chunkSize = 5 * 1024 * 1024;
+        for (const item of uploads) {
+          try {
+            const sessionResp = await fetch('/api/uploads/create-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ loginKey, clientName, question: item.questionText, folderType: 'template', filename: item.file.name })
+            });
+            const js = await sessionResp.json();
+            if (!sessionResp.ok || !js?.success || !js?.uploadUrl) {
+              throw new Error(js?.error || 'Failed to create upload session');
+            }
+            let start = 0;
+            let driveItemId: string | undefined = undefined;
+            while (start < item.file.size) {
+              const end = Math.min(start + chunkSize, item.file.size);
+              const chunk = item.file.slice(start, end);
+              const respUp = await fetch(js.uploadUrl as string, {
+                method: 'PUT',
+                headers: { 'Content-Length': String(chunk.size), 'Content-Range': `bytes ${start}-${end - 1}/${item.file.size}` },
+                body: chunk,
+              });
+              if (!respUp.ok && respUp.status !== 202) {
+                const t = await respUp.text().catch(() => '');
+                throw new Error(`Upload failed: ${respUp.status} ${t}`);
+              }
+              if (end === item.file.size && respUp.ok) {
+                try {
+                  const jj: any = await respUp.json();
+                  const id = jj?.id || jj?.resourceId || jj?.driveItem?.id;
+                  if (typeof id === 'string') driveItemId = id;
+                } catch {}
+              }
+              start = end;
+            }
+            await fetch('/api/uploads/finalize', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ loginKey, question: item.questionText, mode: 'template', fileName: item.file.name, fileId: driveItemId })
+            });
+            // Reflect uploaded file in processedQuestions
+            const q = processedQuestions[item.qIndex];
+            if (q && Array.isArray((q as any).templates)) {
+              const arr = [ ...((q as any).templates as any[]) ];
+              arr[item.tIndex] = { fileName: item.file.name, fileId: driveItemId || arr[item.tIndex]?.fileId || '', uploadedAt: new Date().toISOString() };
+              (processedQuestions as any)[item.qIndex] = { ...(q as any), templates: arr };
+            }
+          } catch (e) {
+            console.error('Direct upload failed:', e);
+          }
+        }
       }
 
-      // Update the form using the new updateForm API
+      // Update only metadata via JSON; no files in request body (bypass Vercel limits)
       const dbQuestions = convertToDbQuestions(processedQuestions);
-      // If there are no FormData files but templates have fileIds (from direct uploads),
-      // signal directUpload to avoid duplicate server copy attempts
-      // Always send FormData files (staged) to server; server will upload/copy as needed
-      const data = await updateForm(loginKey, dbQuestions, templateFiles);
+      const data = await updateForm(loginKey, dbQuestions, {}, true);
 
       if (data.success) {
         // Wait for any in-flight direct uploads to finish before reload
