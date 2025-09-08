@@ -90,7 +90,7 @@ export default function ClientFormPage() {
   const [editUploadNotice, setEditUploadNotice] = useState<string | null>(null);
   const [clearingTemplates, setClearingTemplates] = useState<{ [index: number]: boolean }>({});
   const beforeUnloadRef = useRef<((e: BeforeUnloadEvent) => void) | null>(null);
-  const [pendingTemplateUploads, setPendingTemplateUploads] = useState(0);
+  const [pendingTemplateUploads, setPendingTemplateUploads] = useState(0); // reserved for future use
   const pendingUploadsRef = useRef(0);
   useEffect(() => { pendingUploadsRef.current = pendingTemplateUploads; }, [pendingTemplateUploads]);
 
@@ -460,7 +460,7 @@ export default function ClientFormPage() {
     setEditFormError(null);
 
     try {
-      // Collect template files
+      // Collect template files staged locally (pending blue chips)
       const templateFiles: { [key: string]: File } = {};
       const processedQuestions = updatedQuestions.map((q, idx) => {
         if (
@@ -470,9 +470,9 @@ export default function ClientFormPage() {
           q.templates.length > 0
         ) {
           q.templates.forEach((template, templateIdx) => {
-            if (template.fileObject instanceof File) {
+            if ((template as any).fileObject instanceof File) {
               const fileKey = `templateFile_${idx}_${templateIdx}`;
-              templateFiles[fileKey] = template.fileObject;
+              templateFiles[fileKey] = (template as any).fileObject as File;
             }
           });
 
@@ -507,12 +507,8 @@ export default function ClientFormPage() {
       const dbQuestions = convertToDbQuestions(processedQuestions);
       // If there are no FormData files but templates have fileIds (from direct uploads),
       // signal directUpload to avoid duplicate server copy attempts
-      const hasFormDataUploads = Object.keys(templateFiles).length > 0;
-      const hasClientUploadedTemplates = processedQuestions.some((q) =>
-        q.response_type === "file" && Array.isArray(q.templates) && q.templates.some((t: any) => t && !t.fileObject && typeof t.fileId === 'string' && t.fileId.length > 0)
-      );
-      const directFlag = !hasFormDataUploads && hasClientUploadedTemplates;
-      const data = await updateForm(loginKey, dbQuestions, templateFiles, directFlag);
+      // Always send FormData files (staged) to server; server will upload/copy as needed
+      const data = await updateForm(loginKey, dbQuestions, templateFiles);
 
       if (data.success) {
         // Wait for any in-flight direct uploads to finish before reload
@@ -931,66 +927,8 @@ export default function ClientFormPage() {
                               if (!e.target.files) return;
                               // Stage locally for immediate UI
                               handleTemplateUploadInEdit(index, e.target.files);
+                              // Only stage locally; uploads will occur on Save
                               const filesList = Array.from(e.target.files);
-                              // Upload directly to SharePoint per file, then finalize
-                              for (const f of filesList) {
-                                setPendingTemplateUploads((c) => c + 1);
-                                try {
-                                  const resp = await fetch('/api/uploads/create-session', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ loginKey, clientName: clientData?.client_name || '', question: questions[index].question || '', folderType: 'template', filename: f.name })
-                                  });
-                                  const js = await resp.json();
-                                  if (!resp.ok || !js?.success || !js?.uploadUrl) throw new Error(js?.error || 'Failed to create upload session');
-                                  const uploadUrl: string = js.uploadUrl;
-                                  const chunkSize = 5 * 1024 * 1024;
-                                  let start = 0;
-                                  let driveItemId: string | undefined = undefined;
-                                  while (start < f.size) {
-                                    const end = Math.min(start + chunkSize, f.size);
-                                    const chunk = f.slice(start, end);
-                                    const r = await fetch(uploadUrl, {
-                                      method: 'PUT',
-                                      headers: { 'Content-Length': String(chunk.size), 'Content-Range': `bytes ${start}-${end - 1}/${f.size}` },
-                                      body: chunk,
-                                    });
-                                    if (!r.ok && r.status !== 202) { throw new Error('Upload failed'); }
-                                    if (end === f.size && r.ok) {
-                                      try {
-                                        const jr: any = await r.json();
-                                        const id = jr?.id || jr?.resourceId || jr?.driveItem?.id;
-                                        if (typeof id === 'string') driveItemId = id;
-                                      } catch {}
-                                    }
-                                    start = end;
-                                  }
-                                  await fetch('/api/uploads/finalize', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ loginKey, question: questions[index].question || '', mode: 'template', fileName: f.name, fileId: driveItemId })
-                                  });
-                                  // Replace the pending (blue) chip with an uploaded (green) chip in local state
-                                  setQuestions((prev) => {
-                                    const next = [...prev];
-                                    const cur = next[index];
-                                    const arr = Array.isArray(cur.templates) ? [...(cur.templates as any[])] : [];
-                                    const matchIdx = arr.findIndex((t: any) => t?.fileObject && (t.fileObject as File)?.name === f.name);
-                                    const uploadedAtIso = new Date().toISOString();
-                                    const replacement = { fileName: f.name, fileId: driveItemId || '', uploadedAt: uploadedAtIso } as any;
-                                    if (matchIdx >= 0) {
-                                      arr[matchIdx] = replacement;
-                                    } else {
-                                      arr.push(replacement);
-                                    }
-                                    next[index] = { ...cur, templates: arr } as any;
-                                    return next;
-                                  });
-                                } catch (_) {}
-                                finally {
-                                  setPendingTemplateUploads((c) => Math.max(0, c - 1));
-                                }
-                              }
                               e.currentTarget.value = '';
                             }}
                             className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm bg-white"
