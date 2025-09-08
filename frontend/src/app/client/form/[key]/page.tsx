@@ -348,27 +348,14 @@ export default function ClientFormPage() {
 
       if (question.response_type === "text" && responses[index]) {
         console.log("Submitting text response for question", index);
-        responseData = await submitQuestionResponse(
-          loginKey,
-          index,
-          question.question || "",
-          question.response_type,
-          responses[index] as string
-        );
+        responseData = await submitQuestionResponse(loginKey, clientData?.client_name || "", index, question.question || "", question.response_type, responses[index] as string);
       } else if (question.response_type === "file" && files[index]) {
         console.log(
           "Submitting files for question",
           index,
           (files[index] as File[])?.map((f) => f.name).join(", ")
         );
-        responseData = await submitQuestionResponse(
-          loginKey,
-          index,
-          question.question || "",
-          question.response_type,
-          undefined,
-          files[index] as File[]
-        );
+        responseData = await submitQuestionResponse(loginKey, clientData?.client_name || "", index, question.question || "", question.response_type, undefined, files[index] as File[]);
       } else if (question.response_type === "notice") {
         // Auto-mark notice as submitted without calling upload API
         responseData = { fileIds: [] };

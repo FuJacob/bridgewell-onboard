@@ -65,7 +65,8 @@ export async function createForm(
   clientDescription: string,
   questions: Question[],
   templateFiles: { [key: string]: File } = {},
-  adminEmail?: string
+  adminEmail?: string,
+  directUpload?: boolean
 ): Promise<{ loginKey?: string; error?: string }> {
   // Validate inputs
   if (!clientName) {
@@ -108,6 +109,9 @@ export async function createForm(
   formData.append("questions", JSON.stringify(questions));
   if (adminEmail) {
     formData.append("adminEmail", adminEmail);
+  }
+  if (directUpload) {
+    formData.append("directUpload", "1");
   }
 
   // Add template files to FormData with detailed logging
@@ -156,11 +160,15 @@ export async function createForm(
 export async function updateForm(
   loginKey: string,
   questions: Question[],
-  templateFiles: { [key: string]: File } = {}
+  templateFiles: { [key: string]: File } = {},
+  directUpload?: boolean
 ): Promise<{ success?: boolean; error?: string }> {
   const formData = new FormData();
   formData.append("loginKey", loginKey);
   formData.append("questions", JSON.stringify(questions));
+  if (directUpload) {
+    formData.append("directUpload", "1");
+  }
   // Pass through flags indicating template folder clears per question (if encoded in questions)
   // We will derive clear flags server-side from a special map if provided separately in future.
 
