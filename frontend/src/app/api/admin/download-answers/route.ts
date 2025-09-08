@@ -4,6 +4,9 @@ import { getAccessToken } from "@/app/utils/microsoft/auth";
 import { getSiteURL, sanitizeSharePointName } from "@/app/utils/microsoft/graph";
 import JSZip from "jszip";
 
+// Run on Node.js runtime to support Buffer/JSZip
+export const runtime = "nodejs";
+
 export async function GET(req: NextRequest) {
   const key = req.nextUrl.searchParams.get("key");
   const question = req.nextUrl.searchParams.get("question");
@@ -41,11 +44,13 @@ export async function GET(req: NextRequest) {
         const t = await resp.text().catch(() => "");
         return NextResponse.json({ error: `Failed to list answer files: ${resp.status} ${t}` }, { status: 502 });
       }
-      const list = await resp.json();
-      (list.value || [])
-        .filter((v: any) => !v.folder && v.id && v.name)
-        .forEach((v: any) => items.push({ id: String(v.id), name: String(v.name) }));
-      url = typeof list["@odata.nextLink"] === 'string' ? list["@odata.nextLink"] : null;
+      const p: { value?: Array<{ id?: unknown; name?: unknown; folder?: unknown }> } & Record<string, unknown> = await resp.json();
+      const values = Array.isArray(p.value) ? p.value : [];
+      values
+        .filter((v) => !v.folder && typeof v.id === 'string' && typeof v.name === 'string')
+        .forEach((v) => items.push({ id: v.id as string, name: v.name as string }));
+      const nextLink = p["@odata.nextLink"];
+      url = typeof nextLink === 'string' ? (nextLink as string) : null;
     }
 
     if (items.length === 0) {
