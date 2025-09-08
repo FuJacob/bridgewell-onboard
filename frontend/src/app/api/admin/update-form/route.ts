@@ -5,11 +5,23 @@ import { createQuestionFolders, uploadFileToClientFolder, sanitizeSharePointName
 
 export async function POST(request: Request) {
   try {
-    // Accept FormData
-    const formData = await request.formData();
-    const loginKey = formData.get("loginKey") as string;
-    const questionsRaw = formData.get("questions") as string;
-    const directUpload = formData.get("directUpload") === '1';
+    // Accept JSON (directUpload) or FormData
+    const contentType = request.headers.get('content-type') || '';
+    let formData: FormData | null = null;
+    let loginKey: string;
+    let questionsRaw: string;
+    let directUpload = false;
+    if (contentType.includes('application/json')) {
+      const body = await request.json();
+      loginKey = body.loginKey;
+      questionsRaw = JSON.stringify(body.questions);
+      directUpload = !!body.directUpload;
+    } else {
+      formData = await request.formData();
+      loginKey = formData.get("loginKey") as string;
+      questionsRaw = formData.get("questions") as string;
+      directUpload = formData.get("directUpload") === '1';
+    }
 
     console.log("Received update form data:", {
       loginKey,
@@ -17,17 +29,19 @@ export async function POST(request: Request) {
     });
 
     // Debug: Log all FormData entries
-    console.log("=== DEBUG: All FormData entries ===");
-    for (const [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(
-          `${key}: File(${value.name}, ${value.size} bytes, ${value.type})`
-        );
-      } else {
-        console.log(`${key}: ${value}`);
+    if (formData) {
+      console.log("=== DEBUG: All FormData entries ===");
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(
+            `${key}: File(${value.name}, ${value.size} bytes, ${value.type})`
+          );
+        } else {
+          console.log(`${key}: ${value}`);
+        }
       }
+      console.log("=== END DEBUG ===");
     }
-    console.log("=== END DEBUG ===");
 
     if (!loginKey || !questionsRaw) {
       return NextResponse.json(
@@ -177,7 +191,7 @@ export async function POST(request: Request) {
 
       // If templates array is empty for a file question and no incoming files for this index,
       // interpret as a request to clear the template subfolder contents.
-      const anyIncomingForIndex = Array.from(formData.keys()).some((k) => k.startsWith(`templateFile_${i}_`));
+      const anyIncomingForIndex = !!formData && Array.from(formData.keys()).some((k) => k.startsWith(`templateFile_${i}_`));
       if (q.response_type === "file" && Array.isArray(q.templates) && q.templates.length === 0 && !anyIncomingForIndex) {
         try {
           const { getAccessToken } = await import("@/app/utils/microsoft/auth");
@@ -220,7 +234,7 @@ export async function POST(request: Request) {
         }
       }
 
-      if (!directUpload && q.response_type === "file" && q.templates && q.templates.length > 0) {
+      if (!directUpload && formData && q.response_type === "file" && q.templates && q.templates.length > 0) {
         const updatedTemplates = [] as any[];
         for (let templateIdx = 0; templateIdx < q.templates.length; templateIdx++) {
           const fileKey = `templateFile_${i}_${templateIdx}`;

@@ -176,35 +176,30 @@ export async function updateForm(
   templateFiles: { [key: string]: File } = {},
   directUpload?: boolean
 ): Promise<{ success?: boolean; error?: string }> {
-  const formData = new FormData();
-  formData.append("loginKey", loginKey);
-  formData.append("questions", JSON.stringify(questions));
+  let response: Response;
   if (directUpload) {
-    formData.append("directUpload", "1");
+    // Send JSON only to avoid Vercel 413
+    const payload = { loginKey, questions, directUpload: true };
+    response = await fetch("/api/admin/update-form", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } else {
+    const formData = new FormData();
+    formData.append("loginKey", loginKey);
+    formData.append("questions", JSON.stringify(questions));
+    // Add template files to FormData with detailed logging
+    console.log(`=== Adding ${Object.keys(templateFiles).length} files to FormData for update ===`);
+    Object.entries(templateFiles).forEach(([key, file]) => {
+      console.log(`Adding to FormData: ${key} -> ${file.name} (${file.size} bytes)`);
+      formData.append(key, file);
+    });
+    response = await fetch("/api/admin/update-form", {
+      method: "POST",
+      body: formData,
+    });
   }
-  // Pass through flags indicating template folder clears per question (if encoded in questions)
-  // We will derive clear flags server-side from a special map if provided separately in future.
-
-  // Add template files to FormData with detailed logging
-  console.log(`=== Adding ${Object.keys(templateFiles).length} files to FormData for update ===`);
-  Object.entries(templateFiles).forEach(([key, file]) => {
-    console.log(`Adding to FormData: ${key} -> ${file.name} (${file.size} bytes)`);
-    formData.append(key, file);
-  });
-  
-  // Verify files were added to FormData
-  console.log("=== FormData verification for update ===");
-  for (const [key, value] of formData.entries()) {
-    if (value instanceof File) {
-      console.log(`FormData contains: ${key} -> ${value.name} (${value.size} bytes)`);
-    }
-  }
-  console.log("=== End FormData verification ===");
-
-  const response = await fetch("/api/admin/update-form", {
-    method: "POST",
-    body: formData,
-  });
 
   let data: any = null;
   try {
