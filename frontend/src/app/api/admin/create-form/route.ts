@@ -16,6 +16,7 @@ import {
   copyFileToClientFolder,
   sanitizeSharePointName,
 } from "@/app/utils/microsoft/graph";
+import { getAccessToken } from "@/app/utils/microsoft/auth";
 
 // Configure route segment for large file uploads
 export const config = {
@@ -445,6 +446,49 @@ export async function POST(request: Request): Promise<NextResponse<APIResponse<{
       console.log('Direct upload mode: skipping server-side template uploads');
     }
     console.log("Form creation completed successfully");
+
+    // Send client notification email (non-blocking best-effort)
+    try {
+      const accessToken = await getAccessToken();
+      const SENDER_UPN = process.env.MAIL_SENDER_UPN || "clientonboarding@bridgewellfinancial.com";
+      const base = (process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "")) || "https://bridgewell-financial.vercel.app";
+      const formUrl = `${base}/client/form/${encodeURIComponent(loginKey)}`;
+      const subject = `Bridgewell Onboarding: Your form is ready`;
+      const safeOrg = organization ? ` at ${organization}` : "";
+      const html = `
+        <div style="font-family:Arial,sans-serif;font-size:14px;color:#222;line-height:1.6">
+          <p>Hi ${clientName}${safeOrg},</p>
+          <p>You've been added to a Bridgewell onboarding form. Please use the link below to securely access your form and begin submitting your information and documents.</p>
+          <p>
+            <a href="${formUrl}" style="display:inline-block;background:#0a66c2;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;font-weight:600" target="_blank" rel="noopener">Open your form</a>
+          </p>
+          <p>Alternatively, go to the Bridgewell dashboard and enter this access code:</p>
+          <p style="margin:4px 0"><a href="https://bridgewell-financial.vercel.app/" target="_blank" rel="noopener">https://bridgewell-financial.vercel.app/</a></p>
+          <p style="font-weight:700;font-size:16px">${loginKey}</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0" />
+          <p style="color:#555">This message was sent by Bridgewell Financial Client Onboarding.</p>
+        </div>
+      `;
+      await fetch(`https://graph.microsoft.com/v1.0/users/${encodeURIComponent(SENDER_UPN)}/sendMail`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: {
+            subject,
+            body: { contentType: "HTML", content: html },
+            toRecipients: [{ emailAddress: { address: email } }],
+            ...(adminEmail ? { ccRecipients: [{ emailAddress: { address: adminEmail } }] } : {}),
+            from: { emailAddress: { address: SENDER_UPN } },
+          },
+          saveToSentItems: true,
+        }),
+      }).catch(() => null);
+    } catch (notifyErr) {
+      console.error("Failed to send client notification:", notifyErr);
+    }
     
     return NextResponse.json({
       data: {
