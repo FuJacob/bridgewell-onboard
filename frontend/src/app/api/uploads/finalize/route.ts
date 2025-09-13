@@ -8,7 +8,9 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null as any);
-    const { loginKey, question, mode, fileName, fileId } = body || {};
+    const { loginKey, mode, fileName, fileId } = body || {};
+    const rawQuestion = (body && (body.question ?? body.questionText)) as string | undefined;
+    const question = typeof rawQuestion === 'string' ? rawQuestion : undefined;
 
     if (!loginKey || !question || !mode || !fileName) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -83,6 +85,58 @@ export async function POST(request: Request) {
     }
 
     if (mode === "answer") {
+      // Send admin notification email similar to submit-question route
+      try {
+        const { data: clientData } = await supabase
+          .from("clients")
+          .select("client_name, organization, admin")
+          .eq("login_key", loginKey)
+          .maybeSingle();
+
+        const adminEmail = (clientData as any)?.admin as string | null;
+        if (adminEmail && typeof adminEmail === 'string' && adminEmail.includes('@')) {
+          const base = (process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "")) || "https://bridgewell-financial.vercel.app";
+          const formUrl = `${base}/client/form/${encodeURIComponent(loginKey)}`;
+          const subject = `New submission from ${clientData?.client_name || 'Client'} for "${question}"`;
+          const html = `
+            <div style=\"font-family:Arial,sans-serif;font-size:14px;color:#222\">
+              <p>Hi,</p>
+              <p>The client <strong>${clientData?.client_name || 'Unknown'}</strong>${clientData?.organization ? ` (<em>${clientData.organization}</em>)` : ''} submitted a response for:</p>
+              <p><strong>Question:</strong> ${question}</p>
+              <p>You can review or download the files here:</p>
+              <p><a href=\"${formUrl}\" style=\"display:inline-block;background:#0a66c2;color:#fff;padding:10px 12px;border-radius:6px;text-decoration:none;font-weight:600\" target=\"_blank\" rel=\"noopener\">Open client form</a></p>
+              <p>Alternatively, go to the Bridgewell dashboard and enter this access code:</p>
+              <p style=\"font-weight:700;font-size:16px\">${loginKey}</p>
+              <p style=\"color:#555\">This is an automated notification.</p>
+            </div>
+          `;
+
+          const accessToken = await getAccessToken();
+          const SENDER_UPN = process.env.MAIL_SENDER_UPN || 'clientonboarding@bridgewellfinancial.com';
+          const mailResp = await fetch(`https://graph.microsoft.com/v1.0/users/${encodeURIComponent(SENDER_UPN)}/sendMail`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: {
+                subject,
+                body: { contentType: 'HTML', content: html },
+                toRecipients: [{ emailAddress: { address: adminEmail } }],
+                from: { emailAddress: { address: SENDER_UPN } }
+              },
+              saveToSentItems: true
+            })
+          });
+          if (!mailResp.ok) {
+            const errText = await mailResp.text().catch(() => '');
+            console.error('Graph sendMail (finalize answer) failed:', mailResp.status, errText);
+          } else {
+            console.log('Admin (finalize answer) notification sent to', adminEmail);
+          }
+        }
+      } catch (notifyErr) {
+        console.error('Admin notify (finalize answer) error:', notifyErr);
+      }
+
       // No DB metadata needed; completion checks look at OneDrive
       return NextResponse.json({ success: true });
     }
