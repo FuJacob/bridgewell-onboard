@@ -209,25 +209,25 @@ export default function FormEditorModal({
                   </div>
                   <div>
                     <label className="block text-xs sm:text-sm font-medium mb-1">
-                      Admin Email
-                    </label>
-                    <input
-                      type="email"
-                      placeholder="admin@example.com"
-                      value={adminEmail}
-                      onChange={(e) => onAdminEmailChange?.(e.target.value)}
-                      className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium mb-1">
-                      Email
+                      Client Email
                     </label>
                     <input
                       type="email"
                       placeholder="johnsmith@bridgewellfinancial.com"
                       value={email}
                       onChange={(e) => onEmailChange?.(e.target.value)}
+                      className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium mb-1">
+                      Bridgewell Admin Email
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="admin@example.com"
+                      value={adminEmail}
+                      onChange={(e) => onAdminEmailChange?.(e.target.value)}
                       className="block w-full p-2 sm:p-3 border-2 border-gray-300 focus:border-primary focus:ring-primary rounded-xl text-sm sm:text-base"
                     />
                   </div>
