@@ -130,21 +130,19 @@ export default function QuestionEditor({
             />
           </div>
 
-          {((question.response_type === 'file') || (question.response_type === 'notice')) && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Reference Link{" "}
-                <span className="text-gray-400 font-normal">(optional)</span>
-              </label>
-              <input
-                type="url"
-                value={question.link || ""}
-                onChange={(e) => onUpdateLink(index, e.target.value)}
-                placeholder="https://example.com/reference"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-base"
-              />
-            </div>
-          )}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Reference Link{" "}
+              <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="url"
+              value={question.link || ""}
+              onChange={(e) => onUpdateLink(index, e.target.value)}
+              placeholder="https://example.com/reference"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-base"
+            />
+          </div>
         </div>
 
         {/* Response Type and Due Date Row */}
@@ -164,20 +162,18 @@ export default function QuestionEditor({
             </select>
           </div>
 
-          {((question.response_type === 'file') || (question.response_type === 'notice')) && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Due Date{" "}
-                <span className="text-gray-400 font-normal">(optional)</span>
-              </label>
-              <input
-                type="date"
-                value={question.due_date || ''}
-                onChange={(e) => onUpdateDueDate(index, e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-base"
-              />
-            </div>
-          )}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Due Date{" "}
+              <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="date"
+              value={question.due_date || ''}
+              onChange={(e) => onUpdateDueDate(index, e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-base"
+            />
+          </div>
         </div>
 
         {/* Template Upload for File & Notice Questions */}
