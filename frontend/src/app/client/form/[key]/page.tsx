@@ -606,8 +606,11 @@ export default function ClientFormPage() {
     );
   }
 
-  const completedCount =
-    Object.values(submittedQuestions).filter(Boolean).length;
+  const totalNonNoticeCount = questions.filter((q) => q.response_type !== 'notice').length;
+  const completedCount = questions.reduce((acc, q, idx) => {
+    if (q.response_type === 'notice') return acc;
+    return acc + ((submittedQuestions[idx] || false) ? 1 : 0);
+  }, 0);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative">
@@ -650,7 +653,7 @@ export default function ClientFormPage() {
         {/* Completion bar */}
         <CompletionBar
           completedCount={completedCount}
-          totalCount={questions.length}
+          totalCount={totalNonNoticeCount}
         />
 
         {clientData ? (
