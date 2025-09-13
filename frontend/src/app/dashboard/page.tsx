@@ -291,7 +291,7 @@ export default function Dashboard() {
       const processedQuestions = questions.map((q, idx) => {
 
         if (
-          q.response_type === "file" &&
+          (q.response_type === "file" || q.response_type === "notice") &&
           q.templates &&
           q.templates.length > 0
         ) {
@@ -350,7 +350,7 @@ export default function Dashboard() {
       console.log("templateFiles keys:", Object.keys(templateFiles));
       console.log("Expected file count by question:");
       processedQuestions.forEach((q, idx) => {
-        if (q.response_type === "file" && q.templates) {
+        if ((q.response_type === "file" || q.response_type === "notice") && q.templates) {
           console.log(`Question ${idx + 1}: ${q.templates.length} templates`);
           q.templates.forEach((template, templateIdx) => {
             const expectedKey = `templateFile_${idx}_${templateIdx}`;
@@ -401,7 +401,7 @@ export default function Dashboard() {
         // Build upload list from the original questions (preserves fileObject references)
         const toUpload: Array<{ questionText: string; file: File }>= [];
         questions.forEach((q) => {
-          if (q.response_type === 'file' && Array.isArray(q.templates)) {
+          if ((q.response_type === 'file' || q.response_type === 'notice') && Array.isArray(q.templates)) {
             (q.templates as any[]).forEach((t: any) => {
               if (t?.fileObject instanceof File) {
                 toUpload.push({ questionText: q.question || '', file: t.fileObject as File });

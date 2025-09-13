@@ -71,19 +71,17 @@ export default function QuestionCard({
                   {question.question || ''}
                 </h2>
 
-                {question.response_type !== 'notice' && (
-                  <div className="mb-3 p-2 text-xs bg-red-50 border-l-4 border-red-400 text-red-700 rounded-r-lg w-fit">
-                    Due Date:{" "}
-                    {question.due_date
-                      ? new Date(question.due_date).toLocaleString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        })
-                      : "N/A"}
-                  </div>
-                )}
-                {question.link && question.response_type !== 'notice' && (
+                <div className="mb-3 p-2 text-xs bg-red-50 border-l-4 border-red-400 text-red-700 rounded-r-lg w-fit">
+                  Due Date:{" "}
+                  {question.due_date
+                    ? new Date(question.due_date).toLocaleString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })
+                    : "N/A"}
+                </div>
+                {question.link && (
                   <div className="mb-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
                     <div className="flex items-center gap-2">
                       <span className="text-blue-700 font-medium text-sm">
@@ -123,7 +121,7 @@ export default function QuestionCard({
       {/* Content Section */}
       <div className="p-6">
         {/* Download Template Button */}
-        {question.response_type === "file" &&
+        {(question.response_type === "file" || question.response_type === "notice") &&
           question.templates &&
           question.templates.length > 0 &&
           question.templates.some(

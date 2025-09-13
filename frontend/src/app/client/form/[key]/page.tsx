@@ -258,7 +258,7 @@ export default function ClientFormPage() {
 
   const handleClearTemplatesInEdit = async (index: number) => {
     const q = questions[index];
-    if (q.response_type !== "file") return;
+    if (q.response_type !== "file" && q.response_type !== "notice") return;
     // Optionally fetch count first by listing current templates state (best-effort via state)
     const count = Array.isArray(q.templates) ? q.templates.length : 0;
     const confirmed = window.confirm(
@@ -463,7 +463,7 @@ export default function ClientFormPage() {
       // Build uploads list from staged files (pending blue chips)
       const uploads: Array<{ qIndex: number; tIndex: number; questionText: string; file: File }>= [];
       const processedQuestions = updatedQuestions.map((q, idx) => {
-        if (q.response_type === "file" && Array.isArray(q.templates) && q.templates.length > 0) {
+        if ((q.response_type === "file" || q.response_type === "notice") && Array.isArray(q.templates) && q.templates.length > 0) {
           q.templates.forEach((t: any, tIdx: number) => {
             if (t && t.fileObject instanceof File) {
               uploads.push({ qIndex: idx, tIndex: tIdx, questionText: q.question || '', file: t.fileObject as File });
@@ -949,7 +949,7 @@ export default function ClientFormPage() {
                           className="block w-full p-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
                         />
                       </div>
-                      {question.response_type === "file" && (
+                      {(question.response_type === "file" || question.response_type === "notice") && (
                         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                           <label className="block text-sm font-medium text-blue-800 mb-2">
                             Template Documents <span className="text-blue-600 font-normal">(optional)</span>

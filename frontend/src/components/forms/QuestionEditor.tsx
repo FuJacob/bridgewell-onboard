@@ -130,7 +130,7 @@ export default function QuestionEditor({
             />
           </div>
 
-          {question.response_type !== 'notice' && (
+          {((question.response_type === 'file') || (question.response_type === 'notice')) && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Reference Link{" "}
@@ -164,7 +164,7 @@ export default function QuestionEditor({
             </select>
           </div>
 
-          {question.response_type !== 'notice' && (
+          {((question.response_type === 'file') || (question.response_type === 'notice')) && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Due Date{" "}
@@ -180,8 +180,8 @@ export default function QuestionEditor({
           )}
         </div>
 
-        {/* Template Upload for File Questions */}
-        {question.response_type === "file" && (
+        {/* Template Upload for File & Notice Questions */}
+        {(question.response_type === "file" || question.response_type === "notice") && (
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
             <label className="block text-sm font-semibold text-blue-800 mb-2">
               📎 Template Document{" "}
