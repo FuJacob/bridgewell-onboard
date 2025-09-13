@@ -93,6 +93,11 @@ export default function ClientFormPage() {
   const [pendingTemplateUploads, setPendingTemplateUploads] = useState(0); // reserved for future use
   const pendingUploadsRef = useRef(0);
   useEffect(() => { pendingUploadsRef.current = pendingTemplateUploads; }, [pendingTemplateUploads]);
+  // Admin edit: client info fields
+  const [editClientName, setEditClientName] = useState("");
+  const [editOrganization, setEditOrganization] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editClientDescription, setEditClientDescription] = useState("");
 
   // Check if questions are already completed
   const checkCompletionStatus = useCallback(async () => {
@@ -444,6 +449,11 @@ export default function ClientFormPage() {
 
   // Admin edit handlers
   const handleEditForm = () => {
+    // Prefill edit fields from loaded client data
+    setEditClientName(clientData?.client_name || "");
+    setEditOrganization(clientData?.organization || "");
+    setEditEmail(clientData?.email || "");
+    setEditClientDescription(clientData?.description || "");
     setShowEditModal(true);
   };
 
@@ -543,7 +553,12 @@ export default function ClientFormPage() {
 
       // Update only metadata via JSON; no files in request body (bypass Vercel limits)
       const dbQuestions = convertToDbQuestions(processedQuestions);
-      const data = await updateForm(loginKey, dbQuestions, {}, true);
+      const data = await updateForm(loginKey, dbQuestions, {}, true, {
+        clientName,
+        email,
+        organization,
+        clientDescription,
+      });
 
       if (data.success) {
         // Wait for any in-flight direct uploads to finish before reload
@@ -785,7 +800,7 @@ export default function ClientFormPage() {
               </button>
             </div>
 
-            {/* Client Info (Read-only) */}
+            {/* Client Info (Editable) */}
             <div className="bg-gray-50 rounded-xl p-4 mb-6">
               <h3 className="text-lg font-semibold text-gray-700 mb-3">
                 Client Information
@@ -795,31 +810,44 @@ export default function ClientFormPage() {
                   <label className="block text-sm font-medium text-gray-600 mb-1">
                     Client Name
                   </label>
-                  <p className="text-gray-900 font-medium">
-                    {clientData.client_name}
-                  </p>
+                  <input
+                    type="text"
+                    value={editClientName}
+                    onChange={(e) => setEditClientName(e.target.value)}
+                    className="block w-full p-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">
                     Organization
                   </label>
-                  <p className="text-gray-900 font-medium">
-                    {clientData.organization}
-                  </p>
+                  <input
+                    type="text"
+                    value={editOrganization}
+                    onChange={(e) => setEditOrganization(e.target.value)}
+                    className="block w-full p-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">
-                    Email
+                    Client Email
                   </label>
-                  <p className="text-gray-900 font-medium">
-                    {clientData.email}
-                  </p>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="block w-full p-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">
                     Description
                   </label>
-                  <p className="text-gray-900">{clientData.description}</p>
+                  <textarea
+                    value={editClientDescription}
+                    onChange={(e) => setEditClientDescription(e.target.value)}
+                    className="block w-full p-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-primary h-[120px]"
+                  />
                 </div>
               </div>
             </div>
@@ -1163,10 +1191,10 @@ export default function ClientFormPage() {
                 <button
                   onClick={() =>
                     handleUpdateForm(
-                      clientData.client_name || "",
-                      clientData.email || "",
-                      clientData.organization || "",
-                      clientData.description || "",
+                      editClientName,
+                      editEmail,
+                      editOrganization,
+                      editClientDescription,
                       questions
                     )
                   }

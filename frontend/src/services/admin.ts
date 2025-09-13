@@ -174,12 +174,19 @@ export async function updateForm(
   loginKey: string,
   questions: Question[],
   templateFiles: { [key: string]: File } = {},
-  directUpload?: boolean
+  directUpload?: boolean,
+  client?: { clientName?: string; email?: string; organization?: string; clientDescription?: string }
 ): Promise<{ success?: boolean; error?: string }> {
   let response: Response;
   if (directUpload) {
     // Send JSON only to avoid Vercel 413
-    const payload = { loginKey, questions, directUpload: true };
+    const payload: any = { loginKey, questions, directUpload: true };
+    if (client) {
+      if (typeof client.clientName === 'string') payload.clientName = client.clientName;
+      if (typeof client.email === 'string') payload.email = client.email;
+      if (typeof client.organization === 'string') payload.organization = client.organization;
+      if (typeof client.clientDescription === 'string') payload.clientDescription = client.clientDescription;
+    }
     response = await fetch("/api/admin/update-form", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -189,6 +196,12 @@ export async function updateForm(
     const formData = new FormData();
     formData.append("loginKey", loginKey);
     formData.append("questions", JSON.stringify(questions));
+    if (client) {
+      if (typeof client.clientName === 'string') formData.append('clientName', client.clientName);
+      if (typeof client.email === 'string') formData.append('email', client.email);
+      if (typeof client.organization === 'string') formData.append('organization', client.organization);
+      if (typeof client.clientDescription === 'string') formData.append('clientDescription', client.clientDescription);
+    }
     // Add template files to FormData with detailed logging
     console.log(`=== Adding ${Object.keys(templateFiles).length} files to FormData for update ===`);
     Object.entries(templateFiles).forEach(([key, file]) => {

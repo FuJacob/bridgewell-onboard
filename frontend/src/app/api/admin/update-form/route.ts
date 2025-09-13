@@ -11,16 +11,28 @@ export async function POST(request: Request) {
     let loginKey: string;
     let questionsRaw: string;
     let directUpload = false;
+    let clientNameOverride: string | undefined;
+    let emailOverride: string | undefined;
+    let organizationOverride: string | undefined;
+    let clientDescriptionOverride: string | undefined;
     if (contentType.includes('application/json')) {
       const body = await request.json();
       loginKey = body.loginKey;
       questionsRaw = JSON.stringify(body.questions);
       directUpload = !!body.directUpload;
+      if (typeof body.clientName === 'string') clientNameOverride = body.clientName;
+      if (typeof body.email === 'string') emailOverride = body.email;
+      if (typeof body.organization === 'string') organizationOverride = body.organization;
+      if (typeof body.clientDescription === 'string') clientDescriptionOverride = body.clientDescription;
     } else {
       formData = await request.formData();
       loginKey = formData.get("loginKey") as string;
       questionsRaw = formData.get("questions") as string;
       directUpload = formData.get("directUpload") === '1';
+      clientNameOverride = (formData.get('clientName') as string) || undefined;
+      emailOverride = (formData.get('email') as string) || undefined;
+      organizationOverride = (formData.get('organization') as string) || undefined;
+      clientDescriptionOverride = (formData.get('clientDescription') as string) || undefined;
     }
 
     console.log("Received update form data:", {
@@ -79,7 +91,7 @@ export async function POST(request: Request) {
     // First, get the existing client data to get the client name
     const { data: existingClient, error: clientFetchError } = await supabase
       .from("clients")
-      .select("client_name")
+      .select("client_name, organization, email, description")
       .eq("login_key", loginKey)
       .single();
 
@@ -88,7 +100,68 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
 
-    const clientName = existingClient.client_name;
+    let clientName = existingClient.client_name;
+    const clientOrg = existingClient.organization || '';
+    const oldSanitizedClientName = sanitizeSharePointName(clientName || 'unknown_client');
+    const oldClientFolderName = `${oldSanitizedClientName}_${loginKey}`;
+
+    // If client info overrides provided, update Supabase and OneDrive folder name
+    if (clientNameOverride || organizationOverride || emailOverride || clientDescriptionOverride) {
+      const updates: Record<string, any> = {};
+      if (typeof clientNameOverride === 'string' && clientNameOverride.trim().length > 0) updates.client_name = clientNameOverride;
+      if (typeof organizationOverride === 'string') updates.organization = organizationOverride;
+      if (typeof emailOverride === 'string') updates.email = emailOverride;
+      if (typeof clientDescriptionOverride === 'string') updates.description = clientDescriptionOverride;
+
+      if (Object.keys(updates).length > 0) {
+        const { error: updErr } = await supabase.from('clients').update(updates).eq('login_key', loginKey);
+        if (updErr) {
+          console.error('Failed updating client metadata:', updErr);
+          return NextResponse.json({ error: `Failed to update client: ${updErr.message}` }, { status: 500 });
+        }
+        if (typeof updates.client_name === 'string') {
+          clientName = updates.client_name as string;
+        }
+
+        // Rename OneDrive client folder if client name or org changed (affects display name portion)
+        try {
+          const { getAccessToken } = await import("@/app/utils/microsoft/auth");
+          const accessToken = await getAccessToken();
+          const newSanitizedClientName = sanitizeSharePointName(clientName || 'unknown_client');
+          const newClientFolderName = `${newSanitizedClientName}_${loginKey}`;
+          if (newClientFolderName !== oldClientFolderName) {
+            const SHAREPOINT_SITE_ID = "bridgewellfinancial.sharepoint.com,80def30d-85bd-4e18-969a-6346931d152d,deb319e5-cef4-4818-9ec3-805bedea8819";
+            const SITE_URL = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE_ID}`;
+            // Fetch current client folder item by path then PATCH name
+            const metaResp = await fetch(`${SITE_URL}/drive/root:/CLIENTS/${oldClientFolderName}`, {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (metaResp.ok) {
+              const meta = await metaResp.json();
+              const itemId = meta?.id as string | undefined;
+              if (itemId) {
+                const patchResp = await fetch(`${SITE_URL}/drive/items/${encodeURIComponent(itemId)}`, {
+                  method: 'PATCH',
+                  headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ name: newClientFolderName })
+                });
+                if (!patchResp.ok) {
+                  const t = await patchResp.text().catch(() => '');
+                  console.error('Failed to rename client folder:', patchResp.status, t);
+                } else {
+                  console.log('Renamed client folder to', newClientFolderName);
+                }
+              }
+            } else {
+              const t = await metaResp.text().catch(() => '');
+              console.error('Failed fetching client folder for rename:', metaResp.status, t);
+            }
+          }
+        } catch (reErr) {
+          console.error('Error during OneDrive client folder rename:', reErr);
+        }
+      }
+    }
     // Fetch existing questions and build map + deletions list
     const { data: existingQuestions, error: existingQuestionsError } =
       await supabase.from("questions").select("*").eq("login_key", loginKey);
