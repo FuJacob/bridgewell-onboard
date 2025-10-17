@@ -725,7 +725,7 @@ export default function ClientFormPage() {
                   <span className="font-bold text-white">all questions</span>{" "}
                   below. If you need any help, feel free to reach out to your{" "}
                   <span className="font-bold text-secondary">
-                    Bridgewell Financial Advisor
+                    Bridgewell Financial Group Service Coordinator
                   </span>
                   {clientData?.admin ? (
                     <>

@@ -15,7 +15,7 @@ export default function CompletionBar({
   const getCompletionStatus = () => {
     if (percentage === 100) return "Form Complete!";
     if (percentage === 0) return "Form Not Started";
-    return `${percentage}% Complete`;
+    return `${percentage}% of Pre-Implementation Checklist Complete`;
   };
 
   return (
