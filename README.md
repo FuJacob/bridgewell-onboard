@@ -39,12 +39,12 @@ npm install
 Create a `.env.local` file in the frontend directory with the following:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-MICROSOFT_CLIENT_ID=your_microsoft_client_id
-MICROSOFT_CLIENT_SECRET=your_microsoft_client_secret
-MICROSOFT_TENANT_ID=your_microsoft_tenant_id
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+AZURE_CLIENT_ID
+AZURE_CLIENT_SECRET
+TENANT_ID
 ```
 
 ### 4. Run locally
